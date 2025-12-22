@@ -1,0 +1,83 @@
+name: Build ISO (AMD64)
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'live-build/**'
+      - 'packages/**'
+      - 'src/**'
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  DEBIAN_FRONTEND: noninteractive
+
+jobs:
+  build-packages:
+    runs-on: ubuntu-latest
+    container:
+      image: debian:trixie
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      
+      - name: Install build dependencies
+        run: |
+          apt-get update
+          apt-get install -y build-essential devscripts debhelper dh-python
+          apt-get install -y python3-all python3-setuptools python3-pip
+          apt-get install -y golang-go nodejs npm
+      
+      - name: Build Debian packages
+        run: |
+          cd packages
+          for pkg in */; do
+            if [ -d "$pkg/debian" ]; then
+              echo "Building $pkg..."
+              cd "$pkg"
+              dpkg-buildpackage -us -uc -b
+              cd ..
+            fi
+          done
+      
+      - name: Upload packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: deb-packages-amd64
+          path: packages/*.deb
+          retention-days: 7
+
+  build-iso:
+    needs: build-packages
+    runs-on: ubuntu-latest
+    container:
+      image: debian:trixie
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install live-build
+        run: |
+          apt-get update
+          apt-get install -y live-build cdebootstrap
+      
+      - name: Download packages
+        uses: actions/download-artifact@v4
+        with:
+          name: deb-packages-amd64
+          path: live-build/config/packages.chroot/
+      
+      - name: Build ISO
+        run: |
+          cd live-build
+          lb config
+          lb build
+      
+      - name: Upload ISO
+        uses: actions/upload-artifact@v4
+        with:
+          name: sigmavault-nas-os-amd64
+          path: live-build/*.iso
+          retention-days: 30
