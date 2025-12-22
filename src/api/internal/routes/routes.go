@@ -2,14 +2,19 @@
 package routes
 
 import (
+	"context"
+	"time"
+
 	"sigmavault-nas-os/api/internal/config"
 	"sigmavault-nas-os/api/internal/handlers"
 	"sigmavault-nas-os/api/internal/middleware"
+	"sigmavault-nas-os/api/internal/rpc"
 	"sigmavault-nas-os/api/internal/websocket"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/recover"
+	"github.com/rs/zerolog/log"
 )
 
 // Setup configures all routes for the application.
@@ -28,16 +33,36 @@ func Setup(app *fiber.App, cfg *config.Config) {
 		MaxAge:           86400,
 	}))
 
-	// Create handlers
+	// Initialize RPC client for Python engine communication
+	rpcClient := rpc.NewClient(rpc.Config{
+		BaseURL: cfg.RPCEngineURL,
+		Timeout: cfg.RPCEngineTimeout,
+	})
+
+	// RPC client uses lazy connection - it will connect on first Call()
+	// Perform a health check to verify engine availability (non-blocking)
+	if err := rpcClient.HealthCheck(context.Background()); err != nil {
+		log.Warn().Err(err).Str("url", cfg.RPCEngineURL).Msg("RPC engine not available at startup, handlers will retry")
+	} else {
+		log.Info().Str("url", cfg.RPCEngineURL).Msg("Connected to RPC engine")
+	}
+
+	// Create handlers with RPC client injection
 	authHandler := handlers.NewAuthHandler(cfg)
-	storageHandler := handlers.NewStorageHandler()
-	systemHandler := handlers.NewSystemHandler()
-	agentsHandler := handlers.NewAgentsHandler()
-	compressionHandler := handlers.NewCompressionHandler()
+	storageHandler := handlers.NewStorageHandler(rpcClient)
+	systemHandler := handlers.NewSystemHandler(rpcClient)
+	agentsHandler := handlers.NewAgentsHandler(rpcClient)
+	compressionHandler := handlers.NewCompressionHandler(rpcClient)
 
 	// Create WebSocket hub
 	wsHub := websocket.NewHub()
 	go wsHub.Run()
+
+	// Initialize event subscriber to broadcast RPC events to WebSocket clients
+	eventSubscriber := websocket.NewEventSubscriber(wsHub, rpcClient)
+	eventSubscriber.Start(context.Background(), 5*time.Second)
+	// eventSubscriber runs independently in background goroutine
+
 	wsHandler := websocket.NewHandler(wsHub)
 
 	// API version prefix

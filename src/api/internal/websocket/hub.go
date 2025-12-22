@@ -8,6 +8,7 @@ import (
 
 	"github.com/gofiber/contrib/websocket"
 	"github.com/gofiber/fiber/v2"
+	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
 )
 
@@ -24,6 +25,9 @@ const (
 	TypeError             MessageType = "error"
 	TypePing              MessageType = "ping"
 	TypePong              MessageType = "pong"
+	TypeHeartbeat         MessageType = "heartbeat"
+	TypeConnectionError   MessageType = "connection_error"
+	TypeRPCError          MessageType = "rpc_error"
 )
 
 // Message represents a WebSocket message.
@@ -83,15 +87,38 @@ func (h *Hub) Run() {
 
 		case message := <-h.broadcast:
 			h.mu.RLock()
+			deadClients := make([]*Client, 0)
 			for client := range h.clients {
 				select {
 				case client.Send <- message:
 				default:
-					close(client.Send)
-					delete(h.clients, client)
+					deadClients = append(deadClients, client)
 				}
 			}
 			h.mu.RUnlock()
+
+			// Handle clients that can't receive (buffer full or closed)
+			if len(deadClients) > 0 {
+				h.mu.Lock()
+				for _, client := range deadClients {
+					if _, ok := h.clients[client]; ok {
+						delete(h.clients, client)
+						close(client.Send)
+						log.Warn().Str("client_id", client.ID).Msg("Client connection dropped (buffer full)")
+
+						// Notify remaining clients of the disconnection
+						h.mu.Unlock()
+						errorMsg := map[string]interface{}{
+							"client_id":  client.ID,
+							"reason":     "buffer_full",
+							"error_code": "CONNECTION_DROP",
+						}
+						h.Broadcast(TypeConnectionError, errorMsg)
+						h.mu.Lock()
+					}
+				}
+				h.mu.Unlock()
+			}
 		}
 	}
 }
@@ -115,6 +142,48 @@ func (h *Hub) Broadcast(msgType MessageType, data interface{}) error {
 	}
 
 	h.broadcast <- encoded
+	return nil
+}
+
+// BroadcastIfSubscribed sends a message to connected clients who are subscribed to the message type.
+func (h *Hub) BroadcastIfSubscribed(msgType MessageType, data interface{}) error {
+	jsonData, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+
+	msg := Message{
+		Type:      msgType,
+		Timestamp: time.Now(),
+		Data:      jsonData,
+	}
+
+	encoded, err := json.Marshal(msg)
+	if err != nil {
+		return err
+	}
+
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+
+	subscribedCount := 0
+	for client := range h.clients {
+		if client.IsSubscribedTo(msgType) {
+			select {
+			case client.Send <- encoded:
+				subscribedCount++
+			default:
+				log.Warn().Str("client_id", client.ID).Str("msg_type", string(msgType)).
+					Msg("Failed to send message to subscribed client (buffer full)")
+			}
+		}
+	}
+
+	if subscribedCount > 0 {
+		log.Debug().Str("msg_type", string(msgType)).Int("subscribers", subscribedCount).
+			Msg("Message broadcast to subscribed clients")
+	}
+
 	return nil
 }
 
@@ -246,7 +315,7 @@ func (c *Client) handleMessage(data []byte) {
 	}
 }
 
-// generateClientID generates a unique client ID.
+// generateClientID generates a unique client ID using UUID v4.
 func generateClientID() string {
-	return time.Now().Format("20060102150405.000000")
+	return uuid.New().String()
 }
