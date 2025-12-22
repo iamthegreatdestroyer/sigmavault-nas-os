@@ -1,0 +1,11 @@
+[submodule "submodules/EliteSigma-NAS"]
+	path = submodules/EliteSigma-NAS
+	url = https://github.com/iamthegreatdestroyer/EliteSigma-NAS.git
+
+[submodule "submodules/PhantomMesh-VPN"]
+	path = submodules/PhantomMesh-VPN
+	url = https://github.com/iamthegreatdestroyer/PhantomMesh-VPN.git
+
+[submodule "submodules/elite-agent-collective"]
+	path = submodules/elite-agent-collective
+	url = https://github.com/iamthegreatdestroyer/elite-agent-collective.git
