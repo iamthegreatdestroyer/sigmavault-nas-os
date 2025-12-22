@@ -1,0 +1,19 @@
+#!/bin/sh
+
+set -e
+
+lb config noauto \
+    --distribution trixie \
+    --archive-areas "main contrib non-free non-free-firmware" \
+    --architectures amd64 \
+    --binary-images iso-hybrid \
+    --bootappend-live "boot=live components hostname=sigmavault username=admin" \
+    --debian-installer none \
+    --iso-application "SigmaVault NAS OS" \
+    --iso-publisher "SigmaVault Project" \
+    --iso-volume "SigmaVault NAS OS" \
+    --memtest none \
+    --security true \
+    --updates true \
+    --backports true \
+    "${@}"
