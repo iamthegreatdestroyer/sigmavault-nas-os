@@ -1,0 +1,61 @@
+# SigmaVault NAS OS - Core Packages
+
+# Base System
+linux-image-amd64
+systemd
+systemd-sysv
+dbus
+udev
+
+# Storage
+mdadm
+lvm2
+zfsutils-linux
+btrfs-progs
+smartmontools
+hdparm
+nvme-cli
+cryptsetup
+
+# Filesystems
+xfsprogs
+e2fsprogs
+ntfs-3g
+exfatprogs
+
+# Network Services
+samba
+nfs-kernel-server
+rsync
+openssh-server
+avahi-daemon
+
+# Web Server
+nginx
+
+# Python Runtime
+python3
+python3-pip
+python3-venv
+python3-fastapi
+python3-uvicorn
+python3-pydantic
+
+# System Utilities
+sudo
+curl
+wget
+vim-tiny
+htop
+iotop
+lsof
+strace
+net-tools
+iputils-ping
+dnsutils
+
+# Security
+ufw
+fail2ban
+apparmor
+apparmor-utils
