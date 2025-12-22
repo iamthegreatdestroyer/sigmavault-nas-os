@@ -1,0 +1,62 @@
+{
+  "folders": [
+    { "path": ".", "name": "SigmaVault NAS OS" },
+    { "path": "src/webui", "name": "Web UI" },
+    { "path": "src/api", "name": "API Server" },
+    { "path": "src/engined", "name": "RPC Engine" },
+    { "path": "submodules/EliteSigma-NAS", "name": "EliteSigma-NAS" },
+    { "path": "submodules/PhantomMesh-VPN", "name": "PhantomMesh-VPN" },
+    { "path": "submodules/elite-agent-collective", "name": "Elite Agent Collective" }
+  ],
+  "settings": {
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "typescript.preferences.importModuleSpecifier": "relative",
+    "python.defaultInterpreterPath": "/usr/bin/python3",
+    "go.lintTool": "golangci-lint",
+    "rust-analyzer.checkOnSave.command": "clippy",
+    "github.copilot.enable": {
+      "*": true
+    },
+    "files.associations": {
+      "*.salt": "yaml",
+      "*.sls": "yaml"
+    }
+  },
+  "tasks": {
+    "version": "2.0.0",
+    "tasks": [
+      {
+        "label": "Build ISO (AMD64)",
+        "type": "shell",
+        "command": "cd live-build && sudo lb build",
+        "group": "build"
+      },
+      {
+        "label": "Run Tests",
+        "type": "shell",
+        "command": "pytest tests/ -v",
+        "group": "test"
+      },
+      {
+        "label": "Dev Server (Web UI)",
+        "type": "shell",
+        "command": "cd src/webui && pnpm dev",
+        "isBackground": true
+      }
+    ]
+  },
+  "extensions": {
+    "recommendations": [
+      "github.copilot",
+      "github.copilot-chat",
+      "ms-python.python",
+      "golang.go",
+      "rust-lang.rust-analyzer",
+      "dbaeumer.vscode-eslint",
+      "esbenp.prettier-vscode",
+      "bradlc.vscode-tailwindcss",
+      "redhat.vscode-yaml"
+    ]
+  }
+}
