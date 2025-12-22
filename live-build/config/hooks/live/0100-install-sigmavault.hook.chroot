@@ -1,0 +1,61 @@
+#!/bin/bash
+# SigmaVault NAS OS Installation Hook
+set -e
+
+echo "[SigmaVault] Installing core services..."
+
+# Create sigmavault system user
+useradd -r -s /bin/false -d /opt/sigmavault sigmavault 2>/dev/null || true
+
+# Create directory structure
+mkdir -p /opt/sigmavault/{bin,lib,etc,share}
+mkdir -p /var/lib/sigmavault/{data,cache,mnemonic,compression}
+mkdir -p /var/log/sigmavault
+mkdir -p /etc/sigmavault
+
+# Set permissions
+chown -R sigmavault:sigmavault /opt/sigmavault
+chown -R sigmavault:sigmavault /var/lib/sigmavault
+chown -R sigmavault:sigmavault /var/log/sigmavault
+chmod 750 /var/lib/sigmavault/mnemonic
+
+# Create default configuration
+cat > /etc/sigmavault/config.yaml << 'EOF'
+# SigmaVault NAS OS Configuration
+version: "1.0"
+
+server:
+  host: "0.0.0.0"
+  port: 8080
+  tls: true
+
+storage:
+  compression:
+    enabled: true
+    algorithm: "semantic"  # semantic, lz4, zstd
+    level: "balanced"      # fast, balanced, maximum
+  encryption:
+    enabled: true
+    algorithm: "kyber-aes256gcm"
+  
+agents:
+  swarm_size: 40
+  mnemonic:
+    enabled: true
+    path: "/var/lib/sigmavault/mnemonic"
+
+network:
+  phantommesh:
+    enabled: false
+    # Configure in /etc/sigmavault/phantommesh.yaml
+EOF
+
+chown sigmavault:sigmavault /etc/sigmavault/config.yaml
+chmod 640 /etc/sigmavault/config.yaml
+
+# Enable services (if installed)
+systemctl enable sigmavault-api.service 2>/dev/null || true
+systemctl enable sigmavault-engined.service 2>/dev/null || true
+systemctl enable sigmavault-webui.service 2>/dev/null || true
+
+echo "[SigmaVault] Installation complete."
