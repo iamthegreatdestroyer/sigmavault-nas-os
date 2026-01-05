@@ -1,0 +1,31 @@
+// SigmaVault System Service Protobuf Definitions
+
+syntax = "proto3";
+
+package sigmavault.system;
+
+// Memory usage information
+message MemoryUsage {
+  uint64 used = 1;
+  uint64 total = 2;
+  double used_percent = 3;
+}
+
+// System status response
+message GetSystemStatusRequest {
+  // Empty request
+}
+
+message GetSystemStatusResponse {
+  string hostname = 1;
+  uint64 uptime = 2;
+  double cpu_usage = 3;
+  MemoryUsage memory_usage = 4;
+  repeated double load_average = 5;
+}
+
+// System service definition
+service SystemService {
+  rpc GetSystemStatus(GetSystemStatusRequest) returns (GetSystemStatusResponse);
+}</content>
+<parameter name="filePath">c:\Users\sgbil\sigmavault-nas-os\src\engined\engined\rpc\system.proto

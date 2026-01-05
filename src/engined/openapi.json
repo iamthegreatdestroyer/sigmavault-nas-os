@@ -1,0 +1,1519 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Faceless YouTube Dashboard API",
+    "description": "REST API for automated video creation and scheduling",
+    "version": "2.0.0"
+  },
+  "paths": {
+    "/metrics": {
+      "get": {
+        "summary": "Metrics Fallback",
+        "description": "Fallback metrics endpoint for environments where Prometheus\ninstrumentator is not available. Tests expect a 200 response at\nthis path even if full Prometheus metrics are disabled.",
+        "operationId": "metrics_fallback_metrics_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": "@{schema=}"
+            }
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "summary": "Health Check Root",
+        "description": "Root health check endpoint (tests expect this path)",
+        "operationId": "health_check_root_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": "@{schema=}"
+            }
+          }
+        }
+      }
+    },
+    "/ready": {
+      "get": {
+        "summary": "Readiness Check",
+        "description": "Readiness check endpoint - verifies database connection",
+        "operationId": "readiness_check_ready_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": "@{schema=}"
+            }
+          }
+        }
+      }
+    },
+    "/api/health": {
+      "get": {
+        "summary": "Health Check",
+        "description": "Health check endpoint",
+        "operationId": "health_check_api_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": "@{schema=}"
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/login": {
+      "post": {
+        "summary": "Login",
+        "description": "Login endpoint to obtain JWT access token.\n\n**Rate Limited:** 5 requests per minute per IP to prevent brute force.\n\n**Demo Credentials:**\n- Username: admin\n- Password: admin\n\n**IMPORTANT:** Change credentials in production!\n\nArgs:\n    username: User's username\n    password: User's password\n    \nReturns:\n    JWT access token\n    \nRaises:\n    HTTP 401: If credentials are invalid\n    HTTP 429: If rate limit exceeded",
+        "operationId": "login_api_auth_login_post",
+        "requestBody": {
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": "@{$ref=#/components/schemas/Body_login_api_auth_login_post}"
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": "@{schema=}"
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": "@{schema=}"
+            }
+          }
+        }
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "summary": "Login Alias",
+        "description": "Login endpoint alias (for test compatibility).\n\nAccepts either username or email for login.",
+        "operationId": "login_alias_auth_login_post",
+        "requestBody": {
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": "@{$ref=#/components/schemas/Body_login_alias_auth_login_post}"
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": "@{schema=}"
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": "@{schema=}"
+            }
+          }
+        }
+      }
+    },
+    "/api/videos": {
+      "post": {
+        "summary": "Create Video",
+        "description": "Create a new video (PROTECTED - Requires Authentication).\n\n**Authentication Required:** Include JWT token in Authorization header.\n**Rate Limited:** 10 video creations per minute\n\nArgs:\n    video_data: Video creation data\n    current_user: Authenticated user (from JWT)\n    db: Database session\n    \nReturns:\n    Created video object",
+        "operationId": "create_video_api_videos_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": "@{$ref=#/components/schemas/VideoCreate}"
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": "@{schema=}"
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": "@{schema=}"
+            }
+          }
+        }
+      },
+      "get": {
+        "summary": "List Videos",
+        "description": "List videos for current user (PROTECTED - Requires Authentication).\n\n**Authentication Required:** Include JWT token in Authorization header.\n**Rate Limited:** 60 requests per minute\n\nArgs:\n    skip: Number of records to skip (pagination)\n    limit: Maximum number of records to return\n    current_user: Authenticated user (from JWT)\n    db: Database session\n    \nReturns:\n    List of videos",
+        "operationId": "list_videos_api_videos_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "skip",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 0,
+              "title": "Skip"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 100,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": "@{schema=}"
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": "@{schema=}"
+            }
+          }
+        }
+      }
+    },
+    "/api/videos/{video_id}": {
+      "get": {
+        "summary": "Get Video",
+        "description": "Get specific video by ID (PROTECTED - Requires Authentication).\n\n**Authentication Required:** Include JWT token in Authorization header.\n**Rate Limited:** 60 requests per minute\n\nArgs:\n    video_id: Video ID\n    current_user: Authenticated user (from JWT)\n    db: Database session\n    \nReturns:\n    Video object\n    \nRaises:\n    HTTP 404: If video not found",
+        "operationId": "get_video_api_videos__video_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "video_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Video Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": "@{schema=}"
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": "@{schema=}"
+            }
+          }
+        }
+      },
+      "put": {
+        "summary": "Update Video",
+        "description": "Update existing video (PROTECTED - Requires Authentication).\n\n**Authentication Required:** Include JWT token in Authorization header.\n**Rate Limited:** 30 updates per minute\n\nArgs:\n    video_id: Video ID\n    video_data: Fields to update\n    current_user: Authenticated user (from JWT)\n    db: Database session\n    \nReturns:\n    Updated video object\n    \nRaises:\n    HTTP 404: If video not found",
+        "operationId": "update_video_api_videos__video_id__put",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "video_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Video Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": "@{$ref=#/components/schemas/VideoUpdate}"
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": "@{schema=}"
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": "@{schema=}"
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete Video",
+        "description": "Delete video (PROTECTED - Requires Authentication).\n\n**Authentication Required:** Include JWT token in Authorization header.\n**Rate Limited:** 30 deletions per minute\n\nArgs:\n    video_id: Video ID\n    current_user: Authenticated user (from JWT)\n    db: Database session\n    \nRaises:\n    HTTP 404: If video not found",
+        "operationId": "delete_video_api_videos__video_id__delete",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "video_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Video Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": "@{schema=}"
+            }
+          }
+        }
+      }
+    },
+    "/api/jobs": {
+      "post": {
+        "summary": "Create Job",
+        "description": "Generic job creation endpoint used by tests.\n\nAccepts a flexible JSON body and schedules a job via the\ncontent_scheduler when available. Returns a job id in all cases\nto keep test expectations simple.",
+        "operationId": "create_job_api_jobs_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": "@{schema=}"
+            }
+          }
+        }
+      },
+      "get": {
+        "summary": "List Jobs",
+        "description": "List all jobs with optional status filter",
+        "operationId": "list_jobs_api_jobs_get",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": " ",
+              "title": "Status"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": "@{schema=}"
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": "@{schema=}"
+            }
+          }
+        }
+      }
+    },
+    "/api/jobs/schedule": {
+      "post": {
+        "summary": "Schedule Video",
+        "description": "Schedule single video (PROTECTED - Requires Authentication).\n\n**Authentication Required:** Include JWT token in Authorization header:\n```\nAuthorization: Bearer <your_jwt_token>\n```\n\n**Rate Limited:** 10 video schedules per minute",
+        "operationId": "schedule_video_api_jobs_schedule_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": "@{$ref=#/components/schemas/ScheduleVideoRequest}"
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": "@{schema=}"
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": "@{schema=}"
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/jobs/{job_id}": {
+      "get": {
+        "summary": "Get Job",
+        "description": "Get single job details",
+        "operationId": "get_job_api_jobs__job_id__get",
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Job Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": "@{schema=}"
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": "@{schema=}"
+            }
+          }
+        }
+      }
+    },
+    "/api/jobs/{job_id}/cancel": {
+      "post": {
+        "summary": "Cancel Job",
+        "description": "Cancel job",
+        "operationId": "cancel_job_api_jobs__job_id__cancel_post",
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Job Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": "@{schema=}"
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": "@{schema=}"
+            }
+          }
+        }
+      }
+    },
+    "/api/jobs/{job_id}/pause": {
+      "post": {
+        "summary": "Pause Job",
+        "description": "Pause job",
+        "operationId": "pause_job_api_jobs__job_id__pause_post",
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Job Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": "@{schema=}"
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": "@{schema=}"
+            }
+          }
+        }
+      }
+    },
+    "/api/jobs/{job_id}/resume": {
+      "post": {
+        "summary": "Resume Job",
+        "description": "Resume paused job",
+        "operationId": "resume_job_api_jobs__job_id__resume_post",
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Job Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": "@{schema=}"
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": "@{schema=}"
+            }
+          }
+        }
+      }
+    },
+    "/api/recurring/create": {
+      "post": {
+        "summary": "Create Recurring Schedule",
+        "description": "Create recurring schedule",
+        "operationId": "create_recurring_schedule_api_recurring_create_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": "@{$ref=#/components/schemas/CreateRecurringRequest}"
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": "@{schema=}"
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": "@{schema=}"
+            }
+          }
+        }
+      }
+    },
+    "/api/recurring": {
+      "get": {
+        "summary": "List Recurring Schedules",
+        "description": "List all recurring schedules",
+        "operationId": "list_recurring_schedules_api_recurring_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": "@{schema=}"
+            }
+          }
+        }
+      }
+    },
+    "/api/recurring/{job_id}/pause": {
+      "post": {
+        "summary": "Pause Recurring Schedule",
+        "description": "Pause recurring schedule",
+        "operationId": "pause_recurring_schedule_api_recurring__job_id__pause_post",
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Job Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": "@{schema=}"
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": "@{schema=}"
+            }
+          }
+        }
+      }
+    },
+    "/api/recurring/{job_id}/resume": {
+      "post": {
+        "summary": "Resume Recurring Schedule",
+        "description": "Resume recurring schedule",
+        "operationId": "resume_recurring_schedule_api_recurring__job_id__resume_post",
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Job Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": "@{schema=}"
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": "@{schema=}"
+            }
+          }
+        }
+      }
+    },
+    "/api/recurring/{job_id}": {
+      "delete": {
+        "summary": "Delete Recurring Schedule",
+        "description": "Delete recurring schedule",
+        "operationId": "delete_recurring_schedule_api_recurring__job_id__delete",
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Job Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": "@{schema=}"
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": "@{schema=}"
+            }
+          }
+        }
+      }
+    },
+    "/api/calendar/slots": {
+      "post": {
+        "summary": "Reserve Calendar Slot",
+        "description": "Reserve calendar slot",
+        "operationId": "reserve_calendar_slot_api_calendar_slots_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": "@{$ref=#/components/schemas/CalendarSlotRequest}"
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": "@{schema=}"
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": "@{schema=}"
+            }
+          }
+        }
+      }
+    },
+    "/api/calendar": {
+      "get": {
+        "summary": "Calendar Root",
+        "description": "Root calendar endpoint returning a brief summary used by smoke tests.",
+        "operationId": "calendar_root_api_calendar_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": "@{schema=}"
+            }
+          }
+        }
+      }
+    },
+    "/api/calendar/day/{date_str}": {
+      "get": {
+        "summary": "Get Calendar Day",
+        "description": "Get calendar for specific day",
+        "operationId": "get_calendar_day_api_calendar_day__date_str__get",
+        "parameters": [
+          {
+            "name": "date_str",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Date Str"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": "@{schema=}"
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": "@{schema=}"
+            }
+          }
+        }
+      }
+    },
+    "/api/calendar/week/{date_str}": {
+      "get": {
+        "summary": "Get Calendar Week",
+        "description": "Get calendar for week starting on date",
+        "operationId": "get_calendar_week_api_calendar_week__date_str__get",
+        "parameters": [
+          {
+            "name": "date_str",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Date Str"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": "@{schema=}"
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": "@{schema=}"
+            }
+          }
+        }
+      }
+    },
+    "/api/calendar/suggestions": {
+      "get": {
+        "summary": "Get Slot Suggestions",
+        "description": "Get optimal slot suggestions",
+        "operationId": "get_slot_suggestions_api_calendar_suggestions_get",
+        "parameters": [
+          {
+            "name": "count",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 5,
+              "title": "Count"
+            }
+          },
+          {
+            "name": "days",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 30,
+              "title": "Days"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": "@{schema=}"
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": "@{schema=}"
+            }
+          }
+        }
+      }
+    },
+    "/api/calendar/conflicts": {
+      "get": {
+        "summary": "Get Calendar Conflicts",
+        "description": "Get all calendar conflicts",
+        "operationId": "get_calendar_conflicts_api_calendar_conflicts_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": "@{schema=}"
+            }
+          }
+        }
+      }
+    },
+    "/api/statistics": {
+      "get": {
+        "summary": "Get Statistics",
+        "description": "Get system statistics",
+        "operationId": "get_statistics_api_statistics_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": "@{schema=}"
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Body_login_alias_auth_login_post": {
+        "properties": {
+          "email": {
+            "anyOf": [
+              "@{type=string}",
+              "@{type=null}"
+            ],
+            "title": "Email"
+          },
+          "password": {
+            "type": "string",
+            "title": "Password"
+          },
+          "username": {
+            "anyOf": [
+              "@{type=string}",
+              "@{type=null}"
+            ],
+            "title": "Username"
+          }
+        },
+        "type": "object",
+        "required": [
+          "password"
+        ],
+        "title": "Body_login_alias_auth_login_post"
+      },
+      "Body_login_api_auth_login_post": {
+        "properties": {
+          "username": {
+            "type": "string",
+            "title": "Username"
+          },
+          "password": {
+            "type": "string",
+            "title": "Password"
+          }
+        },
+        "type": "object",
+        "required": [
+          "username",
+          "password"
+        ],
+        "title": "Body_login_api_auth_login_post"
+      },
+      "CalendarSlotRequest": {
+        "properties": {
+          "scheduled_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Scheduled At"
+          },
+          "topic": {
+            "type": "string",
+            "title": "Topic"
+          },
+          "duration_minutes": {
+            "type": "integer",
+            "title": "Duration Minutes",
+            "default": 5
+          },
+          "style": {
+            "type": "string",
+            "title": "Style",
+            "default": "educational"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Tags"
+          }
+        },
+        "type": "object",
+        "required": [
+          "scheduled_at",
+          "topic"
+        ],
+        "title": "CalendarSlotRequest",
+        "description": "Request to reserve calendar slot"
+      },
+      "CreateRecurringRequest": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "pattern": {
+            "type": "string",
+            "title": "Pattern"
+          },
+          "topic_template": {
+            "type": "string",
+            "title": "Topic Template"
+          },
+          "hour": {
+            "type": "integer",
+            "title": "Hour",
+            "default": 10
+          },
+          "minute": {
+            "type": "integer",
+            "title": "Minute",
+            "default": 0
+          },
+          "days_of_week": {
+            "anyOf": [
+              "@{items=; type=array}",
+              "@{type=null}"
+            ],
+            "title": "Days Of Week"
+          },
+          "days_of_month": {
+            "anyOf": [
+              "@{items=; type=array}",
+              "@{type=null}"
+            ],
+            "title": "Days Of Month"
+          },
+          "style": {
+            "type": "string",
+            "title": "Style",
+            "default": "educational"
+          },
+          "duration_minutes": {
+            "type": "integer",
+            "title": "Duration Minutes",
+            "default": 5
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Tags"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "pattern",
+          "topic_template"
+        ],
+        "title": "CreateRecurringRequest",
+        "description": "Request to create recurring schedule"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "JobResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "topic": {
+            "type": "string",
+            "title": "Topic"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "progress_percent": {
+            "type": "number",
+            "title": "Progress Percent"
+          },
+          "current_stage": {
+            "anyOf": [
+              "@{type=string}",
+              "@{type=null}"
+            ],
+            "title": "Current Stage"
+          },
+          "scheduled_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Scheduled At"
+          },
+          "started_at": {
+            "anyOf": [
+              "@{type=string; format=date-time}",
+              "@{type=null}"
+            ],
+            "title": "Started At"
+          },
+          "completed_at": {
+            "anyOf": [
+              "@{type=string; format=date-time}",
+              "@{type=null}"
+            ],
+            "title": "Completed At"
+          },
+          "script_path": {
+            "anyOf": [
+              "@{type=string}",
+              "@{type=null}"
+            ],
+            "title": "Script Path"
+          },
+          "video_path": {
+            "anyOf": [
+              "@{type=string}",
+              "@{type=null}"
+            ],
+            "title": "Video Path"
+          },
+          "youtube_url": {
+            "anyOf": [
+              "@{type=string}",
+              "@{type=null}"
+            ],
+            "title": "Youtube Url"
+          },
+          "error_message": {
+            "anyOf": [
+              "@{type=string}",
+              "@{type=null}"
+            ],
+            "title": "Error Message"
+          },
+          "retry_count": {
+            "type": "integer",
+            "title": "Retry Count"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "topic",
+          "status",
+          "progress_percent",
+          "current_stage",
+          "scheduled_at",
+          "started_at",
+          "completed_at",
+          "script_path",
+          "video_path",
+          "youtube_url",
+          "error_message",
+          "retry_count"
+        ],
+        "title": "JobResponse",
+        "description": "Job status response"
+      },
+      "RecurringJobResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "pattern": {
+            "type": "string",
+            "title": "Pattern"
+          },
+          "topic_template": {
+            "type": "string",
+            "title": "Topic Template"
+          },
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled"
+          },
+          "last_run": {
+            "anyOf": [
+              "@{type=string; format=date-time}",
+              "@{type=null}"
+            ],
+            "title": "Last Run"
+          },
+          "next_run": {
+            "anyOf": [
+              "@{type=string; format=date-time}",
+              "@{type=null}"
+            ],
+            "title": "Next Run"
+          },
+          "run_count": {
+            "type": "integer",
+            "title": "Run Count"
+          },
+          "failure_count": {
+            "type": "integer",
+            "title": "Failure Count"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "pattern",
+          "topic_template",
+          "enabled",
+          "last_run",
+          "next_run",
+          "run_count",
+          "failure_count"
+        ],
+        "title": "RecurringJobResponse",
+        "description": "Recurring job response"
+      },
+      "ScheduleVideoRequest": {
+        "properties": {
+          "topic": {
+            "type": "string",
+            "title": "Topic"
+          },
+          "scheduled_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Scheduled At"
+          },
+          "publish_at": {
+            "anyOf": [
+              "@{type=string; format=date-time}",
+              "@{type=null}"
+            ],
+            "title": "Publish At"
+          },
+          "style": {
+            "type": "string",
+            "title": "Style",
+            "default": "educational"
+          },
+          "duration_minutes": {
+            "type": "integer",
+            "title": "Duration Minutes",
+            "default": 5
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Tags"
+          }
+        },
+        "type": "object",
+        "required": [
+          "topic",
+          "scheduled_at"
+        ],
+        "title": "ScheduleVideoRequest",
+        "description": "Request to schedule video"
+      },
+      "StatisticsResponse": {
+        "properties": {
+          "total_jobs": {
+            "type": "integer",
+            "title": "Total Jobs"
+          },
+          "active_jobs": {
+            "type": "integer",
+            "title": "Active Jobs"
+          },
+          "completed_jobs": {
+            "type": "integer",
+            "title": "Completed Jobs"
+          },
+          "failed_jobs": {
+            "type": "integer",
+            "title": "Failed Jobs"
+          },
+          "recurring_schedules": {
+            "type": "integer",
+            "title": "Recurring Schedules"
+          },
+          "calendar_slots": {
+            "type": "integer",
+            "title": "Calendar Slots"
+          }
+        },
+        "type": "object",
+        "required": [
+          "total_jobs",
+          "active_jobs",
+          "completed_jobs",
+          "failed_jobs",
+          "recurring_schedules",
+          "calendar_slots"
+        ],
+        "title": "StatisticsResponse",
+        "description": "System statistics"
+      },
+      "Token": {
+        "properties": {
+          "access_token": {
+            "type": "string",
+            "title": "Access Token"
+          },
+          "token_type": {
+            "type": "string",
+            "title": "Token Type",
+            "default": "bearer"
+          }
+        },
+        "type": "object",
+        "required": [
+          "access_token"
+        ],
+        "title": "Token",
+        "description": "JWT Token response model"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": " "
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      },
+      "VideoCreate": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Title"
+          },
+          "niche": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Niche"
+          },
+          "script_id": {
+            "anyOf": [
+              "@{type=integer}",
+              "@{type=null}"
+            ],
+            "title": "Script Id"
+          },
+          "description": {
+            "anyOf": [
+              "@{type=string}",
+              "@{type=null}"
+            ],
+            "title": "Description"
+          },
+          "style": {
+            "anyOf": [
+              "@{type=string}",
+              "@{type=null}"
+            ],
+            "title": "Style"
+          }
+        },
+        "type": "object",
+        "required": [
+          "title",
+          "niche"
+        ],
+        "title": "VideoCreate",
+        "description": "Request to create a new video",
+        "example": {
+          "description": "A peaceful morning meditation",
+          "niche": "meditation",
+          "script_id": 1,
+          "title": "Morning Meditation"
+        }
+      },
+      "VideoResponse": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "user_id": {
+            "type": "integer",
+            "title": "User Id"
+          },
+          "script_id": {
+            "anyOf": [
+              "@{type=integer}",
+              "@{type=null}"
+            ],
+            "title": "Script Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "description": {
+            "anyOf": [
+              "@{type=string}",
+              "@{type=null}"
+            ],
+            "title": "Description"
+          },
+          "niche": {
+            "type": "string",
+            "title": "Niche"
+          },
+          "style": {
+            "anyOf": [
+              "@{type=string}",
+              "@{type=null}"
+            ],
+            "title": "Style"
+          },
+          "duration_seconds": {
+            "type": "integer",
+            "title": "Duration Seconds"
+          },
+          "resolution": {
+            "type": "string",
+            "title": "Resolution"
+          },
+          "fps": {
+            "type": "integer",
+            "title": "Fps"
+          },
+          "aspect_ratio": {
+            "type": "string",
+            "title": "Aspect Ratio"
+          },
+          "file_path": {
+            "type": "string",
+            "title": "File Path"
+          },
+          "file_size_bytes": {
+            "anyOf": [
+              "@{type=integer}",
+              "@{type=null}"
+            ],
+            "title": "File Size Bytes"
+          },
+          "thumbnail_path": {
+            "anyOf": [
+              "@{type=string}",
+              "@{type=null}"
+            ],
+            "title": "Thumbnail Path"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Tags"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "error_message": {
+            "anyOf": [
+              "@{type=string}",
+              "@{type=null}"
+            ],
+            "title": "Error Message"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
+          "published_at": {
+            "anyOf": [
+              "@{type=string; format=date-time}",
+              "@{type=null}"
+            ],
+            "title": "Published At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "user_id",
+          "script_id",
+          "title",
+          "description",
+          "niche",
+          "style",
+          "duration_seconds",
+          "resolution",
+          "fps",
+          "aspect_ratio",
+          "file_path",
+          "file_size_bytes",
+          "thumbnail_path",
+          "status",
+          "error_message",
+          "created_at",
+          "updated_at",
+          "published_at"
+        ],
+        "title": "VideoResponse",
+        "description": "Video response model"
+      },
+      "VideoUpdate": {
+        "properties": {
+          "title": {
+            "anyOf": [
+              "@{type=string; maxLength=255; minLength=1}",
+              "@{type=null}"
+            ],
+            "title": "Title"
+          },
+          "description": {
+            "anyOf": [
+              "@{type=string}",
+              "@{type=null}"
+            ],
+            "title": "Description"
+          },
+          "status": {
+            "anyOf": [
+              "@{type=string}",
+              "@{type=null}"
+            ],
+            "title": "Status"
+          }
+        },
+        "type": "object",
+        "title": "VideoUpdate",
+        "description": "Request to update existing video"
+      }
+    },
+    "securitySchemes": {
+      "HTTPBearer": {
+        "type": "http",
+        "scheme": "bearer"
+      }
+    }
+  }
+}

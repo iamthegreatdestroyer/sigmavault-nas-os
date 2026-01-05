@@ -49,7 +49,7 @@ func Load() *Config {
 		JWTSecret:        getEnv("SIGMAVAULT_JWT_SECRET", "dev-secret-change-in-production"),
 		JWTExpiry:        getEnvDuration("SIGMAVAULT_JWT_EXPIRY", 15*time.Minute),
 		JWTRefreshExpiry: getEnvDuration("SIGMAVAULT_JWT_REFRESH_EXPIRY", 7*24*time.Hour),
-		RPCEngineURL:     getEnv("SIGMAVAULT_RPC_URL", "http://localhost:9000"),
+		RPCEngineURL:     getEnv("SIGMAVAULT_RPC_URL", "http://localhost:8001/api/v1"),
 		RPCEngineTimeout: getEnvDuration("SIGMAVAULT_RPC_TIMEOUT", 30*time.Second),
 		DataDir:          getEnv("SIGMAVAULT_DATA_DIR", "/var/lib/sigmavault"),
 		WSPingInterval:   getEnvDuration("SIGMAVAULT_WS_PING_INTERVAL", 30*time.Second),

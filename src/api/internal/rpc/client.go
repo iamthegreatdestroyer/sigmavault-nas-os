@@ -39,7 +39,7 @@ type Config struct {
 // DefaultConfig returns the default RPC client configuration.
 func DefaultConfig() Config {
 	return Config{
-		BaseURL:         "http://localhost:8001",
+		BaseURL:         "http://localhost:8001/api/v1",
 		Timeout:         30 * time.Second,
 		MaxRetries:      3,
 		RetryDelay:      100 * time.Millisecond,
