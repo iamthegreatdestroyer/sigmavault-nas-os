@@ -30,6 +30,7 @@ from engined.api.health import router as health_router
 from engined.api.compression import router as compression_router
 from engined.api.encryption import router as encryption_router
 from engined.api.agents import router as agents_router
+from engined.api.rpc import router as rpc_router
 from engined.rpc.server import create_grpc_server
 from engined.agents.swarm import AgentSwarm
 
@@ -163,6 +164,16 @@ def create_app() -> FastAPI:
     app.include_router(compression_router, prefix="/api/v1/compression", tags=["Compression"])
     app.include_router(encryption_router, prefix="/api/v1/encryption", tags=["Encryption"])
     app.include_router(agents_router, prefix="/api/v1/agents", tags=["Agents"])
+    app.include_router(rpc_router, prefix="/api/v1", tags=["RPC"])
+    
+    # Debug: print all routes
+    logger.info("Registered routes:")
+    for route in app.routes:
+        if hasattr(route, 'path'):
+            methods = getattr(route, 'methods', 'MOUNT')
+            logger.info(f"  {route.path} - {methods}")
+        else:
+            logger.info(f"  {route} - UNKNOWN")
     
     return app
 

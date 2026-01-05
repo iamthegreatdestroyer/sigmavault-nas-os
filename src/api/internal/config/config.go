@@ -43,7 +43,7 @@ type Config struct {
 func Load() *Config {
 	return &Config{
 		Environment:      getEnv("SIGMAVAULT_ENV", "development"),
-		Port:             getEnvInt("SIGMAVAULT_PORT", 8080),
+		Port:             getEnvInt("SIGMAVAULT_PORT", 12080),
 		Version:          getEnv("SIGMAVAULT_VERSION", "0.1.0"),
 		CORSOrigins:      getEnv("SIGMAVAULT_CORS_ORIGINS", "http://localhost:5173,http://localhost:3000"),
 		JWTSecret:        getEnv("SIGMAVAULT_JWT_SECRET", "dev-secret-change-in-production"),

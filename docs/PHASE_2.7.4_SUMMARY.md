@@ -11,9 +11,11 @@
 ## Architecture Summary
 
 ### Circuit Breaker Pattern Implementation
+
 Located in: `src/api/internal/websocket/events.go`
 
 **Key Parameters**:
+
 - **Threshold**: 5 consecutive RPC failures
 - **Reset Timeout**: 5 minutes (configurable)
 - **Error Codes**:
@@ -24,6 +26,7 @@ Located in: `src/api/internal/websocket/events.go`
   - `COMPRESSION_JOBS_FAILED` - Compression job poll failed
 
 **Graceful Degradation**:
+
 - When circuit breaker opens: serve cached data with `stale=true` flag
 - Response includes: `last_update`, `error_code`, `consecutive_failures`, `reason`
 - Maintains semantic completeness of cached data
@@ -34,12 +37,15 @@ Located in: `src/api/internal/websocket/events.go`
 ## Implementation Details
 
 ### 1. test_websocket.go - Comprehensive Monitoring
+
 **Location**: `src/api/test_websocket.go`  
 **Size**: 272 lines  
 **Purpose**: Real-time WebSocket event monitoring with error analysis
 
 #### Key Features:
+
 ✅ **Event Type Monitoring** (7 types)
+
 - TypeSystemStatus (0)
 - TypeCompressionUpdate (1)
 - TypeAgentStatus (2)
@@ -49,27 +55,32 @@ Located in: `src/api/internal/websocket/events.go`
 - TypeAgentStatusError (6)
 
 ✅ **Error Event Handling**
+
 - Detects and counts error codes from event payloads
 - Tracks error code occurrences with counts
 - Extracts error metadata: `reason`, `consecutive_failures`, `last_update`
 
 ✅ **Circuit Breaker Verification**
+
 - Detects `CIRCUIT_BREAKER_OPEN` events
 - Records first occurrence timestamp
 - Tracks `RPC_DISCONNECT` events
 - Validates graceful degradation (stale flag)
 
 ✅ **Auto-Recovery Detection**
+
 - Monitors transition from stale → fresh data
 - Detects TypeSystemStatus events with `stale=false`
 - Confirms recovery after circuit breaker period
 
 ✅ **Performance Metrics**
+
 - Event intervals and distribution
 - Average event frequency
 - Min/max intervals
 
 #### Output Structure:
+
 ```
 [HH:MM:SS.mmm] Type: X (EventTypeName)
   Data: {...}
@@ -103,16 +114,19 @@ Average Event Interval: XXms
 ---
 
 ### 2. test_circuit_breaker.go - Focused Verification
+
 **Location**: `src/api/test_circuit_breaker.go`  
 **Size**: 289 lines  
 **Purpose**: Comprehensive circuit breaker behavior verification with 4-point validation criteria
 
 #### Test Parameters:
+
 - **Duration**: 2 minutes (captures circuit breaker lifecycle)
 - **Read Timeout**: 10 seconds per event
 - **Success Criteria**: 4-point verification checklist
 
 #### Key Data Structures:
+
 ```go
 type CircuitBreakerTestEvent struct {
     Type       int
@@ -133,14 +147,15 @@ type TestResults struct {
 
 #### 4-Point Verification Criteria:
 
-| Criterion | Description | Detection Method | Success Indicator |
-|-----------|-------------|------------------|-------------------|
-| **1. Error Event Handling** | Validates error event detection and parsing | CircuitBreakerOpens > 0 OR ErrorCodes populated | ✅/⚠️ |
-| **2. Graceful Degradation** | Confirms cached data serving during outage | CachedDataServed > 0 | ✅/⚠️ |
-| **3. Stale Flag Presence** | Validates stale=true in responses | stale boolean field found in events | ✅/⚠️ |
-| **4. Auto-Recovery** | Confirms fresh data after timeout | AutoRecoveryTime populated + timing valid | ✅/⚠️ |
+| Criterion                   | Description                                 | Detection Method                                | Success Indicator |
+| --------------------------- | ------------------------------------------- | ----------------------------------------------- | ----------------- |
+| **1. Error Event Handling** | Validates error event detection and parsing | CircuitBreakerOpens > 0 OR ErrorCodes populated | ✅/⚠️             |
+| **2. Graceful Degradation** | Confirms cached data serving during outage  | CachedDataServed > 0                            | ✅/⚠️             |
+| **3. Stale Flag Presence**  | Validates stale=true in responses           | stale boolean field found in events             | ✅/⚠️             |
+| **4. Auto-Recovery**        | Confirms fresh data after timeout           | AutoRecoveryTime populated + timing valid       | ✅/⚠️             |
 
 #### Test Flow:
+
 1. Connect to WebSocket server (localhost:8080)
 2. Monitor events for 2 minutes
 3. Capture all error events with timestamps
@@ -150,6 +165,7 @@ type TestResults struct {
 7. Generate verification results
 
 #### Output Structure:
+
 ```
 ============================================================
 CIRCUIT BREAKER VERIFICATION TEST
@@ -191,6 +207,7 @@ Verification Criteria:
 ## Test Execution Plan
 
 ### Prerequisites:
+
 1. SigmaVault API running on localhost:8080
 2. WebSocket endpoint accessible at /ws
 3. Go toolchain installed (for compilation)
@@ -199,12 +216,14 @@ Verification Criteria:
 ### Test Scenarios:
 
 #### Scenario A: Normal Operation (no RPC failure)
+
 - **Execution**: `go run src/api/test_websocket.go`
 - **Expected**: Stable event stream, no error codes, no circuit breaker activation
 - **Duration**: Run until Ctrl+C
 - **Success**: Event counts increase, intervals stable (~5s)
 
 #### Scenario B: Circuit Breaker Verification (with RPC failure)
+
 - **Execution**: `go run src/api/test_circuit_breaker.go`
 - **Pre-condition**: Optional - stop backend RPC service to trigger failure
 - **Expected**: Circuit breaker opens after 5 failures, graceful degradation with stale flag
@@ -212,6 +231,7 @@ Verification Criteria:
 - **Success**: All 4 verification criteria pass
 
 #### Scenario C: Auto-Recovery Observation (extended test)
+
 - **Execution**: Run test_circuit_breaker.go with backend RPC failing, restart after ~3 minutes
 - **Expected**: Circuit breaker opens, stale data served, recovery occurs ~5min after first failure
 - **Duration**: ~5-6 minutes
@@ -244,6 +264,7 @@ go run test_circuit_breaker.go
 ### Phase 2.7.4 Completion Requirements:
 
 - [ ] **Task 1**: Update test_websocket.go for error event handling
+
   - [x] Add event type constants (TypeRPCError, TypeCompressionJobsError, TypeAgentStatusError)
   - [x] Implement analyzeEventData() for error code tracking
   - [x] Add circuit breaker state tracking variables
@@ -251,6 +272,7 @@ go run test_circuit_breaker.go
   - [x] Implement auto-recovery detection
 
 - [ ] **Task 2**: Create circuit breaker verification test
+
   - [x] Create test_circuit_breaker.go file
   - [x] Implement 4-point verification criteria
   - [x] Implement event capture with timestamps
@@ -258,18 +280,21 @@ go run test_circuit_breaker.go
   - [x] Implement auto-recovery detection
 
 - [ ] **Task 3**: Execute graceful degradation test
+
   - [ ] Run test_circuit_breaker.go against API
   - [ ] Verify stale=true flag in responses
   - [ ] Confirm last_update timestamp present
   - [ ] Document graceful degradation behavior
 
 - [ ] **Task 4**: Test auto-recovery mechanism
+
   - [ ] Monitor 5-minute timeout window
   - [ ] Verify fresh data (stale=false) after timeout
   - [ ] Confirm failure count reset
   - [ ] Document auto-recovery timing
 
 - [ ] **Task 5**: Verify all event types
+
   - [ ] Confirm all 7 event types appear in output
   - [ ] Verify error codes parsed correctly
   - [ ] Document event type distribution
@@ -286,15 +311,17 @@ go run test_circuit_breaker.go
 ## Error Code Reference
 
 ### Standard Error Codes:
-| Code | Source | Meaning | Trigger |
-|------|--------|---------|---------|
-| `CIRCUIT_BREAKER_OPEN` | EventSubscriber | Circuit breaker engaged | 5 consecutive RPC failures |
-| `RPC_DISCONNECT` | RPC client | Backend RPC unavailable | Connection refused/timeout |
-| `SYSTEM_STATUS_FAILED` | EventSubscriber poll | System status RPC failed | RPC error during poll |
-| `AGENT_STATUS_FAILED` | EventSubscriber poll | Agent status RPC failed | RPC error during poll |
-| `COMPRESSION_JOBS_FAILED` | EventSubscriber poll | Compression jobs RPC failed | RPC error during poll |
+
+| Code                      | Source               | Meaning                     | Trigger                    |
+| ------------------------- | -------------------- | --------------------------- | -------------------------- |
+| `CIRCUIT_BREAKER_OPEN`    | EventSubscriber      | Circuit breaker engaged     | 5 consecutive RPC failures |
+| `RPC_DISCONNECT`          | RPC client           | Backend RPC unavailable     | Connection refused/timeout |
+| `SYSTEM_STATUS_FAILED`    | EventSubscriber poll | System status RPC failed    | RPC error during poll      |
+| `AGENT_STATUS_FAILED`     | EventSubscriber poll | Agent status RPC failed     | RPC error during poll      |
+| `COMPRESSION_JOBS_FAILED` | EventSubscriber poll | Compression jobs RPC failed | RPC error during poll      |
 
 ### Event Payload Structure:
+
 ```json
 {
   "type": 3,
@@ -314,21 +341,24 @@ go run test_circuit_breaker.go
 ## Implementation Status
 
 ### Code Files:
-| File | Lines | Status | Purpose |
-|------|-------|--------|---------|
-| test_websocket.go | 272 | ✅ Complete | Comprehensive monitoring |
-| test_circuit_breaker.go | 289 | ✅ Complete | Focused verification |
-| events.go (backend) | 526 | ✅ No changes | Circuit breaker impl |
+
+| File                    | Lines | Status        | Purpose                  |
+| ----------------------- | ----- | ------------- | ------------------------ |
+| test_websocket.go       | 272   | ✅ Complete   | Comprehensive monitoring |
+| test_circuit_breaker.go | 289   | ✅ Complete   | Focused verification     |
+| events.go (backend)     | 526   | ✅ No changes | Circuit breaker impl     |
 
 ### Functions Implemented:
 
 **test_websocket.go**:
+
 - `main()` - Event monitoring loop with state tracking
 - `analyzeEventData()` - Error code extraction and analysis
 - `minDuration()` - Interval calculation
 - `maxDuration()` - Interval calculation
 
 **test_circuit_breaker.go**:
+
 - `main()` - 2-minute test session
 - `processCircuitBreakerEvent()` - Real-time analysis
 - `printTestResults()` - 4-point verification
@@ -339,6 +369,7 @@ go run test_circuit_breaker.go
 ## Performance Characteristics
 
 ### Expected Behavior:
+
 - **Normal Event Interval**: ~5 seconds (TypeSystemStatus)
 - **Heartbeat Interval**: ~30 seconds (TypeHeartbeat)
 - **Error Event Frequency**: High during RPC outage, low during normal operation
@@ -347,6 +378,7 @@ go run test_circuit_breaker.go
 - **Stale Data Duration**: Entire circuit breaker window
 
 ### Resource Usage:
+
 - **Memory**: ~10-50 MB per test client
 - **CPU**: Minimal (event-driven)
 - **Network**: ~1-5 KB/s during normal operation
@@ -357,22 +389,27 @@ go run test_circuit_breaker.go
 ## Troubleshooting Guide
 
 ### Issue: "Failed to connect to WebSocket server"
+
 - **Cause**: API not running or not on localhost:8080
 - **Solution**: Verify API is running with `curl http://localhost:8080/health`
 
 ### Issue: "No events received"
+
 - **Cause**: WebSocket connection established but no events sent
 - **Solution**: Ensure RPC backend is available and API is actively polling
 
 ### Issue: "Circuit breaker not detected"
+
 - **Cause**: RPC service is stable, no failures occurring
 - **Solution**: Stop backend RPC service or configure it to fail to trigger circuit breaker
 
 ### Issue: "Stale flag not found"
+
 - **Cause**: Circuit breaker never engaged, no cached responses
 - **Solution**: Trigger RPC failure to force circuit breaker activation
 
 ### Issue: "Auto-recovery not confirmed"
+
 - **Cause**: Test duration too short or RPC still failing
 - **Solution**: Run 2-minute test_circuit_breaker.go, ensure RPC recovers within window
 
@@ -401,4 +438,3 @@ go run test_circuit_breaker.go
 **Status**: Ready for Test Execution  
 **Last Updated**: 2024-01-15  
 **Prepared by**: Copilot ECLIPSE (Testing & Verification)
-

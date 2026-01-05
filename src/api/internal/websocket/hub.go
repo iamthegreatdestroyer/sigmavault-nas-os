@@ -28,6 +28,8 @@ const (
 	TypeHeartbeat         MessageType = "heartbeat"
 	TypeConnectionError   MessageType = "connection_error"
 	TypeRPCError          MessageType = "rpc_error"
+	TypeSubscribe         MessageType = "subscribe"
+	TypeUnsubscribe       MessageType = "unsubscribe"
 )
 
 // Message represents a WebSocket message.
@@ -226,11 +228,20 @@ func (h *Handler) handleConnection(conn *websocket.Conn) {
 	// Register client
 	h.hub.register <- client
 
-	// Start writer goroutine
+	// Channel to signal when connection is closed
+	done := make(chan struct{})
+
+	// Start both reader and writer as concurrent goroutines
 	go client.writePump()
 
-	// Read messages (blocking)
-	client.readPump()
+	go func() {
+		client.readPump()
+		log.Info().Str("client_id", client.ID).Msg("WebSocket connection read pump ended")
+		done <- struct{}{}
+	}()
+
+	// Wait for read pump to finish (indicates connection closed)
+	<-done
 
 	// Unregister client when done
 	h.hub.unregister <- client
@@ -309,6 +320,30 @@ func (c *Client) handleMessage(data []byte) {
 		pong := Message{Type: TypePong, Timestamp: time.Now()}
 		response, _ := json.Marshal(pong)
 		c.Send <- response
+
+	case TypeSubscribe:
+		// Handle subscription request
+		var subscribeMsg struct {
+			Types []MessageType `json:"types"`
+		}
+		if err := json.Unmarshal(msg.Data, &subscribeMsg); err != nil {
+			log.Error().Err(err).Str("client_id", c.ID).Msg("Failed to parse subscription message")
+			return
+		}
+		c.SubscribeToEvents(subscribeMsg.Types...)
+		log.Debug().Str("client_id", c.ID).Interface("types", subscribeMsg.Types).Msg("Client subscribed to event types")
+
+	case TypeUnsubscribe:
+		// Handle unsubscription request
+		var unsubscribeMsg struct {
+			Types []MessageType `json:"types"`
+		}
+		if err := json.Unmarshal(msg.Data, &unsubscribeMsg); err != nil {
+			log.Error().Err(err).Str("client_id", c.ID).Msg("Failed to parse unsubscription message")
+			return
+		}
+		c.UnsubscribeFromEvents(unsubscribeMsg.Types...)
+		log.Debug().Str("client_id", c.ID).Interface("types", unsubscribeMsg.Types).Msg("Client unsubscribed from event types")
 
 	default:
 		log.Debug().Str("type", string(msg.Type)).Str("client_id", c.ID).Msg("Received WebSocket message")

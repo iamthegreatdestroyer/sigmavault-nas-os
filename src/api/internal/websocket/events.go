@@ -53,6 +53,7 @@ func NewEventSubscriber(hub *Hub, rpcClient *rpc.Client) *EventSubscriber {
 func (es *EventSubscriber) Start(ctx context.Context, pollInterval time.Duration) {
 	es.mu.Lock()
 	if es.running {
+		log.Warn().Msg("EventSubscriber.Start: already running, returning")
 		es.mu.Unlock()
 		return
 	}
@@ -60,6 +61,7 @@ func (es *EventSubscriber) Start(ctx context.Context, pollInterval time.Duration
 	es.ticker = time.NewTicker(pollInterval)
 	es.mu.Unlock()
 
+	log.Info().Msg("EventSubscriber.Start: launching goroutine with run()")
 	go es.run(ctx)
 	log.Info().Dur("poll_interval", pollInterval).Msg("WebSocket event subscriber started")
 }
@@ -88,15 +90,20 @@ func (es *EventSubscriber) run(ctx context.Context) {
 	es.mu.RUnlock()
 
 	if ticker == nil {
+		log.Error().Msg("EventSubscriber.run: ticker is nil - not starting polling loop")
 		return
 	}
+
+	log.Info().Msg("EventSubscriber.run: starting polling loop")
 
 	for {
 		select {
 		case <-es.done:
+			log.Info().Msg("EventSubscriber.run: received done signal, exiting")
 			return
 
 		case <-ticker.C:
+			log.Debug().Msg("EventSubscriber.run: polling tick - calling pollSystemStatus, pollCompressionJobs, pollAgentStatus")
 			// Poll system status
 			es.pollSystemStatus(ctx)
 
@@ -114,35 +121,18 @@ func (es *EventSubscriber) pollSystemStatus(ctx context.Context) {
 	es.mu.Lock()
 	defer es.mu.Unlock()
 
-	if es.rpcClient == nil || !es.rpcClient.IsConnected() {
+	if es.rpcClient == nil {
+		log.Debug().Msg("pollSystemStatus: rpcClient is nil, returning")
 		return
 	}
 
-	// Check circuit breaker: skip poll if too many consecutive failures
-	if es.failureCount >= es.circuitBreakerThreshold {
-		if time.Since(es.lastFailureTime) < es.circuitBreakerResetAfter {
-			// Circuit still open - send cached data if available
-			if len(es.systemStatusCache) > 0 {
-				es.systemStatusCache["stale"] = true
-				es.systemStatusCache["last_update"] = es.lastSuccessfulStatusAt
-				es.systemStatusCache["error_code"] = "CIRCUIT_BREAKER_OPEN"
-				es.systemStatusCache["timestamp"] = time.Now().Unix()
-
-				if err := es.hub.BroadcastIfSubscribed(TypeSystemStatus, es.systemStatusCache); err != nil {
-					log.Error().Err(err).Msg("Failed to broadcast cached system status")
-				}
-			}
-			return
-		}
-		// Circuit breaker reset after timeout
-		es.failureCount = 0
-		es.lastFailureTime = time.Time{}
-	}
-
+	log.Debug().Msg("pollSystemStatus: calling rpcClient.GetSystemStatus()")
 	status, err := es.rpcClient.GetSystemStatus(ctx, &rpc.GetSystemStatusParams{})
 	if err != nil {
 		es.failureCount++
 		es.lastFailureTime = time.Now()
+
+		log.Error().Err(err).Int("failure_count", es.failureCount).Msg("pollSystemStatus: GetSystemStatus failed")
 
 		// Rate limit error events - only broadcast first error and periodically after
 		if es.failureCount == 1 || time.Since(es.lastErrorEventTime) > 30*time.Second {
@@ -394,14 +384,26 @@ func (es *EventSubscriber) pollAgentStatus(ctx context.Context) {
 
 		agentData := map[string]interface{}{
 			"id":             agent.ID,
-			"name":           agent.Name,
+			"codename":       agent.Codename,
 			"status":         agent.Status,
-			"tasks":          agent.TaskCount,
-			"cpu_usage":      agent.CPUUsage,
-			"memory_usage":   agent.MemoryUsage,
-			"uptime":         agent.Uptime.Seconds(),
-			"last_heartbeat": agent.LastHeartbeat.Unix(),
+			"specialization": agent.Specialization,
+			"tier":           agent.Tier,
+			"last_active":    agent.LastActive.Unix(),
 			"timestamp":      time.Now().Unix(),
+		}
+		// Add metrics if available
+		if agent.Metrics != nil {
+			agentData["tasks_completed"] = agent.Metrics.TasksCompleted
+			agentData["success_rate"] = agent.Metrics.SuccessRate
+			agentData["memory_usage"] = agent.Metrics.MemoryUsage
+			agentData["average_latency"] = agent.Metrics.AverageLatency
+		}
+		// Add current task info if available
+		if agent.CurrentTask != nil {
+			agentData["current_task_id"] = agent.CurrentTask.ID
+			agentData["task_type"] = agent.CurrentTask.Type
+			agentData["task_progress"] = agent.CurrentTask.Progress
+			agentData["task_status"] = agent.CurrentTask.Status
 		}
 		agentMap[agent.ID] = agentData
 	}
@@ -492,27 +494,6 @@ func (c *Client) IsSubscribedTo(msgType MessageType) bool {
 
 	subscribed, exists := c.Subscriptions[msgType]
 	return exists && subscribed
-}
-
-// BroadcastIfSubscribed broadcasts a message to all connected clients subscribed to a type.
-func (h *Hub) BroadcastIfSubscribed(msgType MessageType, data interface{}) error {
-	h.mu.RLock()
-	defer h.mu.RUnlock()
-
-	// Count subscribed clients (for logging)
-	subscribedCount := 0
-	for client := range h.clients {
-		if client.IsSubscribedTo(msgType) {
-			subscribedCount++
-		}
-	}
-
-	if subscribedCount == 0 {
-		return nil // No subscribers, skip broadcast
-	}
-
-	// Perform the broadcast
-	return h.Broadcast(msgType, data)
 }
 
 // toStringSlice converts MessageType slice to string slice.
