@@ -20,7 +20,7 @@ from typing import TYPE_CHECKING, AsyncGenerator
 
 import grpc
 import structlog
-import uvicorn
+from aiohttp import web
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from prometheus_client import make_asgi_app
@@ -111,6 +111,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """FastAPI lifespan context manager for startup/shutdown."""
     settings = get_settings()
     
+    print("DEBUG: Starting lifespan")
     logger.info(
         "Starting SigmaVault Engine",
         version="0.1.0",
@@ -118,20 +119,40 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         grpc_port=settings.grpc_port,
     )
     
-    await engine_state.initialize(settings)
+    try:
+        print("DEBUG: About to initialize engine state")
+        await engine_state.initialize(settings)
+        print("DEBUG: Engine state initialized successfully")
+        logger.info("Engine state initialized successfully")
+    except Exception as e:
+        print(f"DEBUG: Failed to initialize engine state: {e}")
+        logger.error("Failed to initialize engine state", error=str(e))
+        raise
     
     # Store swarm in app state for route access
     app.state.swarm = engine_state.swarm
     app.state.settings = settings
     
+    print("DEBUG: About to yield")
     yield
     
-    await engine_state.shutdown()
+    print("DEBUG: Lifespan yielding, starting shutdown")
+    logger.info("Lifespan yielding, starting shutdown")
+    try:
+        await engine_state.shutdown()
+        print("DEBUG: Engine shutdown completed")
+        logger.info("Engine shutdown completed")
+    except Exception as e:
+        print(f"DEBUG: Failed to shutdown engine: {e}")
+        logger.error("Failed to shutdown engine", error=str(e))
+        raise
 
 
 def create_app() -> FastAPI:
     """Create and configure the FastAPI application."""
+    print("DEBUG: create_app called")
     settings = get_settings()
+    print(f"DEBUG: settings loaded: host={settings.host}, port={settings.port}")
     
     app = FastAPI(
         title="SigmaVault Engine API",
@@ -143,8 +164,9 @@ def create_app() -> FastAPI:
         docs_url="/docs" if settings.environment == "development" else None,
         redoc_url="/redoc" if settings.environment == "development" else None,
         openapi_url="/openapi.json" if settings.environment == "development" else None,
-        lifespan=lifespan,
+        lifespan=lifespan,  # Enable lifespan for proper engine initialization
     )
+    print("DEBUG: FastAPI app created")
     
     # CORS middleware - configured for Go API communication
     app.add_middleware(
@@ -188,6 +210,103 @@ def setup_signal_handlers() -> None:
     signal.signal(signal.SIGINT, handle_signal)
 
 
+async def run_server() -> None:
+    """Run the aiohttp server with FastAPI app."""
+    settings = get_settings()
+    
+    logger.info(
+        "Starting SigmaVault Engine (aiohttp)",
+        host=settings.host,
+        port=settings.port,
+        grpc_port=settings.grpc_port,
+        environment=settings.environment,
+    )
+    
+    # Create FastAPI app with lifespan
+    fastapi_app = create_app()
+    
+    # Create wrapper for serving FastAPI via aiohttp
+    async def handle_fastapi(request: web.Request) -> web.Response:
+        """Proxy FastAPI requests through aiohttp."""
+        # Build ASGI scope from aiohttp request
+        scope = {
+            "type": "http",
+            "asgi": {"version": "3.0"},
+            "http_version": "1.1",
+            "method": request.method,
+            "scheme": request.scheme,
+            "path": request.path,
+            "query_string": request.query_string.encode() if request.query_string else b"",
+            "root_path": "",
+            "headers": [(k.lower().encode(), v.encode()) for k, v in request.headers.items()],
+            "server": (request.host.split(":")[0], int(request.host.split(":")[1]) if ":" in request.host else 80),
+            "client": (request.remote, 0) if request.remote else ("unknown", 0),
+            "state": {},
+        }
+        
+        # Read request body
+        body = await request.read()
+        
+        # Collect response
+        response_started = False
+        status = 200
+        headers = []
+        response_body = []
+        
+        async def receive():
+            return {"type": "http.request", "body": body, "more_body": False}
+        
+        async def send(message):
+            nonlocal response_started, status, headers
+            if message["type"] == "http.response.start":
+                response_started = True
+                status = message["status"]
+                headers = message.get("headers", [])
+            elif message["type"] == "http.response.body":
+                response_body.append(message.get("body", b""))
+        
+        # Call FastAPI ASGI app
+        await fastapi_app(scope, receive, send)
+        
+        # Build response
+        return web.Response(
+            status=status,
+            headers={k.decode(): v.decode() for k, v in headers},
+            body=b"".join(response_body)
+        )
+    
+    # Create aiohttp application
+    aiohttp_app = web.Application()
+    
+    # Mount FastAPI at all paths
+    aiohttp_app.router.add_route('*', '/{path_info:.*}', handle_fastapi)
+    
+    # Create runner and start server
+    runner = web.AppRunner(aiohttp_app)
+    await runner.setup()
+    site = web.TCPSite(runner, settings.host, settings.port)
+    await site.start()
+    
+    logger.info(
+        "Server started on aiohttp",
+        host=settings.host,
+        port=settings.port,
+        url=f"http://{settings.host}:{settings.port}"
+    )
+    print(f"Server started on http://{settings.host}:{settings.port}")
+    
+    # Keep server running until shutdown requested
+    try:
+        await engine_state._shutdown_event.wait()
+    except KeyboardInterrupt:
+        logger.info("Received KeyboardInterrupt, shutting down...")
+    except Exception as e:
+        logger.error("Server error", error=str(e))
+    finally:
+        await runner.cleanup()
+        logger.info("Server cleanup complete")
+
+
 def main() -> None:
     """Main entry point for the SigmaVault engine daemon."""
     settings = get_settings()
@@ -202,16 +321,8 @@ def main() -> None:
         environment=settings.environment,
     )
     
-    uvicorn.run(
-        "engined.main:create_app",
-        factory=True,
-        host=settings.host,
-        port=settings.port,
-        reload=settings.environment == "development",
-        workers=settings.workers if settings.environment == "production" else 1,
-        log_level=settings.log_level.lower(),
-        access_log=settings.environment == "development",
-    )
+    # Run the async server using aiohttp
+    asyncio.run(run_server())
 
 
 if __name__ == "__main__":
