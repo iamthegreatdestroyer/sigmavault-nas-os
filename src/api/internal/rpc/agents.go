@@ -313,3 +313,105 @@ func (c *Client) GetCollaborationStatus(ctx context.Context, collabID string) (*
 	}
 	return &result, nil
 }
+
+// SchedulerMetrics contains metrics from the task scheduler.
+type SchedulerMetrics struct {
+	QueueSize       int     `json:"queue_size"`
+	TasksScheduled  int     `json:"tasks_scheduled"`
+	TasksDispatched int     `json:"tasks_dispatched"`
+	TasksCompleted  int     `json:"tasks_completed"`
+	TasksFailed     int     `json:"tasks_failed"`
+	AvgWaitTimeMs   float64 `json:"avg_wait_time_ms"`
+	WorkersActive   int     `json:"workers_active"`
+	IsRunning       bool    `json:"is_running"`
+}
+
+// GetSchedulerMetrics retrieves metrics from the task scheduler.
+func (c *Client) GetSchedulerMetrics(ctx context.Context) (*SchedulerMetrics, error) {
+	var result SchedulerMetrics
+	if err := c.Call(ctx, "agents.scheduler.metrics", nil, &result); err != nil {
+		return nil, err
+	}
+	return &result, nil
+}
+
+// RecoveryStatus contains status from the agent recovery system.
+type RecoveryStatus struct {
+	IsMonitoring        bool               `json:"is_monitoring"`
+	AgentsHealthy       int                `json:"agents_healthy"`
+	AgentsDegraded      int                `json:"agents_degraded"`
+	AgentsFailed        int                `json:"agents_failed"`
+	TotalRestarts       int                `json:"total_restarts"`
+	CircuitBreakersOpen int                `json:"circuit_breakers_open"`
+	DeadLetterQueueSize int                `json:"dead_letter_queue_size"`
+	HealthScores        map[string]float64 `json:"health_scores,omitempty"`
+}
+
+// GetRecoveryStatus retrieves status from the agent recovery system.
+func (c *Client) GetRecoveryStatus(ctx context.Context) (*RecoveryStatus, error) {
+	var result RecoveryStatus
+	if err := c.Call(ctx, "agents.recovery.status", nil, &result); err != nil {
+		return nil, err
+	}
+	return &result, nil
+}
+
+// EventStatus contains status from the event emitter system.
+type EventStatus struct {
+	EventsEmitted   int  `json:"events_emitted"`
+	EventsProcessed int  `json:"events_processed"`
+	EventsDropped   int  `json:"events_dropped"`
+	HandlersCalled  int  `json:"handlers_called"`
+	HandlerErrors   int  `json:"handler_errors"`
+	IsRunning       bool `json:"is_running"`
+}
+
+// GetEventStatus retrieves status from the event emitter system.
+func (c *Client) GetEventStatus(ctx context.Context) (*EventStatus, error) {
+	var result EventStatus
+	if err := c.Call(ctx, "agents.events.status", nil, &result); err != nil {
+		return nil, err
+	}
+	return &result, nil
+}
+
+// MemoryStatus contains status from the MNEMONIC memory system.
+type MemoryStatus struct {
+	TotalMemories     int            `json:"total_memories"`
+	TotalStored       int            `json:"total_stored"`
+	TotalForgotten    int            `json:"total_forgotten"`
+	TotalRetrieved    int            `json:"total_retrieved"`
+	ConsolidationRuns int            `json:"consolidation_runs"`
+	ByType            map[string]int `json:"by_type,omitempty"`
+	IsRunning         bool           `json:"is_running"`
+}
+
+// GetMemoryStatus retrieves status from the MNEMONIC memory system.
+func (c *Client) GetMemoryStatus(ctx context.Context) (*MemoryStatus, error) {
+	var result MemoryStatus
+	if err := c.Call(ctx, "agents.memory.status", nil, &result); err != nil {
+		return nil, err
+	}
+	return &result, nil
+}
+
+// TuningStatus contains status from the self-tuning system.
+type TuningStatus struct {
+	Strategy          string  `json:"strategy"`
+	IsRunning         bool    `json:"is_running"`
+	ParametersCount   int     `json:"parameters_count"`
+	BestScore         float64 `json:"best_score"`
+	CurrentScore      float64 `json:"current_score"`
+	SessionsCompleted int     `json:"sessions_completed"`
+	CurrentSession    *string `json:"current_session,omitempty"`
+	ExplorationRate   float64 `json:"exploration_rate"`
+}
+
+// GetTuningStatus retrieves status from the self-tuning system.
+func (c *Client) GetTuningStatus(ctx context.Context) (*TuningStatus, error) {
+	var result TuningStatus
+	if err := c.Call(ctx, "agents.tuning.status", nil, &result); err != nil {
+		return nil, err
+	}
+	return &result, nil
+}

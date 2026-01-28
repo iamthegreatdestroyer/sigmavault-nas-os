@@ -30,6 +30,32 @@ const (
 	TypeRPCError          MessageType = "rpc_error"
 	TypeSubscribe         MessageType = "subscribe"
 	TypeUnsubscribe       MessageType = "unsubscribe"
+
+	// Agent lifecycle events (autonomy system)
+	TypeAgentStarted       MessageType = "agent.started"
+	TypeAgentStopped       MessageType = "agent.stopped"
+	TypeAgentRestarted     MessageType = "agent.restarted"
+	TypeAgentHealthCheck   MessageType = "agent.health_check"
+	TypeAgentTaskAssigned  MessageType = "agent.task_assigned"
+	TypeAgentTaskCompleted MessageType = "agent.task_completed"
+	TypeAgentTaskFailed    MessageType = "agent.task_failed"
+
+	// Scheduler events
+	TypeSchedulerMetrics MessageType = "scheduler.metrics"
+	TypeTaskQueued       MessageType = "task.queued"
+	TypeTaskDispatched   MessageType = "task.dispatched"
+
+	// Recovery events
+	TypeRecoveryStatus       MessageType = "recovery.status"
+	TypeCircuitBreakerOpen   MessageType = "circuit_breaker.open"
+	TypeCircuitBreakerClosed MessageType = "circuit_breaker.closed"
+	TypeAgentRecoveryStarted MessageType = "agent.recovery_started"
+	TypeAgentRecoverySuccess MessageType = "agent.recovery_success"
+	TypeAgentRecoveryFailed  MessageType = "agent.recovery_failed"
+	TypeDeadLetterQueued     MessageType = "dead_letter.queued"
+
+	// Self-tuning events
+	TypeTuningStatus MessageType = "tuning.status"
 )
 
 // Message represents a WebSocket message.

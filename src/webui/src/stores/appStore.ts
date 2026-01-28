@@ -137,7 +137,7 @@ export const useAppStore = create<AppStore>()(
             document.documentElement.classList.remove(
               "dark",
               "light",
-              "auto-theme"
+              "auto-theme",
             );
             if (theme === "auto") {
               document.documentElement.classList.add("auto-theme");
@@ -189,7 +189,7 @@ export const useAppStore = create<AppStore>()(
           updateVolume: (volume) =>
             set((state) => ({
               volumes: state.volumes.map((v) =>
-                v.id === volume.id ? volume : v
+                v.id === volume.id ? volume : v,
               ),
             })),
           selectPool: (id) => set({ selectedPoolId: id }),
@@ -204,7 +204,7 @@ export const useAppStore = create<AppStore>()(
           updateMeshNetwork: (network) =>
             set((state) => ({
               meshNetworks: state.meshNetworks.map((n) =>
-                n.id === network.id ? network : n
+                n.id === network.id ? network : n,
               ),
             })),
           selectNetwork: (id) => set({ selectedNetworkId: id }),
@@ -244,14 +244,14 @@ export const useAppStore = create<AppStore>()(
             set((state) => ({
               notifications: [notification, ...state.notifications].slice(
                 0,
-                100
+                100,
               ),
               unreadCount: state.unreadCount + 1,
             })),
           markAsRead: (id) =>
             set((state) => {
               const updated = state.notifications.map((n) =>
-                n.id === id ? { ...n, read: true } : n
+                n.id === id ? { ...n, read: true } : n,
               );
               return {
                 notifications: updated,
@@ -294,11 +294,11 @@ export const useAppStore = create<AppStore>()(
             theme: state.theme,
             // Only persist theme and UI preferences
           }),
-        }
-      )
+        },
+      ),
     ),
-    { name: "SigmaVault" }
-  )
+    { name: "SigmaVault" },
+  ),
 );
 
 // ============================================================================
@@ -311,7 +311,7 @@ export const selectApiConnected = (state: AppStore) => state.apiConnected;
 export const selectAgents = (state: AppStore) => state.agents;
 export const selectActiveAgents = (state: AppStore) =>
   state.agents.filter(
-    (a) => a.status === "active" || a.status === "processing"
+    (a) => a.status === "active" || a.status === "processing",
   );
 export const selectSwarmStatus = (state: AppStore) => state.swarmStatus;
 export const selectPools = (state: AppStore) => state.pools;
@@ -333,7 +333,7 @@ export const appActions = {
     useAppStore.getState().setTheme(theme),
 
   addNotification: (
-    notification: Omit<Notification, "id" | "timestamp" | "read">
+    notification: Omit<Notification, "id" | "timestamp" | "read">,
   ) =>
     useAppStore.getState().addNotification({
       ...notification,
@@ -347,19 +347,79 @@ export const appActions = {
     store.setLastMessage(message);
     store.addToQueue(message);
 
-    // Route message to appropriate handler
+    // Route message to appropriate handler based on server event types
+    // See docs/WEBSOCKET_PROTOCOL.md for full event type specification
     switch (message.type) {
-      case "metrics_update":
-        store.setCurrentMetrics(message.payload as SystemMetrics);
-        store.addMetricsToHistory(message.payload as SystemMetrics);
+      // System metrics (every 5 seconds)
+      case "system.status":
+        if (message.data) {
+          // Handle stale data flag for graceful degradation
+          const metrics = message.data as SystemMetrics & { stale?: boolean };
+          if (metrics.stale) {
+            console.warn("[WebSocket] Serving stale system metrics");
+          }
+          store.setCurrentMetrics(metrics);
+          store.addMetricsToHistory(metrics);
+        }
         break;
-      case "agent_status":
-        store.updateAgent(message.payload as Agent);
+
+      // Agent status updates
+      case "agent.status":
+        if (message.data) {
+          store.updateAgent(message.data as Agent);
+        }
         break;
+
+      // Compression job updates
+      case "compression.update":
+        // TODO: Add compression job tracking to store
+        console.log("[WebSocket] Compression update:", message.data);
+        break;
+
+      // Storage updates
+      case "storage.update":
+        // TODO: Add storage update handling
+        console.log("[WebSocket] Storage update:", message.data);
+        break;
+
+      // Notifications
       case "notification":
-        store.addNotification(message.payload as Notification);
+        if (message.data) {
+          store.addNotification(message.data as Notification);
+        }
         break;
-      // Add more handlers as needed
+
+      // RPC errors (rate-limited, every 30s during outage)
+      case "rpc_error":
+        console.error("[WebSocket] RPC Error:", message.data);
+        appActions.addNotification({
+          type: "error",
+          title: "Connection Issue",
+          message: "Backend service communication issue",
+          dismissible: true,
+        });
+        break;
+
+      // Connection errors
+      case "connection_error":
+        console.error("[WebSocket] Connection Error:", message.data);
+        break;
+
+      // Heartbeat (keepalive)
+      case "heartbeat":
+        // Heartbeat received, connection is healthy
+        break;
+
+      // Legacy event type support
+      case "metrics_update":
+        if (message.payload) {
+          store.setCurrentMetrics(message.payload as SystemMetrics);
+          store.addMetricsToHistory(message.payload as SystemMetrics);
+        }
+        break;
+
+      default:
+        console.log("[WebSocket] Unknown message type:", message.type);
     }
   },
 };

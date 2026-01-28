@@ -281,21 +281,37 @@ export interface StorageMetrics {
 
 // ============================================================================
 // WebSocket Message Types
+// Aligned with docs/WEBSOCKET_PROTOCOL.md server event types
 // ============================================================================
 
 export type WebSocketMessageType =
+  // Server event types (from Go API)
+  | "system.status"
+  | "storage.update"
+  | "agent.status"
+  | "compression.update"
+  | "notification"
+  | "rpc_error"
+  | "connection_error"
+  | "heartbeat"
+  // Client command types
+  | "subscribe"
+  | "unsubscribe"
+  | "ping"
+  | "pong"
+  // Legacy types for backwards compatibility
   | "metrics_update"
   | "agent_status"
   | "storage_event"
   | "compression_progress"
   | "network_event"
-  | "security_alert"
-  | "notification";
+  | "security_alert";
 
 export interface WebSocketMessage<T = unknown> {
   type: WebSocketMessageType;
   timestamp: string;
-  payload: T;
+  data?: T; // New format from server
+  payload?: T; // Legacy format support
 }
 
 export type NotificationType = "info" | "success" | "warning" | "error";

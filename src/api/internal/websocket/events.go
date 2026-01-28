@@ -112,6 +112,15 @@ func (es *EventSubscriber) run(ctx context.Context) {
 
 			// Poll agent status
 			es.pollAgentStatus(ctx)
+
+			// Poll scheduler metrics (autonomy system)
+			es.pollSchedulerMetrics(ctx)
+
+			// Poll recovery status (autonomy system)
+			es.pollRecoveryStatus(ctx)
+
+			// Poll tuning status (autonomy system)
+			es.pollTuningStatus(ctx)
 		}
 	}
 }
@@ -431,6 +440,114 @@ func (es *EventSubscriber) pollAgentStatus(ctx context.Context) {
 	// Update cache for future graceful degradation
 	es.agentStatusCache = agentMap
 	es.lastSuccessfulStatusAt = time.Now()
+}
+
+// pollSchedulerMetrics polls task scheduler metrics and broadcasts updates.
+func (es *EventSubscriber) pollSchedulerMetrics(ctx context.Context) {
+	es.mu.Lock()
+	defer es.mu.Unlock()
+
+	if es.rpcClient == nil || !es.rpcClient.IsConnected() {
+		return
+	}
+
+	metrics, err := es.rpcClient.GetSchedulerMetrics(ctx)
+	if err != nil {
+		log.Debug().Err(err).Msg("Failed to poll scheduler metrics from RPC")
+		return
+	}
+
+	data := map[string]interface{}{
+		"queue_size":       metrics.QueueSize,
+		"tasks_scheduled":  metrics.TasksScheduled,
+		"tasks_dispatched": metrics.TasksDispatched,
+		"tasks_completed":  metrics.TasksCompleted,
+		"tasks_failed":     metrics.TasksFailed,
+		"avg_wait_time_ms": metrics.AvgWaitTimeMs,
+		"workers_active":   metrics.WorkersActive,
+		"is_running":       metrics.IsRunning,
+		"timestamp":        time.Now().Unix(),
+	}
+
+	if err := es.hub.BroadcastIfSubscribed(TypeSchedulerMetrics, data); err != nil {
+		log.Error().Err(err).Msg("Failed to broadcast scheduler metrics")
+	}
+}
+
+// pollRecoveryStatus polls agent recovery system status and broadcasts updates.
+func (es *EventSubscriber) pollRecoveryStatus(ctx context.Context) {
+	es.mu.Lock()
+	defer es.mu.Unlock()
+
+	if es.rpcClient == nil || !es.rpcClient.IsConnected() {
+		return
+	}
+
+	status, err := es.rpcClient.GetRecoveryStatus(ctx)
+	if err != nil {
+		log.Debug().Err(err).Msg("Failed to poll recovery status from RPC")
+		return
+	}
+
+	data := map[string]interface{}{
+		"is_monitoring":          status.IsMonitoring,
+		"agents_healthy":         status.AgentsHealthy,
+		"agents_degraded":        status.AgentsDegraded,
+		"agents_failed":          status.AgentsFailed,
+		"total_restarts":         status.TotalRestarts,
+		"circuit_breakers_open":  status.CircuitBreakersOpen,
+		"dead_letter_queue_size": status.DeadLetterQueueSize,
+		"health_scores":          status.HealthScores,
+		"timestamp":              time.Now().Unix(),
+	}
+
+	if err := es.hub.BroadcastIfSubscribed(TypeRecoveryStatus, data); err != nil {
+		log.Error().Err(err).Msg("Failed to broadcast recovery status")
+	}
+
+	// Broadcast circuit breaker events if any are open
+	if status.CircuitBreakersOpen > 0 {
+		circuitData := map[string]interface{}{
+			"open_count": status.CircuitBreakersOpen,
+			"reason":     "agents_failing_health_checks",
+			"timestamp":  time.Now().Unix(),
+		}
+		if err := es.hub.BroadcastIfSubscribed(TypeCircuitBreakerOpen, circuitData); err != nil {
+			log.Error().Err(err).Msg("Failed to broadcast circuit breaker open event")
+		}
+	}
+}
+
+// pollTuningStatus polls self-tuning system status and broadcasts updates.
+func (es *EventSubscriber) pollTuningStatus(ctx context.Context) {
+	es.mu.Lock()
+	defer es.mu.Unlock()
+
+	if es.rpcClient == nil || !es.rpcClient.IsConnected() {
+		return
+	}
+
+	status, err := es.rpcClient.GetTuningStatus(ctx)
+	if err != nil {
+		log.Debug().Err(err).Msg("Failed to poll tuning status from RPC")
+		return
+	}
+
+	data := map[string]interface{}{
+		"strategy":           status.Strategy,
+		"is_running":         status.IsRunning,
+		"parameters_count":   status.ParametersCount,
+		"best_score":         status.BestScore,
+		"current_score":      status.CurrentScore,
+		"sessions_completed": status.SessionsCompleted,
+		"current_session":    status.CurrentSession,
+		"exploration_rate":   status.ExplorationRate,
+		"timestamp":          time.Now().Unix(),
+	}
+
+	if err := es.hub.BroadcastIfSubscribed(TypeTuningStatus, data); err != nil {
+		log.Error().Err(err).Msg("Failed to broadcast tuning status")
+	}
 }
 
 // Helper functions

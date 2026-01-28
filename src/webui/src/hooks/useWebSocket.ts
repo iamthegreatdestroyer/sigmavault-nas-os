@@ -18,7 +18,8 @@ import type {
 // Configuration
 // ============================================================================
 
-const WS_URL = import.meta.env.VITE_WS_URL || "ws://localhost:8080/ws";
+// WebSocket connects to Go API on port 12080 (see docs/WEBSOCKET_PROTOCOL.md)
+const WS_URL = import.meta.env.VITE_WS_URL || "ws://localhost:12080/ws";
 const INITIAL_RECONNECT_DELAY = 1000;
 const MAX_RECONNECT_DELAY = 30000;
 const RECONNECT_MULTIPLIER = 1.5;
@@ -50,14 +51,14 @@ interface UseWebSocketReturn {
 // ============================================================================
 
 export function useWebSocket(
-  options: UseWebSocketOptions = {}
+  options: UseWebSocketOptions = {},
 ): UseWebSocketReturn {
   const { autoConnect = true, onOpen, onClose, onError, onMessage } = options;
 
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectDelayRef = useRef(INITIAL_RECONNECT_DELAY);
   const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
-    null
+    null,
   );
   const pingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pongTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -103,7 +104,7 @@ export function useWebSocket(
     pingIntervalRef.current = setInterval(() => {
       if (wsRef.current?.readyState === WebSocket.OPEN) {
         wsRef.current.send(
-          JSON.stringify({ type: "ping", timestamp: new Date().toISOString() })
+          JSON.stringify({ type: "ping", timestamp: new Date().toISOString() }),
         );
 
         pongTimeoutRef.current = setTimeout(() => {
@@ -155,7 +156,7 @@ export function useWebSocket(
             if (mountedRef.current) {
               reconnectDelayRef.current = Math.min(
                 delay * RECONNECT_MULTIPLIER,
-                MAX_RECONNECT_DELAY
+                MAX_RECONNECT_DELAY,
               );
               connect();
             }
@@ -279,7 +280,7 @@ export function useWebSocket(
         }, 30000);
       });
     },
-    []
+    [],
   );
 
   // --------------------------------------------------------------------------

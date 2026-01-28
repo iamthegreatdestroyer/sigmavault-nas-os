@@ -479,3 +479,157 @@ async def restart_agent(request: Request, agent_name: str) -> dict:
         )
     
     return {"status": "restarted", "agent": agent_name}
+
+
+class EventSystemStatus(BaseModel):
+    """Event system status model."""
+    
+    events_emitted: int = Field(description="Total events emitted")
+    events_processed: int = Field(description="Events successfully processed")
+    events_dropped: int = Field(description="Events dropped due to buffer overflow")
+    handlers_called: int = Field(description="Total handler invocations")
+    handler_errors: int = Field(description="Handler errors encountered")
+    is_running: bool = Field(description="Whether event system is running")
+
+
+@router.get("/events/status")
+async def get_events_status(request: Request) -> EventSystemStatus:
+    """Get event system status and metrics."""
+    from engined.agents.events import get_event_emitter
+    
+    emitter = get_event_emitter()
+    
+    if not emitter:
+        return EventSystemStatus(
+            events_emitted=0,
+            events_processed=0,
+            events_dropped=0,
+            handlers_called=0,
+            handler_errors=0,
+            is_running=False,
+        )
+    
+    metrics = emitter.get_metrics()
+    
+    return EventSystemStatus(
+        events_emitted=metrics.get("events_emitted", 0),
+        events_processed=metrics.get("events_processed", 0),
+        events_dropped=metrics.get("events_dropped", 0),
+        handlers_called=metrics.get("handlers_called", 0),
+        handler_errors=metrics.get("handler_errors", 0),
+        is_running=emitter._running,
+    )
+
+
+class MemorySystemStatus(BaseModel):
+    """MNEMONIC memory system status model."""
+    
+    total_memories: int = Field(description="Total memories stored")
+    total_stored: int = Field(description="Total memories ever stored")
+    total_forgotten: int = Field(description="Total memories forgotten (decayed/evicted)")
+    total_retrieved: int = Field(description="Total memory retrievals")
+    consolidation_runs: int = Field(description="Memory consolidation cycles run")
+    by_type: dict = Field(description="Memory counts by type")
+    is_running: bool = Field(description="Whether memory system is running")
+
+
+@router.get("/memory/status")
+async def get_memory_status(request: Request) -> MemorySystemStatus:
+    """Get MNEMONIC memory system status and metrics."""
+    from engined.agents.memory import get_memory_store
+    
+    store = get_memory_store()
+    
+    if not store:
+        return MemorySystemStatus(
+            total_memories=0,
+            total_stored=0,
+            total_forgotten=0,
+            total_retrieved=0,
+            consolidation_runs=0,
+            by_type={},
+            is_running=False,
+        )
+    
+    metrics = store.get_metrics()
+    
+    return MemorySystemStatus(
+        total_memories=metrics.get("total_memories", 0),
+        total_stored=metrics.get("total_stored", 0),
+        total_forgotten=metrics.get("total_forgotten", 0),
+        total_retrieved=metrics.get("total_retrieved", 0),
+        consolidation_runs=metrics.get("consolidation_runs", 0),
+        by_type=metrics.get("by_type", {}),
+        is_running=store._running,
+    )
+
+
+class TuningSystemStatus(BaseModel):
+    """Self-tuning system status model."""
+    
+    strategy: str = Field(description="Active tuning strategy")
+    is_running: bool = Field(description="Whether tuning is running")
+    parameters_count: int = Field(description="Number of tunable parameters")
+    best_score: float = Field(description="Best performance score achieved")
+    current_score: float = Field(description="Current performance score")
+    sessions_completed: int = Field(description="Number of tuning sessions completed")
+    current_session: str | None = Field(description="Current session ID if active")
+    exploration_rate: float = Field(description="Parameter exploration rate")
+
+
+@router.get("/tuning/status")
+async def get_tuning_status(request: Request) -> TuningSystemStatus:
+    """Get self-tuning system status and metrics."""
+    from engined.agents.tuning import get_tuner
+    
+    tuner = get_tuner()
+    
+    if not tuner:
+        return TuningSystemStatus(
+            strategy="none",
+            is_running=False,
+            parameters_count=0,
+            best_score=0.0,
+            current_score=0.0,
+            sessions_completed=0,
+            current_session=None,
+            exploration_rate=0.0,
+        )
+    
+    metrics = tuner.get_metrics()
+    
+    return TuningSystemStatus(
+        strategy=metrics.get("strategy", "unknown"),
+        is_running=metrics.get("is_running", False),
+        parameters_count=metrics.get("parameters_count", 0),
+        best_score=metrics.get("best_score", 0.0),
+        current_score=metrics.get("current_score", 0.0),
+        sessions_completed=metrics.get("sessions_completed", 0),
+        current_session=metrics.get("current_session"),
+        exploration_rate=metrics.get("exploration_rate", 0.0),
+    )
+
+
+class TuningParameterInfo(BaseModel):
+    """Tunable parameter info model."""
+    
+    name: str = Field(description="Parameter name")
+    type: str = Field(description="Parameter type")
+    current_value: float | int | str = Field(description="Current value")
+    default_value: float | int | str = Field(description="Default value")
+    min_value: float | None = Field(description="Minimum value")
+    max_value: float | None = Field(description="Maximum value")
+    description: str = Field(description="Parameter description")
+
+
+@router.get("/tuning/parameters")
+async def get_tuning_parameters(request: Request) -> dict:
+    """Get all tunable parameters and their current values."""
+    from engined.agents.tuning import get_tuner
+    
+    tuner = get_tuner()
+    
+    if not tuner:
+        return {"parameters": {}}
+    
+    return {"parameters": tuner.get_all_parameters()}

@@ -14,31 +14,37 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+// MessageType represents a string-based event type (matches server)
+type MessageType = string
+
 // Event represents a WebSocket event from the server
 type Event struct {
-	Type int         `json:"type"`
-	Data interface{} `json:"data"`
+	Type      MessageType     `json:"type"`
+	Timestamp time.Time       `json:"timestamp"`
+	Data      json.RawMessage `json:"data,omitempty"`
 }
 
-// EventType constants
+// MessageType constants (string-based, matching hub.go)
 const (
-	TypeSystemStatus         = 0
-	TypeCompressionUpdate    = 1
-	TypeAgentStatus          = 2
-	TypeRPCError             = 3
-	TypeHeartbeat            = 4
-	TypeCompressionJobsError = 5
-	TypeAgentStatusError     = 6
+	TypeSystemStatus      MessageType = "system.status"
+	TypeStorageUpdate     MessageType = "storage.update"
+	TypeAgentStatus       MessageType = "agent.status"
+	TypeCompressionUpdate MessageType = "compression.update"
+	TypeNotification      MessageType = "notification"
+	TypeRPCError          MessageType = "rpc_error"
+	TypeConnectionError   MessageType = "connection_error"
+	TypeHeartbeat         MessageType = "heartbeat"
 )
 
-var eventTypeNames = map[int]string{
-	TypeSystemStatus:         "SystemStatus",
-	TypeCompressionUpdate:    "CompressionUpdate",
-	TypeAgentStatus:          "AgentStatus",
-	TypeRPCError:             "RPCError",
-	TypeHeartbeat:            "Heartbeat",
-	TypeCompressionJobsError: "CompressionJobsError",
-	TypeAgentStatusError:     "AgentStatusError",
+var eventTypeNames = map[MessageType]string{
+	TypeSystemStatus:      "SystemStatus",
+	TypeStorageUpdate:     "StorageUpdate",
+	TypeAgentStatus:       "AgentStatus",
+	TypeCompressionUpdate: "CompressionUpdate",
+	TypeNotification:      "Notification",
+	TypeRPCError:          "RPCError",
+	TypeConnectionError:   "ConnectionError",
+	TypeHeartbeat:         "Heartbeat",
 }
 
 func main() {
@@ -56,7 +62,7 @@ func main() {
 	fmt.Println("\nMonitoring events (press Ctrl+C to stop)...\n")
 
 	// Track timing and errors
-	eventCounts := make(map[int]int)
+	eventCounts := make(map[MessageType]int)
 	errorCounts := make(map[string]int)
 	var lastEventTime time.Time
 	eventIntervals := []time.Duration{}
@@ -93,16 +99,21 @@ func main() {
 
 		// Print event
 		typeName := eventTypeNames[event.Type]
-		fmt.Printf("[%s] Type: %d (%s)\n", eventTime.Format("15:04:05.000"), event.Type, typeName)
+		fmt.Printf("[%s] Type: %s (%s)\n", eventTime.Format("15:04:05.000"), event.Type, typeName)
 
 		// Parse and analyze data based on event type
-		if dataJSON, err := json.MarshalIndent(event.Data, "  ", "  "); err == nil {
-			fmt.Printf("  Data: %s\n", string(dataJSON))
+		if len(event.Data) > 0 {
+			var prettyData map[string]interface{}
+			if err := json.Unmarshal(event.Data, &prettyData); err == nil {
+				if dataJSON, err := json.MarshalIndent(prettyData, "  ", "  "); err == nil {
+					fmt.Printf("  Data: %s\n", string(dataJSON))
+				}
+			}
 		}
 
 		// Analyze event content for circuit breaker patterns
-		dataMap, ok := event.Data.(map[string]interface{})
-		if ok {
+		var dataMap map[string]interface{}
+		if err := json.Unmarshal(event.Data, &dataMap); err == nil {
 			analyzeEventData(event.Type, dataMap, &errorCounts, &circuitBreakerOpenDetected,
 				&staleDataReceived, &autoRecoveryDetected, &rpcDisconnectTime, &circuitBreakerTime)
 		}
@@ -123,7 +134,7 @@ func main() {
 	fmt.Println("\nEvents Received:")
 	for typeID, count := range eventCounts {
 		typeName := eventTypeNames[typeID]
-		fmt.Printf("  %s (type %d): %d\n", typeName, typeID, count)
+		fmt.Printf("  %s (%s): %d\n", typeName, typeID, count)
 	}
 
 	// Print error analysis
@@ -203,7 +214,7 @@ func maxDuration(durations []time.Duration) time.Duration {
 }
 
 // analyzeEventData examines event data for circuit breaker patterns and error codes
-func analyzeEventData(eventType int, dataMap map[string]interface{},
+func analyzeEventData(eventType MessageType, dataMap map[string]interface{},
 	errorCounts *map[string]int,
 	circuitBreakerOpenDetected *bool,
 	staleDataReceived *bool,

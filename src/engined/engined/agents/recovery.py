@@ -94,6 +94,8 @@ class CircuitBreaker:
         self.half_open_calls = 0
         self.success_count = 0
         logger.warning(f"Circuit breaker OPENED for agent {self.agent_id}")
+        # Emit event asynchronously
+        self._emit_circuit_event("open")
     
     def _half_open(self) -> None:
         """Move to half-open state (allow limited testing)."""
@@ -108,6 +110,26 @@ class CircuitBreaker:
         self.failure_count = 0
         self.half_open_calls = 0
         logger.info(f"Circuit breaker CLOSED for agent {self.agent_id}")
+        # Emit event asynchronously
+        self._emit_circuit_event("closed")
+    
+    def _emit_circuit_event(self, event_type: str) -> None:
+        """Emit circuit breaker event to event bridge."""
+        try:
+            from engined.agents.events import get_event_bridge
+            bridge = get_event_bridge()
+            if bridge:
+                import asyncio
+                if event_type == "open":
+                    asyncio.create_task(
+                        bridge.on_circuit_breaker_open(self.agent_id, self.failure_count)
+                    )
+                elif event_type == "closed":
+                    asyncio.create_task(
+                        bridge.on_circuit_breaker_closed(self.agent_id)
+                    )
+        except Exception:
+            pass  # Don't fail on event emission errors
     
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for monitoring."""
@@ -342,6 +364,9 @@ class AgentRecovery:
         # Attempt restart
         logger.info(f"Attempting recovery of agent {agent_id} (attempt {attempts + 1})")
         
+        # Emit recovery started event
+        await self._emit_recovery_event("started", agent_id, attempts + 1)
+        
         try:
             # Reset agent state
             agent.status = AgentStatus.IDLE
@@ -355,13 +380,41 @@ class AgentRecovery:
             self._restart_attempts[agent_id] = attempts + 1
             self._last_restart_time[agent_id] = time.time()
             
+            # Emit recovery success event
+            await self._emit_recovery_event("success", agent_id)
+            
             logger.info(f"Agent {agent_id} recovered successfully")
             return True
             
         except Exception as e:
             logger.error(f"Failed to recover agent {agent_id}: {e}")
             agent.status = AgentStatus.ERROR
+            
+            # Emit recovery failed event
+            await self._emit_recovery_event("failed", agent_id, error=str(e))
+            
             return False
+    
+    async def _emit_recovery_event(
+        self, 
+        event_type: str, 
+        agent_id: str, 
+        attempt: int = 0,
+        error: str = "",
+    ) -> None:
+        """Emit recovery event to event bridge."""
+        try:
+            from engined.agents.events import get_event_bridge
+            bridge = get_event_bridge()
+            if bridge:
+                if event_type == "started":
+                    await bridge.on_recovery_started(agent_id, attempt)
+                elif event_type == "success":
+                    await bridge.on_recovery_success(agent_id)
+                elif event_type == "failed":
+                    await bridge.on_recovery_failed(agent_id, error)
+        except Exception:
+            pass  # Don't fail on event emission errors
     
     def get_status(self) -> Dict[str, Any]:
         """Get recovery system status."""

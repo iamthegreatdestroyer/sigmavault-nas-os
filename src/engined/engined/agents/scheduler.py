@@ -291,6 +291,15 @@ class TaskScheduler:
                     wait_time = (time.time() - priority_task.timestamp) * 1000
                     self._total_wait_time_ms += wait_time
                     
+                    # Emit task assigned event
+                    await self._emit_task_event(
+                        "assigned",
+                        task.task_id,
+                        task.task_type,
+                        agent.name,
+                        priority_task.priority,
+                    )
+                    
                     logger.debug(
                         f"Worker {worker_name} dispatched task {task.task_id} "
                         f"to agent {agent.name} (wait={wait_time:.1f}ms)"
@@ -346,7 +355,62 @@ class TaskScheduler:
     def mark_completed(self, task_id: str) -> None:
         """Mark a task as completed (called by task processor)."""
         self._tasks_completed += 1
+        # Emit completion event asynchronously
+        self._emit_completion_event(task_id, success=True)
     
     def mark_failed(self, task_id: str) -> None:
         """Mark a task as failed (called by task processor)."""
         self._tasks_failed += 1
+        # Emit failure event asynchronously
+        self._emit_completion_event(task_id, success=False)
+    
+    async def _emit_task_event(
+        self,
+        event_type: str,
+        task_id: str,
+        task_type: str,
+        agent_name: str,
+        priority: int,
+    ) -> None:
+        """Emit task event to event bridge."""
+        try:
+            from engined.agents.events import get_event_bridge
+            bridge = get_event_bridge()
+            if bridge and event_type == "assigned":
+                priority_name = self._priority_to_name(priority)
+                await bridge.on_task_assigned(task_id, task_type, agent_name, priority_name)
+        except Exception:
+            pass  # Don't fail on event emission errors
+    
+    def _emit_completion_event(self, task_id: str, success: bool) -> None:
+        """Emit task completion/failure event."""
+        try:
+            import asyncio
+            from engined.agents.events import get_event_bridge
+            bridge = get_event_bridge()
+            if bridge:
+                task = self.swarm.tasks.get(task_id)
+                agent_name = task.assigned_agent if task else "unknown"
+                if success:
+                    asyncio.create_task(
+                        bridge.on_task_completed(task_id, agent_name, 0)
+                    )
+                else:
+                    asyncio.create_task(
+                        bridge.on_task_failed(task_id, agent_name, "Task failed", False)
+                    )
+        except Exception:
+            pass  # Don't fail on event emission errors
+    
+    @staticmethod
+    def _priority_to_name(priority: int) -> str:
+        """Convert priority number to name."""
+        if priority <= TaskPriority.CRITICAL:
+            return "critical"
+        elif priority <= TaskPriority.HIGH:
+            return "high"
+        elif priority <= TaskPriority.NORMAL:
+            return "normal"
+        elif priority <= TaskPriority.LOW:
+            return "low"
+        return "background"

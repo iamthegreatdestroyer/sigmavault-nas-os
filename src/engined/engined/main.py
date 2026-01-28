@@ -35,6 +35,9 @@ from engined.rpc.server import create_grpc_server
 from engined.agents.swarm import AgentSwarm
 from engined.agents.scheduler import TaskScheduler
 from engined.agents.recovery import AgentRecovery
+from engined.agents.events import configure_event_system, shutdown_event_system
+from engined.agents.memory import init_memory_system, shutdown_memory_system
+from engined.agents.tuning import init_tuning_system, shutdown_tuning_system, TuningStrategy
 
 if TYPE_CHECKING:
     from engined.agents.swarm import AgentSwarm
@@ -96,6 +99,27 @@ class EngineState:
         )
         await self.recovery.start_monitoring(check_interval=30.0)
         
+        logger.info("Initializing event system for real-time WebSocket events")
+        await configure_event_system(
+            swarm=self.swarm,
+            scheduler=self.scheduler,
+            recovery=self.recovery,
+        )
+        
+        logger.info("Initializing MNEMONIC memory system")
+        await init_memory_system(
+            max_entries=10000,
+            consolidation_interval=300.0,  # 5 minutes
+            decay_interval=3600.0,  # 1 hour
+        )
+        
+        logger.info("Initializing self-tuning system")
+        await init_tuning_system(
+            strategy=TuningStrategy.GRADIENT_FREE,
+            exploration_rate=0.1,
+            tuning_interval=300.0,  # 5 minutes
+        )
+        
         logger.info("Initializing gRPC server", port=settings.grpc_port)
         self.grpc_server = await create_grpc_server(settings, self.swarm)
         await self.grpc_server.start()
@@ -105,6 +129,18 @@ class EngineState:
     async def shutdown(self) -> None:
         """Gracefully shutdown engine components."""
         logger.info("Shutting down engine...")
+        
+        # Shutdown event system first to stop emitting events
+        await shutdown_event_system()
+        logger.info("Event system stopped")
+        
+        # Shutdown memory system
+        await shutdown_memory_system()
+        logger.info("MNEMONIC memory system stopped")
+        
+        # Shutdown tuning system
+        await shutdown_tuning_system()
+        logger.info("Self-tuning system stopped")
         
         if self.recovery:
             await self.recovery.stop_monitoring()

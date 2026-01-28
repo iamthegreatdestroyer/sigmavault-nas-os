@@ -61,6 +61,8 @@ export const queryKeys = {
     list: () => [...queryKeys.agents.all, "list"] as const,
     detail: (id: string) => [...queryKeys.agents.all, "detail", id] as const,
     swarm: () => [...queryKeys.agents.all, "swarm"] as const,
+    tasks: () => [...queryKeys.agents.all, "tasks"] as const,
+    task: (id: string) => [...queryKeys.agents.all, "task", id] as const,
   },
 
   // Storage
@@ -72,6 +74,8 @@ export const queryKeys = {
     volume: (id: string) => [...queryKeys.storage.all, "volume", id] as const,
     disks: () => [...queryKeys.storage.all, "disks"] as const,
     disk: (id: string) => [...queryKeys.storage.all, "disk", id] as const,
+    devices: () => [...queryKeys.storage.all, "devices"] as const,
+    device: (id: string) => [...queryKeys.storage.all, "device", id] as const,
   },
 
   // Compression
@@ -117,7 +121,7 @@ class ApiError extends Error {
     message: string,
     public status: number,
     public code?: string,
-    public details?: unknown
+    public details?: unknown,
   ) {
     super(message);
     this.name = "ApiError";
@@ -126,7 +130,7 @@ class ApiError extends Error {
 
 async function request<T>(
   endpoint: string,
-  options: RequestInit = {}
+  options: RequestInit = {},
 ): Promise<T> {
   const url = `${API_BASE_URL}${endpoint}`;
 
@@ -158,7 +162,7 @@ async function request<T>(
       errorData.message || "Request failed",
       response.status,
       errorData.code,
-      errorData.details
+      errorData.details,
     );
   }
 
@@ -181,6 +185,8 @@ export const api = {
   agents: {
     list: () => request<ApiResponse<Agent[]>>("/agents"),
 
+    getAll: () => request<ApiResponse<Agent[]>>("/agents"),
+
     get: (id: string) => request<ApiResponse<Agent>>(`/agents/${id}`),
 
     activate: (id: string) =>
@@ -191,15 +197,43 @@ export const api = {
         method: "POST",
       }),
 
+    pause: (id: string) =>
+      request<ApiResponse<void>>(`/agents/${id}/pause`, { method: "POST" }),
+
+    resume: (id: string) =>
+      request<ApiResponse<void>>(`/agents/${id}/resume`, { method: "POST" }),
+
+    restart: (id: string) =>
+      request<ApiResponse<void>>(`/agents/${id}/restart`, { method: "POST" }),
+
     assignTask: (
       id: string,
-      task: { type: string; priority: number; payload: unknown }
+      task: { type: string; priority: number; payload: unknown },
     ) =>
       request<ApiResponse<{ taskId: string }>>(`/agents/${id}/tasks`, {
         method: "POST",
         body: JSON.stringify(task),
       }),
 
+    // Task management
+    getTasks: () => request<ApiResponse<unknown[]>>("/agents/tasks"),
+
+    submitTask: (data: {
+      agentId?: string;
+      taskType: string;
+      payload: Record<string, unknown>;
+    }) =>
+      request<ApiResponse<{ taskId: string }>>("/agents/tasks", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+
+    cancelTask: (taskId: string) =>
+      request<ApiResponse<void>>(`/agents/tasks/${taskId}`, {
+        method: "DELETE",
+      }),
+
+    // Swarm management
     getSwarmStatus: () =>
       request<
         ApiResponse<{
@@ -207,8 +241,30 @@ export const api = {
           activeAgents: number;
           taskQueue: number;
           memoryUsage: number;
+          isActive?: boolean;
+          mode?: string;
+          throughput?: number;
+          efficiency?: number;
         }>
       >("/agents/swarm/status"),
+
+    setSwarmMode: (mode: "manual" | "auto" | "learning") =>
+      request<ApiResponse<void>>("/agents/swarm/mode", {
+        method: "POST",
+        body: JSON.stringify({ mode }),
+      }),
+
+    scaleSwarm: (delta: number) =>
+      request<ApiResponse<void>>("/agents/swarm/scale", {
+        method: "POST",
+        body: JSON.stringify({ delta }),
+      }),
+
+    pauseAll: () =>
+      request<ApiResponse<void>>("/agents/pause-all", { method: "POST" }),
+
+    resumeAll: () =>
+      request<ApiResponse<void>>("/agents/resume-all", { method: "POST" }),
   },
 
   // --------------------------------------------------------------------------
@@ -217,6 +273,8 @@ export const api = {
   storage: {
     // Pools
     listPools: () => request<ApiResponse<StoragePool[]>>("/storage/pools"),
+
+    getPools: () => request<ApiResponse<StoragePool[]>>("/storage/pools"),
 
     getPool: (id: string) =>
       request<ApiResponse<StoragePool>>(`/storage/pools/${id}`),
@@ -243,10 +301,10 @@ export const api = {
       request<ApiResponse<StorageVolume>>(`/storage/volumes/${id}`),
 
     createVolume: (data: {
-      name: string;
+      name?: string;
       poolId: string;
       size: number;
-      filesystem: StorageVolume["filesystem"];
+      filesystem?: StorageVolume["filesystem"];
       compression?: boolean;
       encryption?: boolean;
     }) =>
@@ -255,13 +313,18 @@ export const api = {
         body: JSON.stringify(data),
       }),
 
-    deleteVolume: (id: string) =>
-      request<ApiResponse<void>>(`/storage/volumes/${id}`, {
-        method: "DELETE",
-      }),
+    deleteVolume: (poolId: string, volumeId: string) =>
+      request<ApiResponse<void>>(
+        `/storage/pools/${poolId}/volumes/${volumeId}`,
+        {
+          method: "DELETE",
+        },
+      ),
 
-    // Disks
+    // Disks / Devices
     listDisks: () => request<ApiResponse<StorageDisk[]>>("/storage/disks"),
+
+    getDevices: () => request<ApiResponse<StorageDisk[]>>("/storage/devices"),
 
     getDisk: (id: string) =>
       request<ApiResponse<StorageDisk>>(`/storage/disks/${id}`),
@@ -349,7 +412,7 @@ export const api = {
     rotateKeys: () =>
       request<ApiResponse<{ rotatedAt: string }>>(
         "/security/encryption/rotate",
-        { method: "POST" }
+        { method: "POST" },
       ),
 
     getAuditLog: (params?: {
@@ -363,7 +426,7 @@ export const api = {
       if (params?.level) searchParams.set("level", params.level);
 
       return request<PaginatedApiResponse<SecurityAuditEvent>>(
-        `/security/audit?${searchParams.toString()}`
+        `/security/audit?${searchParams.toString()}`,
       );
     },
   },
@@ -414,7 +477,7 @@ export const api = {
         {
           method: "POST",
           body: JSON.stringify(credentials),
-        }
+        },
       ),
 
     logout: () =>
@@ -425,7 +488,7 @@ export const api = {
         "/auth/refresh",
         {
           method: "POST",
-        }
+        },
       ),
 
     me: () =>

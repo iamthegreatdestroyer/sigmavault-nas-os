@@ -4,6 +4,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/url"
@@ -13,10 +14,28 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+// MessageType matches the server's string-based message type
+type MessageType string
+
+// Message type constants matching hub.go
+const (
+	TypeSystemStatus         MessageType = "system.status"
+	TypeStorageUpdate        MessageType = "storage.update"
+	TypeAgentStatus          MessageType = "agent.status"
+	TypeCompressionUpdate    MessageType = "compression.update"
+	TypeNotification         MessageType = "notification"
+	TypeRPCError             MessageType = "rpc_error"
+	TypeConnectionError      MessageType = "connection_error"
+	TypeHeartbeat            MessageType = "heartbeat"
+	TypeCircuitBreakerOpen   MessageType = "circuit_breaker.open"
+	TypeCircuitBreakerClosed MessageType = "circuit_breaker.closed"
+)
+
 // CircuitBreakerTestEvent represents a WebSocket event with timing
 type CircuitBreakerTestEvent struct {
-	Type       int         `json:"type"`
-	Data       interface{} `json:"data"`
+	Type       MessageType     `json:"type"`
+	Timestamp  time.Time       `json:"timestamp"`
+	Data       json.RawMessage `json:"data,omitempty"`
 	ReceivedAt time.Time
 }
 
@@ -113,13 +132,14 @@ func main() {
 
 // processCircuitBreakerEvent analyzes an event for circuit breaker patterns
 func processCircuitBreakerEvent(event CircuitBreakerTestEvent, results *TestResults) {
-	dataMap, ok := event.Data.(map[string]interface{})
-	if !ok {
+	// Parse the json.RawMessage data
+	var dataMap map[string]interface{}
+	if err := json.Unmarshal(event.Data, &dataMap); err != nil {
+		fmt.Printf("[%s] %s (failed to parse data)\n", event.ReceivedAt.Format("15:04:05.000"), event.Type)
 		return
 	}
 
-	eventTypeName := getEventTypeName(event.Type)
-	fmt.Printf("[%s] %s\n", event.ReceivedAt.Format("15:04:05.000"), eventTypeName)
+	fmt.Printf("[%s] %s\n", event.ReceivedAt.Format("15:04:05.000"), event.Type)
 
 	// Check for error codes
 	if errorCode, exists := dataMap["error_code"]; exists {
@@ -269,7 +289,8 @@ func printTestResults(results *TestResults, startTime time.Time) {
 	// Criterion 3: Stale flag in responses
 	staleFlagFound := false
 	for _, evt := range results.Events {
-		if dataMap, ok := evt.Data.(map[string]interface{}); ok {
+		var dataMap map[string]interface{}
+		if err := json.Unmarshal(evt.Data, &dataMap); err == nil {
 			if _, exists := dataMap["stale"]; exists {
 				staleFlagFound = true
 				break
@@ -304,19 +325,4 @@ func printTestResults(results *TestResults, startTime time.Time) {
 	fmt.Println(strings.Repeat("=", 60))
 }
 
-// getEventTypeName returns the human-readable name for an event type
-func getEventTypeName(eventType int) string {
-	names := map[int]string{
-		0: "SystemStatus",
-		1: "CompressionUpdate",
-		2: "AgentStatus",
-		3: "RPCError",
-		4: "Heartbeat",
-		5: "CompressionJobsError",
-		6: "AgentStatusError",
-	}
-	if name, exists := names[eventType]; exists {
-		return name
-	}
-	return fmt.Sprintf("Unknown(%d)", eventType)
-}
+// MessageType constants are already strings, no conversion needed
