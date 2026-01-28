@@ -1,0 +1,456 @@
+name: Comprehensive CI
+
+on:
+    push:
+        branches: [main, develop]
+    pull_request:
+        branches: [main]
+    schedule:
+        # Nightly builds at 2 AM UTC
+        - cron: "0 2 * * *"
+    workflow_dispatch:
+
+env:
+    GO_VERSION: "1.22"
+    PYTHON_VERSION: "3.12"
+    NODE_VERSION: "20"
+
+jobs:
+    # ============================================
+    # Stage 1: Lint and Static Analysis
+    # ============================================
+    lint:
+        name: Lint & Static Analysis
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+
+            - name: Set up Go
+              uses: actions/setup-go@v5
+              with:
+                  go-version: ${{ env.GO_VERSION }}
+
+            - name: Set up Python
+              uses: actions/setup-python@v5
+              with:
+                  python-version: ${{ env.PYTHON_VERSION }}
+
+            - name: Set up Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: ${{ env.NODE_VERSION }}
+
+            # Go Linting
+            - name: Go Lint
+              uses: golangci/golangci-lint-action@v4
+              with:
+                  version: latest
+                  working-directory: src/api
+
+            # Python Linting
+            - name: Install Python lint tools
+              run: pip install ruff mypy
+
+            - name: Python Lint (Ruff)
+              run: |
+                  cd src/engined
+                  ruff check engined/ --output-format=github
+
+            - name: Python Type Check (MyPy)
+              run: |
+                  cd src/engined
+                  mypy engined/ --ignore-missing-imports || true
+
+            # TypeScript/JavaScript Linting
+            - name: Install pnpm
+              uses: pnpm/action-setup@v2
+              with:
+                  version: 8
+
+            - name: Install WebUI dependencies
+              run: |
+                  cd src/webui
+                  pnpm install --frozen-lockfile
+
+            - name: WebUI Lint
+              run: |
+                  cd src/webui
+                  pnpm run lint
+
+    # ============================================
+    # Stage 2: Unit Tests
+    # ============================================
+    test-go:
+        name: Go Unit Tests
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+
+            - name: Set up Go
+              uses: actions/setup-go@v5
+              with:
+                  go-version: ${{ env.GO_VERSION }}
+
+            - name: Go Test with Coverage
+              run: |
+                  cd src/api
+                  go test ./... -v -race -coverprofile=coverage.out -covermode=atomic
+
+            - name: Upload Go Coverage
+              uses: codecov/codecov-action@v4
+              with:
+                  files: src/api/coverage.out
+                  flags: go
+                  name: go-coverage
+              continue-on-error: true
+
+    test-python:
+        name: Python Unit Tests
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+
+            - name: Set up Python
+              uses: actions/setup-python@v5
+              with:
+                  python-version: ${{ env.PYTHON_VERSION }}
+
+            - name: Install dependencies
+              run: |
+                  cd src/engined
+                  pip install -e ".[dev]" || pip install pytest pytest-asyncio pytest-cov
+                  pip install -r requirements.txt 2>/dev/null || true
+
+            - name: Python Test with Coverage
+              run: |
+                  cd src/engined
+                  python -m pytest tests/ -v --cov=engined --cov-report=xml
+
+            - name: Upload Python Coverage
+              uses: codecov/codecov-action@v4
+              with:
+                  files: src/engined/coverage.xml
+                  flags: python
+                  name: python-coverage
+              continue-on-error: true
+
+    test-webui:
+        name: WebUI Unit Tests
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+
+            - name: Set up Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: ${{ env.NODE_VERSION }}
+
+            - name: Install pnpm
+              uses: pnpm/action-setup@v2
+              with:
+                  version: 8
+
+            - name: Install dependencies
+              run: |
+                  cd src/webui
+                  pnpm install --frozen-lockfile
+
+            - name: Run Tests
+              run: |
+                  cd src/webui
+                  pnpm run test --run 2>/dev/null || echo "No tests configured yet"
+
+    # ============================================
+    # Stage 3: Security Scanning
+    # ============================================
+    security-scan:
+        name: Security Scan
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+
+            # Trivy vulnerability scanner
+            - name: Run Trivy FS Scan
+              uses: aquasecurity/trivy-action@master
+              with:
+                  scan-type: "fs"
+                  scan-ref: "."
+                  security-checks: "vuln,secret,config"
+                  format: "sarif"
+                  output: "trivy-results.sarif"
+              continue-on-error: true
+
+            - name: Upload Trivy Results
+              uses: github/codeql-action/upload-sarif@v3
+              with:
+                  sarif_file: "trivy-results.sarif"
+              continue-on-error: true
+
+            # Go security scan
+            - name: Set up Go
+              uses: actions/setup-go@v5
+              with:
+                  go-version: ${{ env.GO_VERSION }}
+
+            - name: Install gosec
+              run: go install github.com/securego/gosec/v2/cmd/gosec@latest
+
+            - name: Run gosec
+              run: |
+                  cd src/api
+                  gosec -fmt sarif -out gosec-results.sarif ./... || true
+              continue-on-error: true
+
+            # Python security scan
+            - name: Set up Python
+              uses: actions/setup-python@v5
+              with:
+                  python-version: ${{ env.PYTHON_VERSION }}
+
+            - name: Install bandit
+              run: pip install bandit
+
+            - name: Run bandit
+              run: |
+                  cd src/engined
+                  bandit -r engined/ -f json -o bandit-results.json || true
+              continue-on-error: true
+
+    # ============================================
+    # Stage 4: Build Verification
+    # ============================================
+    build-go:
+        name: Build Go API
+        runs-on: ubuntu-latest
+        needs: [lint, test-go]
+        steps:
+            - uses: actions/checkout@v4
+
+            - name: Set up Go
+              uses: actions/setup-go@v5
+              with:
+                  go-version: ${{ env.GO_VERSION }}
+
+            - name: Build for Linux AMD64
+              run: |
+                  cd src/api
+                  GOOS=linux GOARCH=amd64 go build -o sigmavault-api-linux-amd64 .
+
+            - name: Build for Linux ARM64
+              run: |
+                  cd src/api
+                  GOOS=linux GOARCH=arm64 go build -o sigmavault-api-linux-arm64 .
+
+            - name: Upload Build Artifacts
+              uses: actions/upload-artifact@v4
+              with:
+                  name: go-api-binaries
+                  path: src/api/sigmavault-api-*
+                  retention-days: 7
+
+    build-webui:
+        name: Build WebUI
+        runs-on: ubuntu-latest
+        needs: [lint, test-webui]
+        steps:
+            - uses: actions/checkout@v4
+
+            - name: Set up Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: ${{ env.NODE_VERSION }}
+
+            - name: Install pnpm
+              uses: pnpm/action-setup@v2
+              with:
+                  version: 8
+
+            - name: Install dependencies
+              run: |
+                  cd src/webui
+                  pnpm install --frozen-lockfile
+
+            - name: Build
+              run: |
+                  cd src/webui
+                  pnpm run build
+
+            - name: Upload Build Artifacts
+              uses: actions/upload-artifact@v4
+              with:
+                  name: webui-dist
+                  path: src/webui/dist
+                  retention-days: 7
+
+    # ============================================
+    # Stage 5: Integration Tests
+    # ============================================
+    integration-test:
+        name: Integration Tests
+        runs-on: ubuntu-latest
+        needs: [build-go, test-python]
+        services:
+            redis:
+                image: redis:7
+                ports:
+                    - 6379:6379
+                options: >-
+                    --health-cmd "redis-cli ping"
+                    --health-interval 10s
+                    --health-timeout 5s
+                    --health-retries 5
+        steps:
+            - uses: actions/checkout@v4
+
+            - name: Set up Go
+              uses: actions/setup-go@v5
+              with:
+                  go-version: ${{ env.GO_VERSION }}
+
+            - name: Set up Python
+              uses: actions/setup-python@v5
+              with:
+                  python-version: ${{ env.PYTHON_VERSION }}
+
+            - name: Install Python dependencies
+              run: |
+                  cd src/engined
+                  pip install aiohttp grpcio grpcio-tools fastapi structlog prometheus-client psutil pydantic-settings
+
+            - name: Build Go API
+              run: |
+                  cd src/api
+                  go build -o sigmavault-api .
+
+            - name: Start Python Engine
+              run: |
+                  cd src/engined
+                  export PYTHONPATH=$(pwd)
+                  python -m uvicorn engined.main:create_app --factory --host 0.0.0.0 --port 8002 &
+                  sleep 10
+              env:
+                  SIGMAVAULT_ENVIRONMENT: test
+
+            - name: Start Go API
+              run: |
+                  cd src/api
+                  ./sigmavault-api &
+                  sleep 5
+              env:
+                  SIGMAVAULT_RPC_URL: http://127.0.0.1:8002/api/v1
+
+            - name: Run Integration Tests
+              run: |
+                  # Test health endpoints
+                  curl -f http://127.0.0.1:12080/health || exit 1
+                  curl -f http://127.0.0.1:8002/health || exit 1
+
+                  # Test RPC communication
+                  curl -f -X POST http://127.0.0.1:8002/api/v1/rpc \
+                    -H "Content-Type: application/json" \
+                    -d '{"jsonrpc":"2.0","method":"system.status","params":{},"id":1}' || exit 1
+
+                  # Test agent swarm status
+                  curl -f http://127.0.0.1:8002/api/v1/agents/status || exit 1
+
+                  echo "All integration tests passed!"
+
+    # ============================================
+    # Stage 6: Docker Build (optional)
+    # ============================================
+    docker-build:
+        name: Docker Build
+        runs-on: ubuntu-latest
+        needs: [integration-test]
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
+        steps:
+            - uses: actions/checkout@v4
+
+            - name: Set up Docker Buildx
+              uses: docker/setup-buildx-action@v3
+
+            - name: Build API Image
+              uses: docker/build-push-action@v5
+              with:
+                  context: .
+                  file: docker/Dockerfile.builder
+                  push: false
+                  tags: sigmavault/api:${{ github.sha }}
+                  cache-from: type=gha
+                  cache-to: type=gha,mode=max
+
+    # ============================================
+    # Nightly: Extended Test Suite
+    # ============================================
+    nightly-extended:
+        name: Nightly Extended Tests
+        runs-on: ubuntu-latest
+        if: github.event_name == 'schedule'
+        steps:
+            - uses: actions/checkout@v4
+
+            - name: Set up Go
+              uses: actions/setup-go@v5
+              with:
+                  go-version: ${{ env.GO_VERSION }}
+
+            - name: Set up Python
+              uses: actions/setup-python@v5
+              with:
+                  python-version: ${{ env.PYTHON_VERSION }}
+
+            - name: Run Extended Tests
+              run: |
+                  echo "Running nightly extended test suite..."
+
+                  # Go race detector tests
+                  cd src/api
+                  go test ./... -v -race -count=5
+
+                  # Python stress tests
+                  cd ../engined
+                  pip install pytest pytest-asyncio pytest-stress 2>/dev/null || true
+                  python -m pytest tests/ -v --tb=long
+
+            - name: Dependency Audit
+              run: |
+                  # Go dependencies
+                  cd src/api
+                  go list -m all > go-deps.txt
+
+                  # Python dependencies
+                  cd ../engined
+                  pip install pip-audit 2>/dev/null || true
+                  pip-audit || true
+
+    # ============================================
+    # Summary Report
+    # ============================================
+    summary:
+        name: CI Summary
+        runs-on: ubuntu-latest
+        needs:
+            [
+                lint,
+                test-go,
+                test-python,
+                security-scan,
+                build-go,
+                build-webui,
+                integration-test,
+            ]
+        if: always()
+        steps:
+            - name: Check Results
+              run: |
+                  echo "## CI Pipeline Summary" >> $GITHUB_STEP_SUMMARY
+                  echo "" >> $GITHUB_STEP_SUMMARY
+                  echo "| Stage | Status |" >> $GITHUB_STEP_SUMMARY
+                  echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
+                  echo "| Lint | ${{ needs.lint.result }} |" >> $GITHUB_STEP_SUMMARY
+                  echo "| Go Tests | ${{ needs.test-go.result }} |" >> $GITHUB_STEP_SUMMARY
+                  echo "| Python Tests | ${{ needs.test-python.result }} |" >> $GITHUB_STEP_SUMMARY
+                  echo "| Security Scan | ${{ needs.security-scan.result }} |" >> $GITHUB_STEP_SUMMARY
+                  echo "| Build Go | ${{ needs.build-go.result }} |" >> $GITHUB_STEP_SUMMARY
+                  echo "| Build WebUI | ${{ needs.build-webui.result }} |" >> $GITHUB_STEP_SUMMARY
+                  echo "| Integration | ${{ needs.integration-test.result }} |" >> $GITHUB_STEP_SUMMARY

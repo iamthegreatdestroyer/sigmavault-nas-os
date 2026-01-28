@@ -33,6 +33,8 @@ from engined.api.agents import router as agents_router
 from engined.api.rpc import router as rpc_router
 from engined.rpc.server import create_grpc_server
 from engined.agents.swarm import AgentSwarm
+from engined.agents.scheduler import TaskScheduler
+from engined.agents.recovery import AgentRecovery
 
 if TYPE_CHECKING:
     from engined.agents.swarm import AgentSwarm
@@ -65,6 +67,8 @@ class EngineState:
     def __init__(self) -> None:
         self.settings: Settings | None = None
         self.swarm: AgentSwarm | None = None
+        self.scheduler: TaskScheduler | None = None
+        self.recovery: AgentRecovery | None = None
         self.grpc_server: grpc.aio.Server | None = None
         self._shutdown_event: asyncio.Event = asyncio.Event()
 
@@ -76,6 +80,22 @@ class EngineState:
         self.swarm = AgentSwarm(settings)
         await self.swarm.initialize()
         
+        logger.info("Initializing task scheduler")
+        self.scheduler = TaskScheduler(
+            swarm=self.swarm,
+            max_workers=10,
+            rate_limit=100.0
+        )
+        await self.scheduler.start()
+        
+        logger.info("Initializing agent recovery system")
+        self.recovery = AgentRecovery(
+            swarm=self.swarm,
+            max_restart_attempts=3,
+            restart_cooldown=60.0
+        )
+        await self.recovery.start_monitoring(check_interval=30.0)
+        
         logger.info("Initializing gRPC server", port=settings.grpc_port)
         self.grpc_server = await create_grpc_server(settings, self.swarm)
         await self.grpc_server.start()
@@ -85,6 +105,14 @@ class EngineState:
     async def shutdown(self) -> None:
         """Gracefully shutdown engine components."""
         logger.info("Shutting down engine...")
+        
+        if self.recovery:
+            await self.recovery.stop_monitoring()
+            logger.info("Agent recovery stopped")
+        
+        if self.scheduler:
+            await self.scheduler.stop()
+            logger.info("Task scheduler stopped")
         
         if self.grpc_server:
             await self.grpc_server.stop(grace=5)
@@ -131,6 +159,8 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     
     # Store swarm in app state for route access
     app.state.swarm = engine_state.swarm
+    app.state.scheduler = engine_state.scheduler
+    app.state.recovery = engine_state.recovery
     app.state.settings = settings
     
     print("DEBUG: About to yield")

@@ -310,9 +310,8 @@
 
             // Determine protocol and host
             const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-            const host = window.location.hostname;
-            const port = window.location.port || (protocol === 'wss:' ? 443 : 80);
-            const wsUrl = `${protocol}//${host}:8080/api/v1/ws`;
+            const host = window.location.hostname || 'localhost';
+            const wsUrl = `${protocol}//${host}:12080/ws`;
 
             console.log(`Connecting to WebSocket: ${wsUrl}`);
 

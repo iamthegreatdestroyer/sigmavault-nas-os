@@ -184,6 +184,11 @@ func (es *EventSubscriber) pollSystemStatus(ctx context.Context) {
 	es.systemStatusCache = data
 	es.lastSuccessfulStatusAt = time.Now()
 
+	// Log successful event broadcast
+	clientCount := es.hub.ClientCount()
+	log.Info().Int("client_count", clientCount).Str("event_type", string(TypeSystemStatus)).
+		Float64("cpu_usage", status.CPUUsage).Msg("Broadcasting system status event")
+
 	if err := es.hub.Broadcast(TypeSystemStatus, data); err != nil {
 		log.Error().Err(err).Msg("Failed to broadcast system status")
 	}

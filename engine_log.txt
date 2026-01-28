@@ -1,0 +1,4 @@
+DEBUG: create_app called
+DEBUG: settings loaded: host=127.0.0.1, port=8001
+DEBUG: FastAPI app created
+Server started on http://127.0.0.1:8001

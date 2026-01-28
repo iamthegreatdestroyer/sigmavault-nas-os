@@ -301,3 +301,181 @@ async def list_specialties() -> dict:
         })
     
     return specialties
+
+
+class DispatchRequest(BaseModel):
+    """Request to dispatch a task via the scheduler."""
+    
+    task_type: str = Field(description="Type of task (compression, encryption, analysis, storage, network)")
+    payload: dict = Field(description="Task-specific payload")
+    priority: str = Field(default="NORMAL", description="Task priority: CRITICAL, HIGH, NORMAL, LOW, BACKGROUND")
+    callback_url: str | None = Field(default=None, description="URL to POST results to")
+
+
+class DispatchResponse(BaseModel):
+    """Response from task dispatch."""
+    
+    task_id: str
+    status: str
+    routed_agents: list[str]
+    priority: str
+    estimated_wait_ms: int
+    queued_at: str
+
+
+class SchedulerMetrics(BaseModel):
+    """Scheduler performance metrics."""
+    
+    tasks_scheduled: int
+    tasks_completed: int
+    tasks_failed: int
+    avg_wait_time_ms: float
+    avg_execution_time_ms: float
+    active_workers: int
+    queue_depth: int
+    rate_limit_per_second: float
+
+
+class RecoveryStatus(BaseModel):
+    """Agent recovery system status."""
+    
+    is_monitoring: bool
+    agents_healthy: int
+    agents_degraded: int
+    agents_failed: int
+    total_restarts: int
+    circuit_breakers_open: int
+    dead_letter_queue_size: int
+
+
+@router.post("/dispatch", response_model=DispatchResponse, status_code=status.HTTP_202_ACCEPTED)
+async def dispatch_task(
+    request: Request,
+    dispatch_request: DispatchRequest,
+) -> DispatchResponse:
+    """
+    Dispatch a task to the agent swarm via the intelligent scheduler.
+    
+    The scheduler routes tasks to the most suitable agents based on:
+    - Task type and agent specialization
+    - Current agent load and availability
+    - Priority and queue depth
+    - Agent health and circuit breaker state
+    """
+    from engined.agents.scheduler import TaskScheduler, TaskPriority
+    import uuid
+    
+    scheduler: TaskScheduler | None = getattr(request.app.state, "scheduler", None)
+    
+    if not scheduler or not scheduler._running:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Task scheduler not ready",
+        )
+    
+    # Parse priority
+    try:
+        priority = TaskPriority[dispatch_request.priority.upper()]
+    except KeyError:
+        priority = TaskPriority.NORMAL
+    
+    task_id = str(uuid.uuid4())
+    now = datetime.now(timezone.utc)
+    
+    # Schedule the task
+    await scheduler.schedule(
+        task_id=task_id,
+        task_type=dispatch_request.task_type,
+        payload=dispatch_request.payload,
+        priority=priority,
+        callback_url=dispatch_request.callback_url,
+    )
+    
+    # Get routed agents for this task type
+    routed_agents = scheduler.router.route(dispatch_request.task_type)
+    
+    return DispatchResponse(
+        task_id=task_id,
+        status="scheduled",
+        routed_agents=routed_agents,
+        priority=priority.name,
+        estimated_wait_ms=int(scheduler._queue.qsize() * 50),  # rough estimate
+        queued_at=now.isoformat(),
+    )
+
+
+@router.get("/scheduler/metrics", response_model=SchedulerMetrics)
+async def get_scheduler_metrics(request: Request) -> SchedulerMetrics:
+    """Get task scheduler performance metrics."""
+    from engined.agents.scheduler import TaskScheduler
+    
+    scheduler: TaskScheduler | None = getattr(request.app.state, "scheduler", None)
+    
+    if not scheduler:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Task scheduler not initialized",
+        )
+    
+    metrics = scheduler.get_metrics()
+    
+    return SchedulerMetrics(
+        tasks_scheduled=metrics.get("tasks_scheduled", 0),
+        tasks_completed=metrics.get("tasks_completed", 0),
+        tasks_failed=metrics.get("tasks_failed", 0),
+        avg_wait_time_ms=metrics.get("avg_wait_time_ms", 0.0),
+        avg_execution_time_ms=metrics.get("avg_execution_time_ms", 0.0),
+        active_workers=metrics.get("active_workers", 0),
+        queue_depth=metrics.get("queue_depth", 0),
+        rate_limit_per_second=metrics.get("rate_limit", 100.0),
+    )
+
+
+@router.get("/recovery/status", response_model=RecoveryStatus)
+async def get_recovery_status(request: Request) -> RecoveryStatus:
+    """Get agent recovery system status."""
+    from engined.agents.recovery import AgentRecovery
+    
+    recovery: AgentRecovery | None = getattr(request.app.state, "recovery", None)
+    
+    if not recovery:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Recovery system not initialized",
+        )
+    
+    status_data = recovery.get_status()
+    
+    return RecoveryStatus(
+        is_monitoring=status_data.get("is_monitoring", False),
+        agents_healthy=status_data.get("agents_healthy", 0),
+        agents_degraded=status_data.get("agents_degraded", 0),
+        agents_failed=status_data.get("agents_failed", 0),
+        total_restarts=status_data.get("total_restarts", 0),
+        circuit_breakers_open=status_data.get("circuit_breakers_open", 0),
+        dead_letter_queue_size=status_data.get("dead_letter_queue_size", 0),
+    )
+
+
+@router.post("/recovery/restart/{agent_name}")
+async def restart_agent(request: Request, agent_name: str) -> dict:
+    """Manually trigger agent restart."""
+    from engined.agents.recovery import AgentRecovery
+    
+    recovery: AgentRecovery | None = getattr(request.app.state, "recovery", None)
+    
+    if not recovery:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Recovery system not initialized",
+        )
+    
+    success = await recovery.restart_agent(agent_name)
+    
+    if not success:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to restart agent {agent_name}",
+        )
+    
+    return {"status": "restarted", "agent": agent_name}

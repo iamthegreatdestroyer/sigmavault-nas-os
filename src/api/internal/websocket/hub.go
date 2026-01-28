@@ -168,23 +168,36 @@ func (h *Hub) BroadcastIfSubscribed(msgType MessageType, data interface{}) error
 	h.mu.RLock()
 	defer h.mu.RUnlock()
 
+	totalClients := len(h.clients)
 	subscribedCount := 0
+	unsubscribedCount := 0
+
+	log.Debug().Str("msg_type", string(msgType)).Int("total_clients", totalClients).
+		Msg("BroadcastIfSubscribed: starting broadcast")
+
 	for client := range h.clients {
 		if client.IsSubscribedTo(msgType) {
 			select {
 			case client.Send <- encoded:
 				subscribedCount++
+				log.Debug().Str("client_id", client.ID).Str("msg_type", string(msgType)).
+					Msg("Event sent to subscribed client")
 			default:
 				log.Warn().Str("client_id", client.ID).Str("msg_type", string(msgType)).
 					Msg("Failed to send message to subscribed client (buffer full)")
 			}
+		} else {
+			unsubscribedCount++
+			log.Debug().Str("client_id", client.ID).Str("msg_type", string(msgType)).
+				Msg("Client not subscribed to this event type")
 		}
 	}
 
-	if subscribedCount > 0 {
-		log.Debug().Str("msg_type", string(msgType)).Int("subscribers", subscribedCount).
-			Msg("Message broadcast to subscribed clients")
-	}
+	log.Debug().Str("msg_type", string(msgType)).
+		Int("sent_to", subscribedCount).
+		Int("skipped", unsubscribedCount).
+		Int("total_clients", totalClients).
+		Msg("BroadcastIfSubscribed: broadcast complete")
 
 	return nil
 }
@@ -217,16 +230,53 @@ func (h *Handler) HandleWebSocket(c *fiber.Ctx) error {
 
 // handleConnection handles an individual WebSocket connection.
 func (h *Handler) handleConnection(conn *websocket.Conn) {
+	// Create default subscriptions for all core event types
+	// This ensures clients receive events without needing to explicitly subscribe
+	defaultSubscriptions := map[MessageType]bool{
+		TypeSystemStatus:      true,
+		TypeStorageUpdate:     true,
+		TypeAgentStatus:       true,
+		TypeCompressionUpdate: true,
+		TypeNotification:      true,
+		TypeRPCError:          true,
+		TypeConnectionError:   true,
+		TypeHeartbeat:         true,
+	}
+
 	client := &Client{
 		ID:            generateClientID(),
 		Conn:          conn,
 		Hub:           h.hub,
 		Send:          make(chan []byte, 256),
-		Subscriptions: make(map[MessageType]bool),
+		Subscriptions: defaultSubscriptions,
 	}
+
+	log.Info().Str("client_id", client.ID).Int("default_subscriptions", len(defaultSubscriptions)).Msg("WebSocket client created with default subscriptions")
 
 	// Register client
 	h.hub.register <- client
+
+	// Send welcome message to confirm connection and subscriptions
+	welcomeData := map[string]interface{}{
+		"client_id":     client.ID,
+		"subscriptions": getSubscriptionList(defaultSubscriptions),
+		"message":       "Connected to SigmaVault WebSocket. You are subscribed to all core events.",
+	}
+	welcomeMsg := Message{
+		Type:      TypeNotification,
+		Timestamp: time.Now(),
+	}
+	if jsonData, err := json.Marshal(welcomeData); err == nil {
+		welcomeMsg.Data = jsonData
+		if encoded, err := json.Marshal(welcomeMsg); err == nil {
+			select {
+			case client.Send <- encoded:
+				log.Debug().Str("client_id", client.ID).Msg("Sent welcome message to client")
+			default:
+				log.Warn().Str("client_id", client.ID).Msg("Failed to send welcome message (buffer full)")
+			}
+		}
+	}
 
 	// Channel to signal when connection is closed
 	done := make(chan struct{})
@@ -353,4 +403,15 @@ func (c *Client) handleMessage(data []byte) {
 // generateClientID generates a unique client ID using UUID v4.
 func generateClientID() string {
 	return uuid.New().String()
+}
+
+// getSubscriptionList converts a subscription map to a list of strings for JSON serialization.
+func getSubscriptionList(subs map[MessageType]bool) []string {
+	result := make([]string, 0, len(subs))
+	for msgType, subscribed := range subs {
+		if subscribed {
+			result = append(result, string(msgType))
+		}
+	}
+	return result
 }
