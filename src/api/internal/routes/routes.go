@@ -53,6 +53,7 @@ func Setup(app *fiber.App, cfg *config.Config) {
 	systemHandler := handlers.NewSystemHandler(rpcClient)
 	agentsHandler := handlers.NewAgentsHandler(rpcClient)
 	compressionHandler := handlers.NewCompressionHandler(rpcClient)
+	compressionV2Handler := handlers.NewCompressionV2Handler(rpcClient)
 
 	// Create WebSocket hub
 	wsHub := websocket.NewHub()
@@ -114,12 +115,30 @@ func Setup(app *fiber.App, cfg *config.Config) {
 	agents.Get("/:id", agentsHandler.GetAgent)
 	agents.Get("/:id/metrics", agentsHandler.AgentMetrics)
 
-	// Compression endpoints
+	// Compression endpoints (legacy jobs-based API)
 	compression := protected.Group("/compression")
 	compression.Post("/jobs", compressionHandler.StartCompression)
 	compression.Get("/jobs", compressionHandler.ListCompressionJobs)
 	compression.Get("/jobs/:id", compressionHandler.GetCompressionJob)
 	compression.Delete("/jobs/:id", compressionHandler.CancelCompressionJob)
+
+	// Compression v2 endpoints (aligned with Python RPC handlers)
+	// Data compression (in-memory base64)
+	compression.Post("/data", compressionV2Handler.CompressData)
+	compression.Post("/decompress/data", compressionV2Handler.DecompressData)
+	// File compression
+	compression.Post("/file", compressionV2Handler.CompressFile)
+	compression.Post("/decompress/file", compressionV2Handler.DecompressFile)
+	// Queue management
+	compression.Post("/queue", compressionV2Handler.QueueSubmit)
+	compression.Get("/queue", compressionV2Handler.QueueStats)
+	compression.Get("/queue/:id", compressionV2Handler.QueueStatus)
+	compression.Delete("/queue/:id", compressionV2Handler.QueueCancel)
+	// Configuration
+	compression.Get("/config", compressionV2Handler.GetConfig)
+	compression.Put("/config", compressionV2Handler.SetConfig)
+	// File upload
+	compression.Post("/upload", compressionV2Handler.CompressUpload)
 
 	// WebSocket endpoint for real-time updates
 	app.Get("/ws", wsHandler.HandleWebSocket)
