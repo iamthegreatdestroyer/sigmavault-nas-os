@@ -1,0 +1,30 @@
+[Unit]
+Description=SigmaVault NAS OS Python Engine (RPC + Agents)
+Documentation=https://github.com/iamthegreatdestroyer/sigmavault-nas-os
+After=network.target
+
+[Service]
+Type=simple
+User=sigmavault
+Group=sigmavault
+Environment=PYTHONPATH=/opt/sigmavault/lib/python
+Environment=SIGMAVAULT_CONFIG=/etc/sigmavault/config.yaml
+ExecStart=/usr/bin/python3 -m engined.rpc.server --host 127.0.0.1 --port 8002
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+# Security hardening
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+ReadWritePaths=/var/lib/sigmavault /var/log/sigmavault
+
+# Resource limits for ML inference
+MemoryMax=4G
+CPUQuota=400%
+
+[Install]
+WantedBy=multi-user.target

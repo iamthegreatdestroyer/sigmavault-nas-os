@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	pythonRPCURL = "http://localhost:8002/api/v1/rpc"
+	pythonRPCURL = "http://localhost:8102/api/v1/rpc"
 	goAPIURL     = "http://localhost:12080"
 )
 

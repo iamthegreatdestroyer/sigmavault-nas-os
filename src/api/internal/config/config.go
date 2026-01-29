@@ -2,6 +2,7 @@
 package config
 
 import (
+	"fmt"
 	"os"
 	"strconv"
 	"strings"
@@ -72,6 +73,33 @@ func (c *Config) IsDevelopment() bool {
 // IsProduction returns true if running in production mode.
 func (c *Config) IsProduction() bool {
 	return strings.ToLower(c.Environment) == "production"
+}
+
+// Validate checks configuration for security issues (@CIPHER audit).
+func (c *Config) Validate() error {
+	// In production, require secure JWT secret
+	if c.IsProduction() {
+		if c.JWTSecret == "dev-secret-change-in-production" {
+			return fmt.Errorf("SECURITY: SIGMAVAULT_JWT_SECRET must be set in production")
+		}
+		if len(c.JWTSecret) < 32 {
+			return fmt.Errorf("SECURITY: JWT secret must be at least 32 characters in production")
+		}
+	}
+
+	// Validate CORS origins in production
+	if c.IsProduction() && c.CORSOrigins == "http://localhost:5173,http://localhost:3000" {
+		return fmt.Errorf("SECURITY: SIGMAVAULT_CORS_ORIGINS must be configured for production")
+	}
+
+	return nil
+}
+
+// MustValidate panics if configuration is invalid.
+func (c *Config) MustValidate() {
+	if err := c.Validate(); err != nil {
+		panic(err)
+	}
 }
 
 // Helper functions for reading environment variables

@@ -63,7 +63,7 @@ dependencies = [
     "pyudev>=0.24.0",
     
     # Async & Concurrency
-    "asyncio-pool>=0.7.0",
+    "asyncio-pool>=0.6.0",
     "anyio>=4.7.0",
     
     # Observability

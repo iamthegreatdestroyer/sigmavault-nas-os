@@ -1,0 +1,32 @@
+[Unit]
+Description=SigmaVault NAS OS API Server
+Documentation=https://github.com/iamthegreatdestroyer/sigmavault-nas-os
+After=network.target sigmavault-engined.service
+Requires=sigmavault-engined.service
+
+[Service]
+Type=simple
+User=sigmavault
+Group=sigmavault
+Environment=SIGMAVAULT_CONFIG=/etc/sigmavault/config.yaml
+Environment=SIGMAVAULT_RPC_HOST=127.0.0.1
+Environment=SIGMAVAULT_RPC_PORT=8002
+ExecStart=/opt/sigmavault/bin/sigmavault-api
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+# Security hardening
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+ReadWritePaths=/var/lib/sigmavault /var/log/sigmavault
+
+# Resource limits
+MemoryMax=1G
+CPUQuota=200%
+
+[Install]
+WantedBy=multi-user.target

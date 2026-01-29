@@ -1,0 +1,288 @@
+name: Build SigmaVault NAS OS ISO
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version tag (e.g., 1.0.0)'
+        required: true
+        default: '1.0.0'
+      architecture:
+        description: 'Target architecture'
+        required: true
+        default: 'amd64'
+        type: choice
+        options:
+          - amd64
+          - arm64
+  push:
+    tags:
+      - 'v*'
+
+env:
+  DEBIAN_FRONTEND: noninteractive
+
+jobs:
+  build-iso:
+    name: Build Bootable ISO
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Determine version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "VERSION=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+            echo "ARCH=${{ github.event.inputs.architecture }}" >> $GITHUB_OUTPUT
+          else
+            echo "VERSION=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
+            echo "ARCH=amd64" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Install live-build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            live-build \
+            debootstrap \
+            squashfs-tools \
+            xorriso \
+            isolinux \
+            syslinux-efi \
+            grub-pc-bin \
+            grub-efi-amd64-bin \
+            mtools \
+            dosfstools
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Build Go API binary
+        run: |
+          cd src/api
+          CGO_ENABLED=0 GOOS=linux GOARCH=${{ steps.version.outputs.ARCH }} \
+            go build -ldflags="-s -w -X main.Version=${{ steps.version.outputs.VERSION }}" \
+            -o ../../live-build/config/includes.chroot/usr/local/bin/sigmavault-api ./main.go
+
+      - name: Build Python package
+        run: |
+          cd src/engined
+          pip install build
+          python -m build
+          mkdir -p ../../live-build/config/includes.chroot/opt/sigmavault/python
+          cp dist/*.whl ../../live-build/config/includes.chroot/opt/sigmavault/python/
+
+      - name: Build WebUI
+        run: |
+          cd src/webui
+          npm install -g pnpm
+          pnpm install
+          pnpm build
+          mkdir -p ../../live-build/config/includes.chroot/opt/sigmavault/webui
+          cp -r dist/* ../../live-build/config/includes.chroot/opt/sigmavault/webui/
+
+      - name: Prepare live-build configuration
+        run: |
+          cd live-build
+          
+          # Set architecture
+          sed -i "s/--architectures amd64/--architectures ${{ steps.version.outputs.ARCH }}/" auto/config
+          
+          # Run lb config
+          lb config
+
+      - name: Build ISO
+        run: |
+          cd live-build
+          sudo lb build 2>&1 | tee build.log
+          
+      - name: Rename and checksum ISO
+        run: |
+          cd live-build
+          ISO_NAME="sigmavault-nas-os-${{ steps.version.outputs.VERSION }}-${{ steps.version.outputs.ARCH }}.iso"
+          if [ -f live-image-${{ steps.version.outputs.ARCH }}.hybrid.iso ]; then
+            mv live-image-${{ steps.version.outputs.ARCH }}.hybrid.iso "$ISO_NAME"
+          elif [ -f live-image-amd64.hybrid.iso ]; then
+            mv live-image-amd64.hybrid.iso "$ISO_NAME"
+          fi
+          sha256sum "$ISO_NAME" > "$ISO_NAME.sha256"
+          echo "ISO_FILE=$ISO_NAME" >> $GITHUB_ENV
+
+      - name: Upload ISO artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sigmavault-nas-os-iso-${{ steps.version.outputs.ARCH }}
+          path: |
+            live-build/*.iso
+            live-build/*.sha256
+          retention-days: 30
+
+      - name: Upload to Release (if tagged)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            live-build/*.iso
+            live-build/*.sha256
+          draft: false
+          prerelease: false
+
+  build-release-bundle:
+    name: Build Release Bundle
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Determine version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "VERSION=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            echo "VERSION=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Build all components
+        run: |
+          VERSION=${{ steps.version.outputs.VERSION }}
+          RELEASE_DIR="sigmavault-nas-os-${VERSION}"
+          mkdir -p "$RELEASE_DIR"/{bin,lib,webui,docs,configs,systemd}
+          
+          # Build Go API for multiple architectures
+          cd src/api
+          for ARCH in amd64 arm64; do
+            CGO_ENABLED=0 GOOS=linux GOARCH=$ARCH \
+              go build -ldflags="-s -w -X main.Version=${VERSION}" \
+              -o "../../${RELEASE_DIR}/bin/sigmavault-api-linux-${ARCH}" ./main.go
+          done
+          cd ../..
+          
+          # Build Python wheel
+          cd src/engined
+          pip install build
+          python -m build
+          cp dist/*.whl "../../${RELEASE_DIR}/lib/"
+          cd ../..
+          
+          # Build WebUI
+          cd src/webui
+          npm install -g pnpm
+          pnpm install
+          pnpm build
+          cp -r dist/* "../../${RELEASE_DIR}/webui/"
+          cd ../..
+          
+          # Copy documentation
+          cp README.md CHANGELOG.md VERSION "$RELEASE_DIR/"
+          cp docs/INSTALLATION.md "$RELEASE_DIR/docs/"
+          
+          # Copy configs
+          cp configs/production.env.example "$RELEASE_DIR/configs/"
+          
+          # Copy systemd services
+          cp live-build/config/includes.chroot/etc/systemd/system/*.service "$RELEASE_DIR/systemd/" 2>/dev/null || true
+          
+          # Create install script
+          cat > "$RELEASE_DIR/install.sh" << 'INSTALL_EOF'
+          #!/bin/bash
+          set -e
+          
+          ARCH=$(uname -m)
+          case $ARCH in
+            x86_64) ARCH="amd64" ;;
+            aarch64) ARCH="arm64" ;;
+          esac
+          
+          echo "Installing SigmaVault NAS OS..."
+          
+          # Install binary
+          sudo cp bin/sigmavault-api-linux-$ARCH /usr/local/bin/sigmavault-api
+          sudo chmod +x /usr/local/bin/sigmavault-api
+          
+          # Install Python engine
+          sudo pip3 install lib/*.whl
+          
+          # Install WebUI
+          sudo mkdir -p /opt/sigmavault/webui
+          sudo cp -r webui/* /opt/sigmavault/webui/
+          
+          # Install systemd services
+          sudo cp systemd/*.service /etc/systemd/system/
+          sudo systemctl daemon-reload
+          
+          # Create config directory
+          sudo mkdir -p /etc/sigmavault
+          if [ ! -f /etc/sigmavault/config.env ]; then
+            sudo cp configs/production.env.example /etc/sigmavault/config.env
+          fi
+          
+          echo "Installation complete!"
+          echo "Configure /etc/sigmavault/config.env then run:"
+          echo "  sudo systemctl enable --now sigmavault-api sigmavault-engined"
+          INSTALL_EOF
+          chmod +x "$RELEASE_DIR/install.sh"
+          
+          # Generate checksums
+          cd "$RELEASE_DIR"
+          find . -type f ! -name "SHA256SUMS" -exec sha256sum {} \; > SHA256SUMS
+          cd ..
+          
+          # Create tarball
+          tar -czvf "${RELEASE_DIR}.tar.gz" "$RELEASE_DIR"
+          sha256sum "${RELEASE_DIR}.tar.gz" > "${RELEASE_DIR}.tar.gz.sha256"
+
+      - name: Upload Release Bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: sigmavault-nas-os-release-bundle
+          path: |
+            sigmavault-nas-os-*.tar.gz
+            sigmavault-nas-os-*.tar.gz.sha256
+          retention-days: 30
+
+      - name: Upload to Release (if tagged)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            sigmavault-nas-os-*.tar.gz
+            sigmavault-nas-os-*.tar.gz.sha256
+          draft: false
+          prerelease: false

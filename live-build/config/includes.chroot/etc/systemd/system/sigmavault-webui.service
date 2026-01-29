@@ -1,0 +1,24 @@
+[Unit]
+Description=SigmaVault NAS OS Web Interface
+Documentation=https://github.com/iamthegreatdestroyer/sigmavault-nas-os
+After=network.target sigmavault-api.service
+
+[Service]
+Type=simple
+User=sigmavault
+Group=sigmavault
+ExecStart=/usr/bin/python3 -m http.server 3000 --directory /opt/sigmavault/share/webui
+WorkingDirectory=/opt/sigmavault/share/webui
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+# Security hardening
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+
+[Install]
+WantedBy=multi-user.target

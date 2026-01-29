@@ -31,6 +31,11 @@ func main() {
 	// Load configuration
 	cfg := config.Load()
 
+	// Validate security configuration in production (@CIPHER audit)
+	if err := cfg.Validate(); err != nil {
+		log.Fatal().Err(err).Msg("Configuration validation failed")
+	}
+
 	log.Info().
 		Str("version", cfg.Version).
 		Str("environment", cfg.Environment).
