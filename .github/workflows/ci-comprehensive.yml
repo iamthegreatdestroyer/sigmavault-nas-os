@@ -120,8 +120,8 @@ jobs:
             - name: Install dependencies
               run: |
                   cd src/engined
-                  pip install -e ".[dev]" || pip install pytest pytest-asyncio pytest-cov
-                  pip install -r requirements.txt 2>/dev/null || true
+                  pip install -r requirements-test.txt
+                  pip install -e . --no-deps
 
             - name: Python Test with Coverage
               run: |

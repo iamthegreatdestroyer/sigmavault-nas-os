@@ -1,0 +1,32 @@
+# Minimal test dependencies for CI
+# Heavy ML dependencies (torch, transformers, liboqs) are optional for testing
+
+# Testing
+pytest>=8.3.0
+pytest-asyncio>=0.24.0
+pytest-cov>=6.0.0
+pytest-benchmark>=5.0.0
+hypothesis>=6.120.0
+
+# Core runtime (light dependencies only)
+aiohttp>=3.11.0
+structlog>=24.4.0
+prometheus-client>=0.21.0
+pydantic>=2.10.0
+pydantic-settings>=2.7.0
+
+# Compression (pure Python/C bindings, install quickly)
+zstandard>=0.23.0
+lz4>=4.3.0
+brotli>=1.1.0
+
+# gRPC
+grpcio>=1.68.0
+grpcio-tools>=1.68.0
+protobuf>=5.29.0
+
+# Async
+anyio>=4.7.0
+
+# Minimal numpy (for tests)
+numpy>=2.0.0
