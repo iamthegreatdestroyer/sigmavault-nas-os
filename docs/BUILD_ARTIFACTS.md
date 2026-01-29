@@ -17,6 +17,7 @@ git push origin v1.0.0
 ```
 
 This automatically triggers:
+
 - ✅ **Release Bundle** (`sigmavault-nas-os-1.0.0.tar.gz`)
 - ✅ **Bootable ISO** (`sigmavault-nas-os-1.0.0-amd64.iso`)
 - ✅ **Docker Image** (pushed to GitHub Container Registry)
@@ -85,6 +86,7 @@ sudo systemctl enable --now sigmavault-api sigmavault-engined
 ## 💿 Bootable ISO
 
 The ISO (`sigmavault-nas-os-X.X.X-amd64.iso`) is a Debian 13 (Trixie) live system with:
+
 - SigmaVault NAS OS pre-installed
 - Auto-starting services
 - Web dashboard accessible on boot
@@ -92,18 +94,21 @@ The ISO (`sigmavault-nas-os-X.X.X-amd64.iso`) is a Debian 13 (Trixie) live syste
 ### Creating Bootable USB
 
 **Linux:**
+
 ```bash
 sudo dd if=sigmavault-nas-os-1.0.0-amd64.iso of=/dev/sdX bs=4M status=progress
 sync
 ```
 
 **Windows (using Rufus):**
+
 1. Download [Rufus](https://rufus.ie/)
 2. Select the ISO file
 3. Select target USB drive
 4. Click **Start**
 
 **macOS:**
+
 ```bash
 # Find USB device
 diskutil list
@@ -174,36 +179,39 @@ sha256sum -c sigmavault-nas-os-1.0.0-amd64.iso.sha256
 
 ## 📋 Build Matrix
 
-| Component | Source | Output |
-|-----------|--------|--------|
-| Go API | `src/api/` | `sigmavault-api-linux-{amd64,arm64}` |
-| Python Engine | `src/engined/` | `engined-*.whl` |
-| WebUI | `src/webui/` | `dist/` (React build) |
-| ISO | `live-build/` | `*.iso` |
+| Component     | Source         | Output                               |
+| ------------- | -------------- | ------------------------------------ |
+| Go API        | `src/api/`     | `sigmavault-api-linux-{amd64,arm64}` |
+| Python Engine | `src/engined/` | `engined-*.whl`                      |
+| WebUI         | `src/webui/`   | `dist/` (React build)                |
+| ISO           | `live-build/`  | `*.iso`                              |
 
 ---
 
 ## 🎯 Supported Architectures
 
-| Architecture | CPU Examples | Status |
-|--------------|--------------|--------|
-| `amd64` | Intel/AMD x86_64 | ✅ Full support |
-| `arm64` | Raspberry Pi 4/5, Apple M1/M2 | ✅ Full support |
+| Architecture | CPU Examples                  | Status          |
+| ------------ | ----------------------------- | --------------- |
+| `amd64`      | Intel/AMD x86_64              | ✅ Full support |
+| `arm64`      | Raspberry Pi 4/5, Apple M1/M2 | ✅ Full support |
 
 ---
 
 ## ❓ Troubleshooting
 
 ### ISO Build Fails
+
 - Ensure you're running on Debian/Ubuntu
 - Check `live-build/build.log` for errors
 - Verify all dependencies are installed
 
 ### Bundle Missing Components
+
 - Run `./scripts/validate-production.sh` to check requirements
 - Ensure Go, Python, Node.js are in PATH
 
 ### Permission Denied on Install
+
 - Run `install.sh` with `sudo`
 - Check SELinux/AppArmor policies
 
