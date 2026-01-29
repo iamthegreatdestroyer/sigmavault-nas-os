@@ -30,7 +30,7 @@ func (c *Client) CompressData(ctx context.Context, data []byte, level string) (*
 		Data:  base64.StdEncoding.EncodeToString(data),
 		Level: level,
 	}
-	
+
 	var result CompressDataResult
 	if err := c.Call(ctx, "compression.compress.data", params, &result); err != nil {
 		return nil, err
@@ -68,7 +68,7 @@ func (c *Client) CompressFile(ctx context.Context, params *CompressFileParams) (
 
 // DecompressDataParams are parameters for data decompression.
 type DecompressDataParams struct {
-	Data  string `json:"data"`            // Base64 encoded compressed data
+	Data  string `json:"data"`             // Base64 encoded compressed data
 	JobID string `json:"job_id,omitempty"` // Optional job ID for tracking
 }
 
@@ -88,7 +88,7 @@ func (c *Client) DecompressData(ctx context.Context, data []byte, jobID string) 
 		Data:  base64.StdEncoding.EncodeToString(data),
 		JobID: jobID,
 	}
-	
+
 	var result DecompressDataResult
 	if err := c.Call(ctx, "compression.decompress.data", params, &result); err != nil {
 		return nil, err
@@ -196,6 +196,55 @@ func (c *Client) GetQueueStats(ctx context.Context) (*QueueStats, error) {
 	return &result, nil
 }
 
+// RunningJobsParams are parameters for getting running jobs.
+type RunningJobsParams struct {
+	IncludePending bool `json:"include_pending,omitempty"`
+	Limit          int  `json:"limit,omitempty"`
+}
+
+// RunningJob represents a running or pending job with detailed progress info.
+type RunningJob struct {
+	JobID          string            `json:"job_id"`
+	Status         string            `json:"status"`
+	JobType        string            `json:"job_type"`
+	Priority       string            `json:"priority"`
+	Progress       float64           `json:"progress"`
+	Phase          string            `json:"phase"`
+	BytesProcessed int64             `json:"bytes_processed"`
+	BytesTotal     int64             `json:"bytes_total"`
+	CurrentRatio   float64           `json:"current_ratio"`
+	ElapsedSeconds float64           `json:"elapsed_seconds"`
+	ETASeconds     float64           `json:"eta_seconds"`
+	InputPath      string            `json:"input_path,omitempty"`
+	OutputPath     string            `json:"output_path,omitempty"`
+	CreatedAt      string            `json:"created_at"`
+	StartedAt      *string           `json:"started_at,omitempty"`
+	UserID         *string           `json:"user_id,omitempty"`
+	Tags           map[string]string `json:"tags,omitempty"`
+}
+
+// RunningJobsResult is the result of getting running jobs.
+type RunningJobsResult struct {
+	Jobs         []RunningJob `json:"jobs"`
+	TotalRunning int          `json:"total_running"`
+	TotalPending int          `json:"total_pending"`
+	TotalJobs    int          `json:"total_jobs"`
+}
+
+// GetRunningJobs gets all running and pending jobs with detailed progress.
+// This is optimized for WebSocket progress streaming.
+func (c *Client) GetRunningJobs(ctx context.Context, includePending bool) (*RunningJobsResult, error) {
+	params := RunningJobsParams{
+		IncludePending: includePending,
+		Limit:          50,
+	}
+	var result RunningJobsResult
+	if err := c.Call(ctx, "compression.queue.running", params, &result); err != nil {
+		return nil, err
+	}
+	return &result, nil
+}
+
 // QueueCancelParams are parameters for cancelling a job.
 type QueueCancelParams struct {
 	JobID string `json:"job_id"`
@@ -219,7 +268,7 @@ func (c *Client) QueueCancel(ctx context.Context, jobID string) (*QueueCancelRes
 
 // CompressionConfig represents compression configuration.
 type CompressionConfig struct {
-	Level       string `json:"level"`        // fast, balanced, maximum
+	Level       string `json:"level"` // fast, balanced, maximum
 	ChunkSize   int    `json:"chunk_size"`
 	UseSemantic bool   `json:"use_semantic"`
 	Lossless    bool   `json:"lossless"`

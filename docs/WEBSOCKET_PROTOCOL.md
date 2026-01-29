@@ -120,7 +120,11 @@ System metrics broadcast every 5 seconds.
 
 ### `compression.update`
 
-Compression job progress updates.
+Compression job progress updates. The v2 API provides detailed progress streaming optimized for WebSocket clients.
+
+#### Individual Job Update
+
+Sent for each running/pending job during polling:
 
 ```json
 {
@@ -129,15 +133,66 @@ Compression job progress updates.
   "data": {
     "job_id": "job-abc123",
     "status": "running",
-    "source_path": "/data/file.tar",
+    "job_type": "compress_file",
+    "priority": "normal",
     "progress": 45.2,
+    "phase": "compressing",
+    "bytes_processed": 52428800,
+    "bytes_total": 116000000,
     "compression_ratio": 0.23,
-    "elapsed_seconds": 120,
-    "eta_seconds": 147,
+    "elapsed_seconds": 120.5,
+    "eta_seconds": 147.3,
+    "input_path": "/data/file.tar",
+    "output_path": "/data/file.tar.sigma",
     "timestamp": 1703337717
   }
 }
 ```
+
+#### Summary Update
+
+Includes all running/pending jobs with queue statistics:
+
+```json
+{
+  "type": "compression.update",
+  "timestamp": "2025-12-23T13:08:37Z",
+  "data": {
+    "jobs": [
+      {
+        "job_id": "job-abc123",
+        "status": "running",
+        "progress": 45.2,
+        "...": "..."
+      }
+    ],
+    "total_running": 2,
+    "total_pending": 5,
+    "total_jobs": 15,
+    "timestamp": 1703337717
+  }
+}
+```
+
+#### Progress Fields
+
+| Field               | Type   | Description                                                            |
+| ------------------- | ------ | ---------------------------------------------------------------------- |
+| `job_id`            | string | Unique job identifier                                                  |
+| `status`            | string | `pending`, `running`, `completed`, `failed`, `cancelled`               |
+| `job_type`          | string | `compress_data`, `compress_file`, `decompress_data`, `decompress_file` |
+| `priority`          | string | `low`, `normal`, `high`, `critical`                                    |
+| `progress`          | number | Completion percentage (0-100)                                          |
+| `phase`             | string | Current operation phase                                                |
+| `bytes_processed`   | number | Bytes processed so far                                                 |
+| `bytes_total`       | number | Total bytes to process                                                 |
+| `compression_ratio` | number | Current compression ratio (original/compressed)                        |
+| `elapsed_seconds`   | number | Time elapsed since job started                                         |
+| `eta_seconds`       | number | Estimated time remaining                                               |
+| `input_path`        | string | Source file path (if file operation)                                   |
+| `output_path`       | string | Destination file path (if file operation)                              |
+
+````
 
 ### `agent.status`
 
@@ -155,7 +210,7 @@ Agent swarm status updates.
     "timestamp": 1703337717
   }
 }
-```
+````
 
 ### `notification`
 

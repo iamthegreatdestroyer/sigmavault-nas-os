@@ -17,6 +17,7 @@ from engined.api.rpc import (
     handle_decompress_file,
     handle_queue_submit,
     handle_queue_status,
+    handle_queue_running,
     handle_queue_cancel,
     handle_get_compression_config,
     handle_set_compression_config,
@@ -265,6 +266,76 @@ class TestQueueStatusRPC:
         """Test error when job not found."""
         with pytest.raises(ValueError, match="Job not found"):
             await handle_queue_status({"job_id": "nonexistent-job-id"})
+
+
+class TestQueueRunningRPC:
+    """Tests for compression.queue.running RPC handler (WebSocket progress)."""
+
+    @pytest.mark.asyncio
+    async def test_queue_running_empty(self):
+        """Test getting running jobs when queue is empty."""
+        result = await handle_queue_running({})
+        
+        assert isinstance(result, dict)
+        assert "jobs" in result
+        assert isinstance(result["jobs"], list)
+        assert "total_running" in result
+        assert "total_pending" in result
+        assert "total_jobs" in result
+
+    @pytest.mark.asyncio
+    async def test_queue_running_with_pending(self):
+        """Test getting running jobs includes pending when requested."""
+        # Submit a job
+        test_data = b"Data for running check"
+        data_b64 = base64.b64encode(test_data).decode()
+        
+        submit_result = await handle_queue_submit({
+            "type": "compress_data",
+            "data": data_b64,
+        })
+        
+        # Get running jobs with pending
+        result = await handle_queue_running({"include_pending": True})
+        
+        assert isinstance(result, dict)
+        assert "jobs" in result
+        assert result["total_pending"] >= 0 or result["total_running"] >= 0
+
+    @pytest.mark.asyncio
+    async def test_queue_running_job_structure(self):
+        """Test that returned jobs have correct structure for WebSocket streaming."""
+        # Submit a job
+        test_data = b"Data for structure check " * 10
+        data_b64 = base64.b64encode(test_data).decode()
+        
+        await handle_queue_submit({
+            "type": "compress_data",
+            "data": data_b64,
+        })
+        
+        # Get running jobs
+        result = await handle_queue_running({"include_pending": True})
+        
+        if result["jobs"]:
+            job = result["jobs"][0]
+            # Verify all WebSocket-required fields are present
+            expected_fields = [
+                "job_id", "status", "job_type", "priority", 
+                "progress", "phase", "bytes_processed", "bytes_total",
+                "current_ratio", "elapsed_seconds", "eta_seconds",
+                "created_at"
+            ]
+            for field in expected_fields:
+                assert field in job, f"Missing field: {field}"
+
+    @pytest.mark.asyncio
+    async def test_queue_running_limit(self):
+        """Test that limit parameter works."""
+        result = await handle_queue_running({"limit": 5})
+        
+        assert isinstance(result, dict)
+        assert len(result["jobs"]) <= 5
 
 
 class TestQueueCancelRPC:

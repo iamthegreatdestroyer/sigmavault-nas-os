@@ -92,6 +92,8 @@ async def handle_rpc(
             result = await handle_queue_submit(params)
         elif method == "compression.queue.status":
             result = await handle_queue_status(params)
+        elif method == "compression.queue.running":
+            result = await handle_queue_running(params)
         elif method == "compression.queue.cancel":
             result = await handle_queue_cancel(params)
         elif method == "compression.config.get":
@@ -600,6 +602,72 @@ async def handle_queue_status(params: Dict[str, Any]) -> Dict[str, Any]:
     else:
         stats = queue.get_stats()
         return stats
+
+
+async def handle_queue_running(params: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Handle compression.queue.running RPC call.
+    
+    Get all running and pending jobs with detailed progress information.
+    Optimized for WebSocket progress streaming.
+    
+    Params:
+        include_pending: include pending jobs (default: True)
+        limit: max jobs to return (default: 50)
+    
+    Returns:
+        List of jobs with detailed progress data
+    """
+    from engined.compression import JobStatus
+    
+    queue = await get_compression_queue()
+    include_pending = params.get("include_pending", True)
+    limit = params.get("limit", 50)
+    
+    # Get running jobs
+    running_jobs = queue.get_jobs(status=JobStatus.RUNNING, limit=limit)
+    
+    # Optionally include pending
+    pending_jobs = []
+    if include_pending:
+        pending_jobs = queue.get_jobs(status=JobStatus.PENDING, limit=limit)
+    
+    # Combine and limit
+    all_jobs = running_jobs + pending_jobs
+    all_jobs = all_jobs[:limit]
+    
+    # Convert to progress-optimized format
+    jobs_data = []
+    for job in all_jobs:
+        job_data = {
+            "job_id": job.id,
+            "status": job.status.value,
+            "job_type": job.job_type.value,
+            "priority": job.priority.name.lower(),
+            "progress": job.progress,
+            "phase": job.phase,
+            "bytes_processed": job.bytes_processed,
+            "bytes_total": job.bytes_total,
+            "current_ratio": job.current_ratio,
+            "elapsed_seconds": job.elapsed_seconds,
+            "eta_seconds": job.eta_seconds,
+            "input_path": job.input_path,
+            "output_path": job.output_path,
+            "created_at": job.created_at.isoformat(),
+            "started_at": job.started_at.isoformat() if job.started_at else None,
+            "user_id": job.user_id,
+            "tags": job.tags,
+        }
+        jobs_data.append(job_data)
+    
+    stats = queue.get_stats()
+    
+    return {
+        "jobs": jobs_data,
+        "total_running": stats["running"],
+        "total_pending": stats["pending"],
+        "total_jobs": stats["total_jobs"],
+    }
 
 
 async def handle_queue_cancel(params: Dict[str, Any]) -> Dict[str, Any]:

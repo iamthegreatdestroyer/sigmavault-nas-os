@@ -204,6 +204,7 @@ func (es *EventSubscriber) pollSystemStatus(ctx context.Context) {
 }
 
 // pollCompressionJobs periodically polls compression jobs and broadcasts progress updates.
+// Now uses the v2 compression API with detailed progress information.
 func (es *EventSubscriber) pollCompressionJobs(ctx context.Context) {
 	es.mu.Lock()
 	defer es.mu.Unlock()
@@ -234,9 +235,8 @@ func (es *EventSubscriber) pollCompressionJobs(ctx context.Context) {
 		es.lastFailureTime = time.Time{}
 	}
 
-	jobs, err := es.rpcClient.ListCompressionJobs(ctx, &rpc.ListJobsParams{
-		Status: "running", // Only interested in running jobs
-	})
+	// Use v2 API with detailed progress info
+	runningJobs, err := es.rpcClient.GetRunningJobs(ctx, true)
 	if err != nil {
 		es.failureCount++
 		es.lastFailureTime = time.Now()
@@ -276,30 +276,43 @@ func (es *EventSubscriber) pollCompressionJobs(ctx context.Context) {
 	es.failureCount = 0
 	es.lastFailureTime = time.Time{}
 
-	// Build job list
-	jobList := make([]map[string]interface{}, 0, len(jobs))
-	for _, job := range jobs {
-		// Calculate elapsed time from start timestamp
-		elapsed := int64(0)
-		if job.StartedAt != nil {
-			elapsed = int64(time.Since(*job.StartedAt).Seconds())
-		}
-
+	// Build job list with detailed progress info from v2 API
+	jobList := make([]map[string]interface{}, 0, len(runningJobs.Jobs))
+	for _, job := range runningJobs.Jobs {
 		data := map[string]interface{}{
-			"job_id":            job.ID,
+			"job_id":            job.JobID,
 			"status":            job.Status,
-			"source_path":       job.SourcePath,
+			"job_type":          job.JobType,
+			"priority":          job.Priority,
 			"progress":          job.Progress,
-			"compression_ratio": job.Ratio,
-			"elapsed_seconds":   elapsed,
-			"eta_seconds":       job.ETA,
+			"phase":             job.Phase,
+			"bytes_processed":   job.BytesProcessed,
+			"bytes_total":       job.BytesTotal,
+			"compression_ratio": job.CurrentRatio,
+			"elapsed_seconds":   job.ElapsedSeconds,
+			"eta_seconds":       job.ETASeconds,
+			"input_path":        job.InputPath,
+			"output_path":       job.OutputPath,
 			"timestamp":         time.Now().Unix(),
 		}
 		jobList = append(jobList, data)
 
+		// Broadcast individual job updates
 		if err := es.hub.Broadcast(TypeCompressionUpdate, data); err != nil {
-			log.Error().Err(err).Str("job_id", job.ID).Msg("Failed to broadcast compression job update")
+			log.Error().Err(err).Str("job_id", job.JobID).Msg("Failed to broadcast compression job update")
 		}
+	}
+
+	// Also broadcast summary update with all jobs
+	summaryData := map[string]interface{}{
+		"jobs":          jobList,
+		"total_running": runningJobs.TotalRunning,
+		"total_pending": runningJobs.TotalPending,
+		"total_jobs":    runningJobs.TotalJobs,
+		"timestamp":     time.Now().Unix(),
+	}
+	if err := es.hub.BroadcastIfSubscribed(TypeCompressionUpdate, summaryData); err != nil {
+		log.Error().Err(err).Msg("Failed to broadcast compression jobs summary")
 	}
 
 	// Update cache

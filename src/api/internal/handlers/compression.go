@@ -283,10 +283,10 @@ func (h *CompressionV2Handler) QueueSubmit(c *fiber.Ctx) error {
 
 	// Validate type
 	validTypes := map[string]bool{
-		"compress_data":    true,
-		"compress_file":    true,
-		"decompress_data":  true,
-		"decompress_file":  true,
+		"compress_data":   true,
+		"compress_file":   true,
+		"decompress_data": true,
+		"decompress_file": true,
 	}
 	if !validTypes[req.Type] {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
@@ -354,15 +354,15 @@ func (h *CompressionV2Handler) QueueStatus(c *fiber.Ctx) error {
 
 	// Fallback: Return mock response
 	return c.JSON(fiber.Map{
-		"job_id":     jobID,
-		"status":     "completed",
-		"priority":   "normal",
-		"job_type":   "compress_file",
-		"progress":   100.0,
-		"created_at": "2025-01-01T00:00:00Z",
-		"started_at": "2025-01-01T00:00:01Z",
+		"job_id":       jobID,
+		"status":       "completed",
+		"priority":     "normal",
+		"job_type":     "compress_file",
+		"progress":     100.0,
+		"created_at":   "2025-01-01T00:00:00Z",
+		"started_at":   "2025-01-01T00:00:01Z",
 		"completed_at": "2025-01-01T00:00:02Z",
-		"_mock":      true,
+		"_mock":        true,
 	})
 }
 
