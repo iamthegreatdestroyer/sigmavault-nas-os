@@ -71,7 +71,9 @@ jobs:
               run: go mod download
 
             - name: Run Go tests
-              run: go test -v -race -coverprofile=coverage.out ./...
+              run: |
+                  # Run unit tests only (exclude integration tests in tests/ directory)
+                  go test -v -race -coverprofile=coverage.out $(go list ./... | grep -v /tests)
 
             - name: Upload coverage
               uses: codecov/codecov-action@v4

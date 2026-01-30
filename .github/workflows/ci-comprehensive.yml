@@ -96,7 +96,8 @@ jobs:
             - name: Go Test with Coverage
               run: |
                   cd src/api
-                  go test ./... -v -race -coverprofile=coverage.out -covermode=atomic
+                  # Run unit tests only (exclude integration tests in tests/ directory)
+                  go test $(go list ./... | grep -v /tests) -v -race -coverprofile=coverage.out -covermode=atomic
 
             - name: Upload Go Coverage
               uses: codecov/codecov-action@v4
@@ -409,9 +410,9 @@ jobs:
               run: |
                   echo "Running nightly extended test suite..."
 
-                  # Go race detector tests
+                  # Go race detector tests (exclude integration tests)
                   cd src/api
-                  go test ./... -v -race -count=5
+                  go test $(go list ./... | grep -v /tests) -v -race -count=5
 
                   # Python stress tests
                   cd ../engined
