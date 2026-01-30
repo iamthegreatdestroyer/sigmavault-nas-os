@@ -188,7 +188,8 @@ export function useDeleteVolume() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (id: string) => api.storage.deleteVolume(id),
+    mutationFn: ({ poolId, volumeId }: { poolId: string; volumeId: string }) =>
+      api.storage.deleteVolume(poolId, volumeId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.storage.volumes() });
     },

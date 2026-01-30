@@ -324,6 +324,7 @@ export interface Notification {
   timestamp: string;
   read: boolean;
   actionUrl?: string;
+  dismissible?: boolean;
 }
 
 // ============================================================================
