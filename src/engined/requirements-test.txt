@@ -15,6 +15,13 @@ prometheus-client>=0.20.0
 pydantic>=2.5.0
 pydantic-settings>=2.1.0
 
+# API framework (required for imports)
+fastapi>=0.109.0
+starlette>=0.35.0
+
+# System monitoring
+psutil>=5.9.0
+
 # Compression (pure Python/C bindings, install quickly)
 zstandard>=0.22.0
 lz4>=4.3.0
