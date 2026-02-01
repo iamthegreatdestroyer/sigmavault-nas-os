@@ -373,7 +373,7 @@ export function useEncryptionStatus() {
 }
 
 export function useSecurityAudit(
-  params?: Parameters<typeof api.security.getAuditLog>[0]
+  params?: Parameters<typeof api.security.getAuditLog>[0],
 ) {
   return useQuery({
     queryKey: [...queryKeys.security.audit(), params],
