@@ -12,6 +12,8 @@ import (
 	"sync"
 	"time"
 
+	"sigmavault/internal/circuitbreaker"
+
 	"github.com/gofiber/fiber/v2/log"
 )
 
@@ -50,10 +52,11 @@ func DefaultConfig() Config {
 
 // Client provides methods for calling the Python RPC engine.
 type Client struct {
-	config     Config
-	httpClient *http.Client
-	mu         sync.RWMutex
-	connected  bool
+	config         Config
+	httpClient     *http.Client
+	mu             sync.RWMutex
+	connected      bool
+	circuitBreaker *circuitbreaker.CircuitBreaker
 }
 
 // NewClient creates a new RPC client with the given configuration.
@@ -67,13 +70,23 @@ func NewClient(cfg Config) *Client {
 		ForceAttemptHTTP2:  true,
 	}
 
+	// Configure circuit breaker for RPC calls
+	cbConfig := circuitbreaker.Config{
+		FailureThreshold:  5,
+		SuccessThreshold:  2,
+		Timeout:           10 * time.Second,
+		TimeoutMax:        5 * time.Minute,
+		TimeoutMultiplier: 2.0,
+	}
+
 	return &Client{
 		config: cfg,
 		httpClient: &http.Client{
 			Transport: transport,
 			Timeout:   cfg.Timeout,
 		},
-		connected: false,
+		connected:      false,
+		circuitBreaker: circuitbreaker.New("rpc_engine", cbConfig),
 	}
 }
 
@@ -115,8 +128,16 @@ func nextRequestID() int64 {
 	return requestIDCounter
 }
 
-// Call makes a JSON-RPC call to the engine.
+// Call makes a JSON-RPC call to the engine with circuit breaker protection.
 func (c *Client) Call(ctx context.Context, method string, params interface{}, result interface{}) error {
+	// Use circuit breaker to protect RPC calls
+	return c.circuitBreaker.Call(func() error {
+		return c.callWithRetry(ctx, method, params, result)
+	})
+}
+
+// callWithRetry implements the retry logic for RPC calls.
+func (c *Client) callWithRetry(ctx context.Context, method string, params interface{}, result interface{}) error {
 	req := JSONRPCRequest{
 		JSONRPC: "2.0",
 		Method:  method,
@@ -233,4 +254,14 @@ func (c *Client) Close() error {
 	c.connected = false
 	c.mu.Unlock()
 	return nil
+}
+
+// GetCircuitBreakerMetrics returns the current circuit breaker metrics.
+func (c *Client) GetCircuitBreakerMetrics() circuitbreaker.Metrics {
+	return c.circuitBreaker.GetMetrics()
+}
+
+// IsCircuitBreakerOpen returns true if the circuit breaker is in OPEN state.
+func (c *Client) IsCircuitBreakerOpen() bool {
+	return c.circuitBreaker.IsOpen()
 }
