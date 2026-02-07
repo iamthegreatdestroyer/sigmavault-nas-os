@@ -108,61 +108,93 @@ class DashboardPage(Gtk.Box):
 
     def _refresh_data(self) -> bool:
         """Fetch data from API and update dashboard cards."""
+        # ── Agents data ──
         try:
-            health = self._api.get_health()
-            if health:
-                # Agent card
-                agents = health.get("agents", {})
-                total = agents.get("total", 0)
-                idle = agents.get("idle", total)
-                busy = total - idle
-                self._agent_card["value"].set_text(f"{total} Active")
+            agents_data = self._api.get_agents()
+            if agents_data:
+                total = agents_data.get("count", 0)
+                active = agents_data.get("active_count", 0)
+                idle = agents_data.get("idle_count", 0)
+                self._agent_card["value"].set_text(f"{total} Total")
                 self._agent_card["subtitle"].set_text(
-                    f"{busy} busy, {idle} idle" if busy > 0 else "All idle"
+                    f"{active} active, {idle} idle" if active > 0 else "All idle"
                 )
-
-                # System health
-                status = health.get("status", "unknown")
-                self._health_card["value"].set_text(status.title())
-                uptime = health.get("uptime", "—")
-                self._health_card["subtitle"].set_text(f"Uptime: {uptime}")
             else:
                 self._agent_card["value"].set_text("Offline")
                 self._agent_card["subtitle"].set_text("API not reachable")
+        except Exception as e:
+            logger.warning("Failed to fetch agents: %s", e)
+            self._agent_card["value"].set_text("Error")
+            self._agent_card["subtitle"].set_text("—")
+
+        # ── System status ──
+        try:
+            system = self._api.get_system_status()
+            if system:
+                uptime_sec = system.get("uptime", 0)
+                uptime_hours = uptime_sec // 3600
+                uptime_days = uptime_hours // 24
+                uptime_str = f"{uptime_days}d {uptime_hours % 24}h" if uptime_days > 0 else f"{uptime_hours}h"
+                
+                cpu_pct = system.get("cpu_usage", 0)
+                mem_pct = system.get("memory_use_pct", 0)
+                
+                self._health_card["value"].set_text(f"{cpu_pct:.0f}% CPU")
+                self._health_card["subtitle"].set_text(f"Uptime: {uptime_str}, Mem: {mem_pct:.0f}%")
+            else:
                 self._health_card["value"].set_text("Offline")
                 self._health_card["subtitle"].set_text("—")
         except Exception as e:
-            logger.warning("Dashboard refresh failed: %s", e)
+            logger.debug("Failed to fetch system status: %s", e)
+            self._health_card["value"].set_text("—")
+            self._health_card["subtitle"].set_text("No data")
 
+        # ── Storage data ──
         try:
-            storage = self._api.get_storage_summary()
-            if storage:
-                total_tb = storage.get("total_bytes", 0) / (1024**4)
-                free_tb = storage.get("free_bytes", 0) / (1024**4)
-                self._storage_card["value"].set_text(f"{total_tb:.1f} TB")
-                self._storage_card["subtitle"].set_text(f"{free_tb:.1f} TB free")
+            pools = self._api.get_pools()
+            if pools and "pools" in pools:
+                pool_list = pools["pools"]
+                if pool_list:
+                    # Sum up capacity across all pools
+                    total_bytes = sum(p.get("size", 0) for p in pool_list)
+                    free_bytes = sum(p.get("free", 0) for p in pool_list)
+                    total_tb = total_bytes / (1024**4)
+                    free_tb = free_bytes / (1024**4)
+                    self._storage_card["value"].set_text(f"{total_tb:.1f} TB")
+                    self._storage_card["subtitle"].set_text(f"{free_tb:.1f} TB free")
+                else:
+                    self._storage_card["value"].set_text("No Pools")
+                    self._storage_card["subtitle"].set_text("Create a pool")
             else:
                 self._storage_card["value"].set_text("—")
                 self._storage_card["subtitle"].set_text("No data")
-        except Exception:
+        except Exception as e:
+            logger.debug("Failed to fetch storage: %s", e)
             self._storage_card["value"].set_text("—")
             self._storage_card["subtitle"].set_text("No data")
 
+        # ── Compression data ──
         try:
-            compression = self._api.get_compression_stats()
-            if compression:
-                jobs = compression.get("active_jobs", 0)
-                ratio = compression.get("avg_ratio", 0)
-                self._compression_card["value"].set_text(
-                    f"{jobs} Jobs" if jobs > 0 else "Idle"
-                )
-                self._compression_card["subtitle"].set_text(
-                    f"Avg ratio: {ratio:.1%}" if ratio else "No stats yet"
-                )
+            jobs = self._api.get_compression_jobs()
+            if jobs and "jobs" in jobs:
+                job_list = jobs["jobs"]
+                active = sum(1 for j in job_list if j.get("status") == "running")
+                completed = sum(1 for j in job_list if j.get("status") == "completed")
+                
+                if active > 0:
+                    self._compression_card["value"].set_text(f"{active} Running")
+                    self._compression_card["subtitle"].set_text(f"{completed} completed")
+                elif completed > 0:
+                    self._compression_card["value"].set_text("Idle")
+                    self._compression_card["subtitle"].set_text(f"{completed} total")
+                else:
+                    self._compression_card["value"].set_text("Idle")
+                    self._compression_card["subtitle"].set_text("No jobs yet")
             else:
                 self._compression_card["value"].set_text("Idle")
-                self._compression_card["subtitle"].set_text("No stats yet")
-        except Exception:
+                self._compression_card["subtitle"].set_text("No jobs yet")
+        except Exception as e:
+            logger.debug("Failed to fetch compression: %s", e)
             self._compression_card["value"].set_text("—")
             self._compression_card["subtitle"].set_text("No data")
 

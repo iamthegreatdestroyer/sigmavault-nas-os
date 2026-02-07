@@ -84,34 +84,44 @@ class SigmaVaultAPIClient:
     # ─── Health ─────────────────────────────────────────────────
 
     def get_health(self) -> Optional[dict]:
-        """GET /api/v1/health — System health including agent counts."""
+        """GET /api/v1/health — Basic health check."""
         return self._get("/api/v1/health")
+
+    def get_system_status(self) -> Optional[dict]:
+        """GET /api/v1/system/status — System status with uptime, CPU, memory."""
+        return self._get("/api/v1/system/status")
+
+    def get_info(self) -> Optional[dict]:
+        """GET /api/v1/info — System information."""
+        return self._get("/api/v1/info")
 
     # ─── Storage ────────────────────────────────────────────────
 
-    def get_storage_summary(self) -> Optional[dict]:
-        """GET /api/v1/storage — Storage capacity summary."""
-        return self._get("/api/v1/storage")
+    def get_pools(self) -> Optional[dict]:
+        """GET /api/v1/storage/pools — ZFS pool list with summary."""
+        return self._get("/api/v1/storage/pools")
 
-    def get_disks(self) -> Optional[list]:
-        """GET /api/v1/storage/disks — Physical disk inventory."""
-        resp = self._get("/api/v1/storage/disks")
-        return resp.get("disks", []) if resp else None
+    def get_pool(self, pool_id: str) -> Optional[dict]:
+        """GET /api/v1/storage/pools/:id — Get specific pool."""
+        return self._get(f"/api/v1/storage/pools/{pool_id}")
 
-    def get_pools(self) -> Optional[list]:
-        """GET /api/v1/storage/pools — ZFS pool list."""
-        resp = self._get("/api/v1/storage/pools")
-        return resp.get("pools", []) if resp else None
+    def get_shares(self) -> Optional[dict]:
+        """GET /api/v1/storage/shares — Network shares list."""
+        return self._get("/api/v1/storage/shares")
 
-    def scrub_pool(self, pool_name: str) -> Optional[dict]:
-        """POST /api/v1/storage/pools/{name}/scrub — Initiate scrub."""
-        return self._post(f"/api/v1/storage/pools/{pool_name}/scrub")
+    def create_pool(self, pool_data: dict) -> Optional[dict]:
+        """POST /api/v1/storage/pools — Create ZFS pool."""
+        return self._post("/api/v1/storage/pools", pool_data)
+
+    def create_share(self, share_data: dict) -> Optional[dict]:
+        """POST /api/v1/storage/shares — Create network share."""
+        return self._post("/api/v1/storage/shares", share_data)
 
     # ─── Compression ────────────────────────────────────────────
 
-    def get_compression_stats(self) -> Optional[dict]:
-        """GET /api/v1/compression/stats — Compression statistics."""
-        return self._get("/api/v1/compression/stats")
+    def get_compression_queue(self) -> Optional[dict]:
+        """GET /api/v1/compression/queue — Compression queue stats."""
+        return self._get("/api/v1/compression/queue")
 
     def compress_file(
         self, path: str, algorithm: str = "auto", level: int = 6
@@ -122,43 +132,34 @@ class SigmaVaultAPIClient:
             {"path": path, "algorithm": algorithm, "level": level},
         )
 
-    def get_compression_jobs(self) -> Optional[list]:
+    def get_compression_jobs(self) -> Optional[dict]:
         """GET /api/v1/compression/jobs — Active compression jobs."""
-        resp = self._get("/api/v1/compression/jobs")
-        return resp.get("jobs", []) if resp else None
+        return self._get("/api/v1/compression/jobs")
+
+    def compress_file_v2(self, path: str, algorithm: str = "zstd") -> Optional[dict]:
+        """POST /api/v1/compression/file — Submit file compression."""
+        return self._post("/api/v1/compression/file", {"path": path, "algorithm": algorithm})
 
     # ─── Agents ─────────────────────────────────────────────────
 
-    def get_agents(self) -> Optional[list]:
-        """GET /api/v1/agents — All agents with status."""
-        resp = self._get("/api/v1/agents")
-        return resp.get("agents", []) if resp else None
+    def get_agents(self) -> Optional[dict]:
+        """GET /api/v1/agents — All agents with status and counts."""
+        return self._get("/api/v1/agents")
 
     def get_agent(self, name: str) -> Optional[dict]:
         """GET /api/v1/agents/{name} — Single agent detail."""
         return self._get(f"/api/v1/agents/{name}")
 
-    def assign_agent_task(self, agent_name: str, task: dict) -> Optional[dict]:
-        """POST /api/v1/agents/{name}/tasks — Assign task to agent."""
-        return self._post(f"/api/v1/agents/{agent_name}/tasks", task)
-
-    # ─── Shares ─────────────────────────────────────────────────
-
-    def get_shares(self) -> Optional[list]:
-        """GET /api/v1/shares — Network shares."""
-        resp = self._get("/api/v1/shares")
-        return resp.get("shares", []) if resp else None
-
-    def create_share(self, share: dict) -> Optional[dict]:
-        """POST /api/v1/shares — Create a network share."""
-        return self._post("/api/v1/shares", share)
+    def get_agent_metrics(self, agent_id: str) -> Optional[dict]:
+        """GET /api/v1/agents/:id/metrics — Agent performance metrics."""
+        return self._get(f"/api/v1/agents/{agent_id}/metrics")
 
     # ─── System ─────────────────────────────────────────────────
 
-    def get_system_info(self) -> Optional[dict]:
-        """GET /api/v1/system — System information."""
-        return self._get("/api/v1/system")
+    def get_services(self) -> Optional[dict]:
+        """GET /api/v1/system/services — List system services."""
+        return self._get("/api/v1/system/services")
 
-    def restart_service(self, service_name: str) -> Optional[dict]:
-        """POST /api/v1/system/services/{name}/restart — Restart service."""
-        return self._post(f"/api/v1/system/services/{service_name}/restart")
+    def restart_service(self, service_id: str) -> Optional[dict]:
+        """POST /api/v1/system/services/:id/restart — Restart service."""
+        return self._post(f"/api/v1/system/services/{service_id}/restart")
