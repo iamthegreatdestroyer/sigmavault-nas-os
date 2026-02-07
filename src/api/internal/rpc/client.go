@@ -12,7 +12,7 @@ import (
 	"sync"
 	"time"
 
-	"sigmavault/internal/circuitbreaker"
+	"sigmavault-nas-os/api/internal/circuitbreaker"
 
 	"github.com/gofiber/fiber/v2/log"
 )
