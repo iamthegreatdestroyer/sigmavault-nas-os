@@ -19,7 +19,8 @@ import (
 
 // Config holds configuration for the RPC client.
 type Config struct {
-	// BaseURL is the base URL of the RPC engine (e.g., "http://localhost:50051")
+	// BaseURL is the base URL of the RPC engine HTTP API (e.g., "http://localhost:8001/api/v1")
+	// Note: gRPC service runs on port 9003 separately
 	BaseURL string
 
 	// Timeout is the default request timeout

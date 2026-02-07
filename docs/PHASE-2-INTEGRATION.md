@@ -15,8 +15,8 @@
 │                                                                             │
 │  ┌──────────────┐     REST/WS      ┌──────────────┐    gRPC/HTTP    ┌─────────────┐
 │  │   Web UI     │ ◄──────────────► │   Go API     │ ◄──────────────►│  Python RPC │
-│  │  (React 19)  │     Port 8080    │  (Fiber v2)  │    Port 50051   │  (FastAPI)  │
-│  └──────────────┘                  └──────────────┘                 └─────────────┘
+│  │  (React 19)  │    Port 12080    │  (Fiber v2)  │    Port 9003    │  (FastAPI)  │
+│  └──────────────┘                  └──────────────┘   (HTTP: 8001)  └─────────────┘
 │        │                                  │                               │
 │        ▼                                  ▼                               ▼
 │  ┌──────────────┐                  ┌──────────────┐               ┌─────────────┐
@@ -197,12 +197,13 @@ Before proceeding to Phase 3, verify:
 
 ```bash
 # Start Python RPC engine
-cd src/engined && uv run uvicorn engined.main:app --reload --port 50051
+# HTTP API on port 8001, gRPC on port 9003
+cd src/engined && uv run uvicorn engined.main:app --reload --port 8001
 
-# Start Go API (connects to RPC)
-cd src/api && go run . -rpc-addr localhost:50051
+# Start Go API (connects to RPC HTTP API)
+cd src/api && go run .
 
-# Start Web UI (connects to API)
+# Start Web UI (connects to API on port 12080)
 cd src/webui && pnpm dev
 
 # Run integration tests

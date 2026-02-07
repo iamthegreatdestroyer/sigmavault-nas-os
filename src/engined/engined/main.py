@@ -31,6 +31,7 @@ from engined.api.compression import router as compression_router
 from engined.api.encryption import router as encryption_router
 from engined.api.agents import router as agents_router
 from engined.api.rpc import router as rpc_router
+from engined.api.elite_agents import router as elite_agents_router, initialize_registry as init_elite_registry, shutdown_registry as shutdown_elite_registry
 from engined.rpc.server import create_grpc_server
 from engined.agents.swarm import AgentSwarm
 from engined.agents.scheduler import TaskScheduler
@@ -120,6 +121,9 @@ class EngineState:
             tuning_interval=300.0,  # 5 minutes
         )
         
+        logger.info("Initializing Elite Agent Collective (10 agents)")
+        await init_elite_registry()
+        
         logger.info("Initializing gRPC server", port=settings.grpc_port)
         self.grpc_server = await create_grpc_server(settings, self.swarm)
         await self.grpc_server.start()
@@ -129,6 +133,10 @@ class EngineState:
     async def shutdown(self) -> None:
         """Gracefully shutdown engine components."""
         logger.info("Shutting down engine...")
+        
+        # Shutdown Elite Agent Collective
+        await shutdown_elite_registry()
+        logger.info("Elite Agent Collective stopped")
         
         # Shutdown event system first to stop emitting events
         await shutdown_event_system()
@@ -253,6 +261,7 @@ def create_app() -> FastAPI:
     app.include_router(encryption_router, prefix="/api/v1/encryption", tags=["Encryption"])
     app.include_router(agents_router, prefix="/api/v1/agents", tags=["Agents"])
     app.include_router(rpc_router, prefix="/api/v1", tags=["RPC"])
+    app.include_router(elite_agents_router, tags=["Elite Agents"])  # Mounted at /elite-agents
     
     # Debug: print all routes
     logger.info("Registered routes:")
@@ -393,3 +402,7 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
+
+# For uvicorn: app instance at module level
+app = create_app()

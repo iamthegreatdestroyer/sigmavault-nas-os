@@ -64,7 +64,7 @@ class Settings(BaseSettings):
         description="gRPC server host",
     )
     grpc_port: int = Field(
-        default=50051,
+        default=9003,
         ge=1024,
         le=65535,
         description="gRPC server port",

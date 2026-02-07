@@ -612,15 +612,15 @@ failure_threshold = 2  # Below circuit threshold of 3
 ### Planned Activities
 
 1. **Port Configuration Updates**
-   - WebSocket: 3001 → 9002
    - gRPC: 50051 → 9003
    - Update all config files
    - Test port binding
+   - Note: WebSocket runs on same port as Go API (12080), no separate port needed
 
 2. **Component Communication Testing**
    - Verify Go API → Python RPC on new ports
-   - Test WebSocket connections on port 9002
-   - Validate gRPC calls on port 9003
+   - Test WebSocket connections on port 12080
+   - Validate gRPC service on port 9003
 
 3. **Configuration Management**
    - Update production.env.example

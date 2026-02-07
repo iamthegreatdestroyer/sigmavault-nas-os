@@ -336,11 +336,11 @@ Day 3 Integration Testing is **COMPLETE**. All 15 tests passing, covering:
 ### Planned Work
 
 1. **Migrate to Production Ports**
-   - WebSocket: 3001 → 9002
    - gRPC: 50051 → 9003
    - Update all configuration files
    - Update environment examples
    - Test port binding and connectivity
+   - Note: WebSocket runs on same port as Go API (12080), no separate port needed
 
 2. **Production Configuration**
    - Validate production.env.example

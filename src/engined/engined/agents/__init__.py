@@ -4,8 +4,24 @@ SigmaVault Agents Package
 Contains AI agent implementations and swarm management.
 """
 
+# Core infrastructure
+from .base import (
+    BaseAgent,
+    AgentState,
+    AgentCapability,
+    AgentTask,
+    TaskResult,
+    TaskPriority,
+)
+from .registry import AgentRegistry
+
+# Agent tiers
+from .tier1 import TIER_1_AGENTS
+from .tier2 import TIER_2_AGENTS
+
+# Legacy swarm management
 from .swarm import AgentSwarm
-from .scheduler import TaskScheduler, TaskPriority
+from .scheduler import TaskScheduler
 from .recovery import AgentRecovery, CircuitBreaker, CircuitState
 from .events import (
     EventEmitter, 
@@ -40,12 +56,24 @@ from .tuning import (
 )
 
 __all__ = [
+    # Core infrastructure
+    'BaseAgent',
+    'AgentState',
+    'AgentCapability',
+    'AgentTask',
+    'TaskResult',
+    'TaskPriority',
+    'AgentRegistry',
+    # Agent tiers
+    'TIER_1_AGENTS',
+    'TIER_2_AGENTS',
+    # Legacy swarm
     'AgentSwarm',
     'TaskScheduler',
-    'TaskPriority',
     'AgentRecovery',
     'CircuitBreaker',
     'CircuitState',
+    # Events
     'EventEmitter',
     'EventType',
     'Event',
