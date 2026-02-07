@@ -17,10 +17,13 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src" / "desktop-ui"))
 
 from api.client import SigmaVaultAPIClient
 
+# Check if API is on alternate port (12080 if 3000 is occupied)
+API_URL = "http://localhost:12080"
+
 
 def test_health():
     """Test basic health endpoint."""
-    client = SigmaVaultAPIClient()
+    client = SigmaVaultAPIClient(base_url=API_URL)
     print("Testing /api/v1/health...")
     result = client.get_health()
     if result:
@@ -33,7 +36,7 @@ def test_health():
 
 def test_info():
     """Test info endpoint."""
-    client = SigmaVaultAPIClient()
+    client = SigmaVaultAPIClient(base_url=API_URL)
     print("\nTesting /api/v1/info...")
     result = client.get_info()
     if result:
@@ -48,7 +51,7 @@ def test_info():
 
 def test_agents():
     """Test agents endpoint (requires auth in production)."""
-    client = SigmaVaultAPIClient()
+    client = SigmaVaultAPIClient(base_url=API_URL)
     print("\nTesting /api/v1/agents...")
     result = client.get_agents()
     if result:
@@ -67,14 +70,17 @@ def test_agents():
 
 def test_system_status():
     """Test system status endpoint."""
-    client = SigmaVaultAPIClient()
+    client = SigmaVaultAPIClient(base_url=API_URL)
     print("\nTesting /api/v1/system/status...")
     result = client.get_system_status()
     if result:
-        print(f"  ✓ Hostname: {result.get('hostname')}")
-        print(f"    Uptime: {result.get('uptime')}s")
-        print(f"    CPU: {result.get('cpu_usage'):.1f}%")
-        print(f"    Memory: {result.get('memory_use_pct'):.1f}%")
+        print(f"  ✓ Hostname: {result.get('hostname', 'N/A')}")
+        uptime = result.get('uptime')
+        print(f"    Uptime: {uptime if uptime is not None else 'N/A'}")
+        cpu = result.get('cpu_usage')
+        print(f"    CPU: {f'{cpu:.1f}%' if cpu is not None else 'N/A'}")
+        mem = result.get('memory_use_pct')
+        print(f"    Memory: {f'{mem:.1f}%' if mem is not None else 'N/A'}")
         return True
     else:
         print("  ✗ Failed to fetch system status")
@@ -83,7 +89,7 @@ def test_system_status():
 
 def test_storage():
     """Test storage endpoints."""
-    client = SigmaVaultAPIClient()
+    client = SigmaVaultAPIClient(base_url=API_URL)
     print("\nTesting /api/v1/storage/pools...")
     result = client.get_pools()
     if result:
@@ -99,7 +105,7 @@ def test_storage():
 
 def test_compression():
     """Test compression endpoints."""
-    client = SigmaVaultAPIClient()
+    client = SigmaVaultAPIClient(base_url=API_URL)
     print("\nTesting /api/v1/compression/jobs...")
     result = client.get_compression_jobs()
     if result:
