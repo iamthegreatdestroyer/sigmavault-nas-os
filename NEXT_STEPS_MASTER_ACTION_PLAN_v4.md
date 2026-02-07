@@ -1,4 +1,4 @@
-# SigmaVault NAS OS — Next Steps Master Action Plan v4
+**# SigmaVault NAS OS — Next Steps Master Action Plan v4
 
 **Date:** February 7, 2026
 **Author:** Project Audit & Planning Session
@@ -495,6 +495,370 @@ The Agents page in SigmaVault Settings:
 
 ---
 
+## Phase 4B: Ryzanstein LLM Integration (2-3 Weeks, Parallel with 4A) [REF:PH4B-007B]
+
+**Goal:** Integrate Ryzanstein as native LLM engine, making SigmaVault the first NAS OS with built-in local AI.
+**Context:** See `ryzanstein-integration-plan.md` for full architecture and rationale.
+**Automation:** 60% — core integration scriptable, desktop features need design.
+**Timeline:** Runs **in parallel** with Phase 4A since:
+- Phase 4A: Wire agents to real system tasks (ZFS, smartctl, fio)
+- Phase 4B: Wire agents to Ryzanstein for intelligent reasoning
+- They converge when agents have both capabilities
+
+### 4B.1 Core Integration (Week 1)
+
+**Add Ryzanstein as 4th Submodule:**
+```bash
+git submodule add https://github.com/iamthegreatdestroyer/Ryzanstein.git submodules/ryzanstein
+git submodule update --init --recursive
+```
+
+**Create systemd Service:**
+```ini
+# /etc/systemd/system/sigmavault-ryzan.service
+[Unit]
+Description=SigmaVault Ryzanstein LLM Engine
+After=network.target sigmavault-engine.service
+Wants=sigmavault-engine.service
+
+[Service]
+Type=notify
+User=sigmavault
+ExecStartPre=/opt/sigmavault/ryzan/detect-cpu.sh
+ExecStart=/opt/sigmavault/ryzan/start.sh
+Restart=on-failure
+MemoryMax=70%
+CPUQuota=80%
+
+[Install]
+WantedBy=multi-user.target
+```
+
+**Create D-Bus Interface:**
+```python
+# src/ryzan-bridge/dbus_service.py
+import dbus.service
+import requests
+
+class RyzanDBusService(dbus.service.Object):
+    """D-Bus interface: org.sigmavault.Ryzan"""
+    
+    @dbus.service.method("org.sigmavault.Ryzan", in_signature='ss', out_signature='s')
+    def Chat(self, model, messages):
+        """Send chat request to Ryzanstein engine"""
+        response = requests.post('http://localhost:8100/v1/chat/completions',
+                                json={'model': model, 'messages': messages})
+        return response.json()
+    
+    @dbus.service.method("org.sigmavault.Ryzan", out_signature='a{sv}')
+    def GetStatus(self):
+        """Get current model status and performance metrics"""
+        return {'model': 'bitnet-7b', 'tokens_per_sec': 25.3, 'memory_mb': 3584}
+```
+
+**Create Unix Socket Bridge:**
+```bash
+# /run/sigmavault/ryzan.sock — zero-overhead local inference
+socat UNIX-LISTEN:/run/sigmavault/ryzan.sock,fork TCP:localhost:8100
+```
+
+**Wire Python RPC Engine:**
+```python
+# src/engined/engined/llm/client.py
+class RyzanClient:
+    """OpenAI-compatible client for local Ryzanstein engine"""
+    base_url = "http://localhost:8100/v1"
+    
+    async def chat(self, model: str, messages: list, tools: list = None):
+        async with aiohttp.ClientSession() as session:
+            async with session.post(f"{self.base_url}/chat/completions",
+                                   json={'model': model, 'messages': messages,
+                                        'tools': tools}) as resp:
+                return await resp.json()
+```
+
+**Auto-detect CPU on Boot:**
+```bash
+#!/bin/bash
+# detect-cpu.sh — selects optimal model for hardware
+CPU_MODEL=$(lscpu | grep "Model name")
+TOTAL_RAM=$(free -g | awk '/Mem/{print $2}')
+AVX512=$(lscpu | grep -c avx512)
+
+if [ $TOTAL_RAM -lt 16 ]; then
+    echo "draft-350m"  # Minimal: 350MB model
+elif [ $TOTAL_RAM -lt 32 ]; then
+    echo "bitnet-7b"   # Standard: 3.5GB model
+elif [ $AVX512 -gt 0 ]; then
+    echo "bitnet-7b+mamba"  # Full: multi-model routing
+else
+    echo "bitnet-7b"   # Fallback
+fi
+```
+
+### 4B.2 Agent Backbone (Week 2)
+
+**Replace Agent Stubs with Ryzanstein-Powered Execution:**
+```python
+# src/engined/engined/agents/swarm.py
+from engined.llm.client import RyzanClient
+
+class AgentSwarm:
+    def __init__(self):
+        self.ryzan = RyzanClient()
+        self.agent_prompts = self._load_agent_prompts()
+    
+    async def _execute_task(self, task: Task, agent: Agent) -> None:
+        # BEFORE: await asyncio.sleep(0.1)  # No-op stub
+        # AFTER: Real LLM-powered execution
+        system_prompt = self.agent_prompts.get(agent.name)
+        response = await self.ryzan.chat(
+            model="bitnet-7b",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": task.to_prompt()}
+            ],
+            tools=agent.available_tools  # MCP tool definitions
+        )
+        task.result = self._parse_agent_response(response)
+```
+
+**Create Agent-Specific System Prompts:**
+```bash
+# /etc/sigmavault/agent-prompts/ORACLE.txt
+You are ORACLE, a predictive analytics specialist for NAS storage systems.
+Given SMART data, disk usage trends, and historical failure patterns,
+predict probability of disk failure and recommend preventive actions.
+Always provide confidence scores and cite specific SMART attributes.
+```
+
+**Implement MCP Tool Definitions:**
+```python
+# Each agent exposes its capabilities as MCP tools
+ORACLE_TOOLS = [
+    {
+        "type": "function",
+        "function": {
+            "name": "analyze_smart_data",
+            "description": "Analyze SMART disk health data",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "device": {"type": "string"},
+                    "smart_data": {"type": "object"}
+                }
+            }
+        }
+    }
+]
+```
+
+**Wire Task Results to WebSocket:**
+```python
+# When agent completes task, emit over WebSocket
+await self.ws_hub.emit("agent_task_complete", {
+    "agent": agent.name,
+    "task_id": task.id,
+    "result": task.result,
+    "timestamp": time.time()
+})
+```
+
+**Add LLM Status Widget to Dashboard:**
+```python
+# src/desktop-ui/ui/pages/dashboard.py
+class DashboardPage(Adw.Bin):
+    def _create_llm_status_card(self):
+        """Shows current LLM model, memory usage, tokens/sec"""
+        status = self._api.get_llm_status()  # GET /api/v1/llm/status
+        card = Adw.ActionRow(
+            title=f"Ryzanstein: {status['model']}",
+            subtitle=f"{status['tokens_per_sec']:.1f} tok/s, {status['memory_mb']}MB"
+        )
+        return card
+```
+
+### 4B.3 Desktop Integration (Week 3)
+
+**GNOME Shell Search Provider:**
+```python
+# /usr/share/gnome-shell/search-providers/sigmavault-ryzan.ini
+[Shell Search Provider]
+DesktopId=sigmavault-ryzan.desktop
+BusName=org.sigmavault.Ryzan.SearchProvider
+ObjectPath=/org/sigmavault/Ryzan/SearchProvider
+Version=2
+```
+
+**Nautilus Right-Click Enhancement:**
+```python
+# Add to existing nautilus-sigmavault.py
+def get_file_items(self, files):
+    items = []
+    # Existing compress action...
+    
+    # NEW: Ask Ryzanstein
+    item = Nautilus.MenuItem(
+        name="SigmaVault::AskRyzan",
+        label="Ask Ryzanstein about this file",
+        tip="Get AI insights about file type, security, optimization"
+    )
+    item.connect("activate", self._ask_ryzan, files)
+    items.append(item)
+    return items
+
+def _ask_ryzan(self, menu, files):
+    for f in files:
+        path = f.get_location().get_path()
+        # Send to Ryzanstein via D-Bus
+        bus = dbus.SessionBus()
+        ryzan = bus.get_object('org.sigmavault.Ryzan', '/org/sigmavault/Ryzan')
+        response = ryzan.Chat('bitnet-7b', f'Analyze this file: {path}')
+        # Show in desktop notification
+        notification = Gio.Notification.new("Ryzanstein Analysis")
+        notification.set_body(response)
+        app.send_notification(None, notification)
+```
+
+**Settings App: "Chat with NAS" Panel:**
+```python
+# src/desktop-ui/ui/pages/chat.py
+class ChatPage(Adw.NavigationPage):
+    """Conversational interface to NAS management via Ryzanstein"""
+    
+    def __init__(self):
+        self.chat_view = Gtk.ListView()  # Chat bubbles
+        self.input_entry = Gtk.Entry(placeholder_text="Ask your NAS anything...")
+        self.input_entry.connect("activate", self._send_message)
+    
+    def _send_message(self, entry):
+        user_msg = entry.get_text()
+        # Send to Ryzanstein
+        response = self._api.chat_with_ryzan(user_msg)
+        # Add to chat view
+        self._add_chat_bubble(user_msg, is_user=True)
+        self._add_chat_bubble(response, is_user=False)
+        entry.set_text("")
+```
+
+**Desktop Notifications with Action Buttons:**
+```python
+# When agent completes task
+notification = Gio.Notification.new(f"Agent {agent_name} Complete")
+notification.set_body(result_summary)
+notification.add_button("View Details", f"app.show-task::{task_id}")
+notification.add_button("Export Report", f"app.export::{task_id}")
+app.send_notification(None, notification)
+```
+
+**First-Boot Model Download Wizard:**
+```python
+# On first launch if no model found
+dialog = Adw.MessageDialog.new(
+    parent=window,
+    heading="Enable Local AI?",
+    body="Download Ryzanstein BitNet 7B model (3.5GB) for local AI-powered features?"
+)
+dialog.add_response("cancel", "Not Now")
+dialog.add_response("download", "Download")
+dialog.set_response_appearance("download", Adw.ResponseAppearance.SUGGESTED)
+dialog.connect("response", self._handle_model_download)
+```
+
+### 4B.4 Resource Management
+
+**cgroups v2 Limits:**
+```ini
+# Ryzanstein yields to file serving
+sigmavault-ryzan.service:
+  CPUQuota=80%  # drops to 30% under high I/O
+  MemoryMax=70%
+  
+samba.service, nfs-server.service:
+  CPUWeight=200  # high priority
+```
+
+**ZFS ARC Priority:**
+```bash
+# Ensure file cache gets 25% RAM before LLM
+echo 25% > /sys/module/zfs/parameters/zfs_arc_max
+```
+
+### 4B.5 ISO Integration
+
+**Add to Package List:**
+```
+# live-build/config/package-lists/sigmavault-core.list.chroot
+
+# Ryzanstein LLM dependencies
+python3-fastapi
+python3-uvicorn
+python3-aiohttp
+python3-numpy
+cmake
+ninja-build
+```
+
+**Systemd Dependency Chain:**
+```
+sigmavault-engine.service → sigmavault-ryzan.service → sigmavault-api.service
+```
+
+### 4B.6 Natural Language NAS Management Examples
+
+**GNOME Shell Search:**
+```
+User types: "ryzan: create mirrored pool from 4TB drives"
+→ Ryzanstein interprets intent
+→ Calls ARCHITECT agent
+→ Executes: zpool create tank mirror /dev/sda /dev/sdb
+→ Desktop notification: "Pool 'tank' created — 4TB mirrored, ONLINE"
+```
+
+**Conversational Admin:**
+```
+User (in Chat panel): "Set up Samba share for home office, read-write for me, read-only for guests"
+Ryzan: "I'll create share 'home-office' at /srv/sigmavault/shares/home-office:
+        • Your user: full read-write
+        • Guest access: read-only
+        Shall I proceed? [Create Share] [Modify] [Cancel]"
+```
+
+**Automated Alerts:**
+```
+Desktop Notification:
+"⚠️ Drive /dev/sdc: elevated reallocated sectors (2→8 in 30 days).
+ ORACLE estimates 73% failure probability within 6 months.
+ Recommendation: Back up data, prepare replacement.
+ [View Details] [Order Replacement] [Dismiss]"
+```
+
+### Integration Philosophy
+
+**Why This Is "Built Into the OS" — Not Just Another Service:**
+
+| Feature | Typical LLM | Ryzanstein in SigmaVault |
+|---------|-------------|-------------------------|
+| Desktop shell | ❌ Separate app | ✅ GNOME Shell search provider |
+| File manager | ❌ Upload via web | ✅ Nautilus right-click menu |
+| Notifications | ❌ Browser tab | ✅ Native GNOME notifications |
+| D-Bus | ❌ HTTP only | ✅ `org.sigmavault.Ryzan` service |
+| Unix socket | ❌ TCP only | ✅ Zero-overhead `/run/sigmavault/ryzan.sock` |
+| Agent backbone | ❌ Cloud API | ✅ All 40 agents use LOCAL Ryzanstein |
+| Boot integration | ❌ Manual start | ✅ systemd service, auto-start |
+| Hardware detection | ❌ Generic | ✅ Auto-detects CPU → loads optimal model |
+
+**Success criteria:**
+- Type "ryzan: check disk health" in GNOME Shell → see analysis
+- Right-click PDF in Nautilus → "Ask Ryzanstein" → get summary
+- Chat with NAS in Settings app → create ZFS pool via conversation
+- Desktop notification shows intelligent disk failure prediction
+- All 40 agents use Ryzanstein for reasoning (no cloud API calls)
+
+**See:** `ryzanstein-integration-plan.md` for complete architecture, competitive analysis, and risk mitigation.
+
+---
+
 ## Phase 5: Bootable ISO with GNOME Desktop (1 Week) [REF:PH5-008]
 
 **Goal:** Produce a bootable Debian ISO with GNOME and SigmaVault pre-installed.
@@ -703,24 +1067,29 @@ Phase 0 : Foundation Fix .................. 1-2 days
 Phase 1 : Desktop Management App .......... 1-2 weeks     ← WAS: Web UI
 Phase 2 : Storage Management .............. 1-2 weeks
 Phase 3 : Real Compression ................ 1 week
-Phase 4 : Agent Intelligence .............. 2 weeks
-Phase 5 : Bootable ISO (with GNOME) ....... 1 week         ← NOW includes desktop env
+Phase 4A: Agent Intelligence .............. 2 weeks       ← Real system tasks
+Phase 4B: Ryzanstein LLM Integration ...... 2-3 weeks     ← Runs PARALLEL with 4A
+Phase 5 : Bootable ISO (with GNOME) ....... 1 week        ← NOW includes desktop env
 Phase 6 : VPN & Remote Access ............. 2 weeks
 ──────────────────────────────────────────────────────────
-TOTAL: ~8-10 weeks to a usable personal NAS OS
+TOTAL: ~10-12 weeks to AI-native NAS OS (was 8-10, +2 weeks for LLM)
+
+Note: Phase 4A and 4B run in parallel — 4A wires agents to system tasks,
+      4B wires agents to Ryzanstein. They converge when agents have both.
 ```
 
 ### Milestone Checkpoints
 
 | Week | Milestone | Verification |
 |------|-----------|-------------|
-| 0 | Submodules cloned, all components build, webui removed | `make test` passes |
+| 0 | Submodules cloned (including Ryzanstein), all components build | `make test` passes |
 | 1-2 | SigmaVault Settings app shows live agent data | Launch from GNOME app grid |
 | 3-4 | ZFS pool creation and file management works | End-to-end via Settings + Nautilus |
 | 5 | Real compression via right-click in Nautilus | Compress file → notification with ratio |
-| 6-7 | 5+ agents performing real tasks | Trigger from Settings app, see results |
-| 8 | ISO boots in VM with GNOME + SigmaVault | VirtualBox/QEMU test |
-| 9-10 | VPN access from external device | Phone connects via WireGuard |
+| 6-7 | 5+ agents performing real tasks (Phase 4A) | Trigger from Settings app, see results |
+| 6-9 | Ryzanstein LLM integrated, agents use local AI (Phase 4B) | Type "ryzan: check disk health" in Shell |
+| 10 | ISO boots in VM with GNOME + SigmaVault + Ryzanstein | VirtualBox/QEMU test |
+| 11-12 | VPN access from external device | Phone connects via WireGuard |
 
 ---
 
@@ -791,48 +1160,70 @@ That single session transforms the project from "invisible backend scaffolding" 
 
 ---
 
-## Architecture Diagram (v4 — Desktop) [REF:AD-015]
+## Architecture Diagram (v4 — Desktop + Ryzanstein LLM) [REF:AD-015]
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                     GNOME Desktop Environment                    │
-│                                                                  │
-│  ┌──────────────┐  ┌──────────────┐  ┌────────────────────────┐ │
-│  │   Nautilus    │  │ GNOME Disks  │  │  SigmaVault Settings   │ │
-│  │ (file browse) │  │ (physical    │  │  (GTK4 + libadwaita)   │ │
-│  │ + right-click │  │  disks)      │  │                        │ │
-│  │   compress    │  │              │  │  Dashboard | Storage   │ │
-│  │              │  │              │  │  Compress  | Agents    │ │
-│  │              │  │              │  │  Shares    | Network   │ │
-│  └──────┬───────┘  └──────────────┘  └────────┬───────────────┘ │
-│         │                                       │                 │
-│         │            REST + WebSocket            │                 │
-│         └──────────────────┬────────────────────┘                 │
-│                            │                                      │
-├────────────────────────────┼──────────────────────────────────────┤
-│                            ▼                                      │
-│  ┌─────────────────────────────────────────────────────────────┐ │
-│  │                  Go API Server (:3000)                        │ │
-│  │  REST endpoints | WebSocket hub | Auth | Rate limiting       │ │
-│  └──────────────────────┬──────────────────────────────────────┘ │
-│                          │ gRPC (:50051)                          │
-│  ┌──────────────────────┴──────────────────────────────────────┐ │
-│  │               Python RPC Engine (:8000)                       │ │
-│  │  Agent Swarm (40) | Compression Bridge | Task Scheduler      │ │
-│  └──────────────────────┬──────────────────────────────────────┘ │
-│                          │                                        │
-│  ┌──────────────────────┴──────────────────────────────────────┐ │
-│  │  EliteSigma-NAS  │  PhantomMesh-VPN  │  Elite Agents        │ │
-│  │  (compression)    │  (WireGuard mesh)  │  (40 definitions)   │ │
-│  └─────────────────────────────────────────────────────────────┘ │
-│                                                                    │
-│  ┌─────────────────────────────────────────────────────────────┐ │
-│  │                    Debian 13 (Trixie)                         │ │
-│  │  ZFS | Samba | NFS | WireGuard | systemd | Docker            │ │
-│  └─────────────────────────────────────────────────────────────┘ │
-└──────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────┐
+│                        GNOME Desktop Environment                         │
+│                                                                          │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────────────────────┐  │
+│  │   Nautilus    │  │ GNOME Shell  │  │    SigmaVault Settings       │  │
+│  │ (file browse) │  │  Search      │  │    (GTK4 + libadwaita)       │  │
+│  │ + right-click │  │  Provider    │  │                              │  │
+│  │   compress    │  │ "ryzan: ..." │  │  Dashboard | Storage         │  │
+│  │ + ask Ryzan   │  │              │  │  Compress  | Agents          │  │
+│  │              │  │ GNOME Disks  │  │  Shares    | Chat with NAS   │  │
+│  └──────┬───────┘  └──────┬───────┘  └────────┬─────────────────────┘  │
+│         │                  │                   │                         │
+│         │      REST + WebSocket + D-Bus        │                         │
+│         └──────────────────┬───────────────────┘                         │
+│                            │                                             │
+├────────────────────────────┼─────────────────────────────────────────────┤
+│                            ▼                                             │
+│  ┌───────────────────────────────────────────────────────────────────┐  │
+│  │                  Go API Server (:3000)                             │  │
+│  │  REST endpoints | WebSocket hub | Auth | Rate limiting            │  │
+│  │  /v1/llm/* → proxies to Ryzanstein                                │  │
+│  └────────────────────┬──────────────────────────────────────────────┘  │
+│                       │ gRPC (:50051)                                   │
+│  ┌────────────────────┴──────────────────────────────────────────────┐  │
+│  │               Python RPC Engine (:8000)                            │  │
+│  │  Agent Swarm (40) | Compression Bridge | Task Scheduler           │  │
+│  │  All agents now use Ryzanstein for intelligent reasoning          │  │
+│  └────────────────────┬──────────────────────────────────────────────┘  │
+│                       │                                                 │
+│  ┌────────────────────┴──────────────────────────────────────────────┐  │
+│  │            Ryzanstein LLM Engine (:8100) [NEW]                     │  │
+│  │  BitNet b1.58 | Mamba SSM | RWKV | Token Recycling                │  │
+│  │  D-Bus: org.sigmavault.Ryzan | Unix Socket: /run/sigmavault/ryzan │  │
+│  │  CPU-first (AVX-512/VNNI) | OpenAI-compatible API                 │  │
+│  └────────────────────────────────────────────────────────────────────┘  │
+│                       │                                                 │
+│  ┌────────────────────┴──────────────────────────────────────────────┐  │
+│  │  EliteSigma-NAS  │  PhantomMesh-VPN  │  Elite Agents              │  │
+│  │  (compression)    │  (WireGuard mesh)  │  (40 definitions)         │  │
+│  │  Ryzanstein (LLM) [NEW]                                           │  │
+│  └───────────────────────────────────────────────────────────────────┘  │
+│                                                                          │
+│  ┌───────────────────────────────────────────────────────────────────┐  │
+│  │                    Debian 13 (Trixie)                              │  │
+│  │  ZFS | Samba | NFS | WireGuard | systemd | Docker | cgroups v2    │  │
+│  └───────────────────────────────────────────────────────────────────┘  │
+└──────────────────────────────────────────────────────────────────────────┘
 ```
+
+**Key Addition:** Ryzanstein LLM engine integrated as native systemd service with:
+- D-Bus interface for desktop integration (GNOME Shell, Nautilus)
+- Unix socket for zero-overhead local inference
+- OpenAI-compatible API for agent consumption
+- CPU-first architecture (no GPU required for NAS hardware)
+- Auto-detection of CPU capabilities → optimal model selection
+
+**Differentiation:** First NAS OS with built-in local LLM enabling natural language
+management, AI-powered file operations, and intelligent agent reasoning—all without
+cloud API calls.
 
 ---
 
 *This plan (v4) supersedes v3 by replacing the React Web UI with native GNOME desktop integration. The backend architecture (Go API + Python engine + submodules) is unchanged. The interface philosophy shifts from "browser tab managing a NAS appliance" to "desktop OS with integrated NAS capabilities."*
+**
