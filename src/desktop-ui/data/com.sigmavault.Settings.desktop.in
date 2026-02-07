@@ -1,0 +1,12 @@
+[Desktop Entry]
+Name=SigmaVault Settings
+Comment=AI-Powered NAS Storage Management — 40 Agent Swarm
+Exec=sigmavault-settings
+Icon=com.sigmavault.Settings
+Terminal=false
+Type=Application
+Categories=System;Settings;Utility;
+Keywords=NAS;Storage;Compression;ZFS;AI;Agents;
+StartupNotify=true
+StartupWMClass=com.sigmavault.Settings
+X-GNOME-UsesNotifications=true

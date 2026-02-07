@@ -1,0 +1,129 @@
+/* SigmaVault Settings — Custom GTK4 / libadwaita stylesheet */
+
+/* ─── Sidebar ─────────────────────────────────────────────────── */
+.navigation-sidebar row {
+    min-height: 42px;
+    padding: 4px 12px;
+    border-radius: 8px;
+    margin: 2px 6px;
+}
+
+.navigation-sidebar row:selected {
+    background-color: alpha(@accent_color, 0.15);
+    color: @accent_color;
+}
+
+/* ─── Status Bar ──────────────────────────────────────────────── */
+.status-bar {
+    padding: 4px 12px;
+    border-top: 1px solid alpha(@borders, 0.5);
+    background-color: alpha(@card_bg_color, 0.5);
+}
+
+/* ─── Status Indicator Dots ───────────────────────────────────── */
+.status-online {
+    color: #2ec27e;
+}
+
+.status-offline {
+    color: #c01c28;
+}
+
+.status-degraded {
+    color: #e5a50a;
+}
+
+.status-unknown {
+    color: #77767b;
+}
+
+/* ─── Summary Cards ───────────────────────────────────────────── */
+.card.summary-card {
+    padding: 16px;
+    border-radius: 12px;
+    min-width: 180px;
+}
+
+.card.summary-card .card-value {
+    font-size: 28px;
+    font-weight: 800;
+}
+
+.card.summary-card .card-subtitle {
+    font-size: 12px;
+    opacity: 0.7;
+}
+
+/* ─── Agent Card ──────────────────────────────────────────────── */
+.agent-card {
+    padding: 12px;
+    border-radius: 10px;
+}
+
+.agent-card .agent-name {
+    font-weight: 700;
+    font-size: 14px;
+}
+
+.agent-card .tier-badge {
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 6px;
+    background-color: alpha(@accent_color, 0.12);
+    color: @accent_color;
+    font-weight: 600;
+}
+
+/* ─── Pool Widget ─────────────────────────────────────────────── */
+.pool-widget progressbar trough {
+    min-height: 8px;
+    border-radius: 4px;
+}
+
+.pool-widget progressbar progress {
+    border-radius: 4px;
+}
+
+.pool-health-online {
+    color: #2ec27e;
+    font-weight: 700;
+}
+
+.pool-health-degraded {
+    color: #e5a50a;
+    font-weight: 700;
+}
+
+.pool-health-faulted {
+    color: #c01c28;
+    font-weight: 700;
+}
+
+/* ─── Metric Gauge ────────────────────────────────────────────── */
+.metric-gauge {
+    min-width: 100px;
+    min-height: 100px;
+}
+
+/* ─── Job Row ─────────────────────────────────────────────────── */
+.job-row progressbar {
+    min-width: 120px;
+}
+
+/* ─── Welcome Banner ──────────────────────────────────────────── */
+.welcome-banner {
+    margin: 8px;
+    padding: 16px;
+    border-radius: 16px;
+    background: linear-gradient(135deg, alpha(@accent_color, 0.08), alpha(@accent_color, 0.02));
+}
+
+/* ─── Tier Groups ─────────────────────────────────────────────── */
+.tier-group {
+    margin-bottom: 8px;
+}
+
+/* ─── Compression Stats ──────────────────────────────────────── */
+.compression-stat {
+    font-variant-numeric: tabular-nums;
+}

@@ -1,0 +1,15 @@
+#!/usr/bin/env python3
+"""SigmaVault Settings — GNOME desktop management application."""
+import sys
+import os
+
+# Ensure the package is importable
+pkg_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if pkg_dir not in sys.path:
+    sys.path.insert(0, pkg_dir)
+
+# Launch the application
+from sigmavault.main import main  # noqa: E402 — adjusted for installed layout
+
+if __name__ == "__main__":
+    main()
