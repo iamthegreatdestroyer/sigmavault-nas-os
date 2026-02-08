@@ -249,10 +249,10 @@ func (h *CompressionHandler) ListCompressionJobs(c *fiber.Ctx) error {
 
 	// Try RPC engine first
 	if h.rpcClient != nil && h.rpcClient.IsConnected() {
-		rpcJobs, err := h.rpcClient.ListCompressionJobs(c.Context(), &rpc.ListJobsParams{Status: status})
+		rpcResult, err := h.rpcClient.ListCompressionJobs(c.Context(), &rpc.CompressionJobsListParams{Status: status})
 		if err == nil {
-			jobs := make([]models.CompressionJob, 0, len(rpcJobs))
-			for _, rj := range rpcJobs {
+			jobs := make([]models.CompressionJob, 0, len(rpcResult.Jobs))
+			for _, rj := range rpcResult.Jobs {
 				jobs = append(jobs, models.CompressionJob{
 					ID:         rj.ID,
 					Status:     rj.Status,

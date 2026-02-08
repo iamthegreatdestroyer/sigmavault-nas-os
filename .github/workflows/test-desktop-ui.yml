@@ -52,8 +52,12 @@ jobs:
             - name: Install Python dependencies
               working-directory: src/desktop-ui
               run: |
+                  # Create venv with access to system packages (for PyGObject)
+                  python -m venv --system-site-packages .venv
+                  source .venv/bin/activate
                   pip install --upgrade pip
-                  pip install -e .
+                  # Install dependencies, PyGObject will use system package
+                  pip install -e . --no-build-isolation
                   pip install -e .[dev]
 
             - name: Run syntax checks
