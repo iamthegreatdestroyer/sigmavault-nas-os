@@ -300,3 +300,54 @@ func (c *Client) SetCompressionConfig(ctx context.Context, params *SetCompressio
 	}
 	return &result, nil
 }
+
+// =============================================================================
+// Compression Jobs Methods - Phase 3 Dashboard Integration
+// =============================================================================
+
+// CompressionJob represents a compression job in the registry.
+type CompressionJob struct {
+	JobID            string  `json:"job_id"`
+	Status           string  `json:"status"` // completed, failed, running, queued
+	OriginalSize     int64   `json:"original_size"`
+	CompressedSize   int64   `json:"compressed_size"`
+	CompressionRatio float64 `json:"compression_ratio"`
+	ElapsedSeconds   float64 `json:"elapsed_seconds"`
+	Method           string  `json:"method"`
+	DataType         string  `json:"data_type"`
+	CreatedAt        string  `json:"created_at"` // ISO 8601 timestamp
+	Error            string  `json:"error,omitempty"`
+}
+
+// CompressionJobsListParams are parameters for listing compression jobs.
+type CompressionJobsListParams struct {
+	Status string `json:"status,omitempty"` // Filter by status
+	Limit  int    `json:"limit,omitempty"`  // Maximum number of jobs to return
+}
+
+// CompressionJobsListResult is the result of listing compression jobs.
+type CompressionJobsListResult struct {
+	Jobs  []CompressionJob `json:"jobs"`
+	Total int              `json:"total"`
+}
+
+// ListCompressionJobs retrieves a list of compression jobs from the registry.
+func (c *Client) ListCompressionJobs(ctx context.Context, params *CompressionJobsListParams) (*CompressionJobsListResult, error) {
+	if params == nil {
+		params = &CompressionJobsListParams{Limit: 100}
+	}
+	var result CompressionJobsListResult
+	if err := c.Call(ctx, "compression.jobs.list", params, &result); err != nil {
+		return nil, err
+	}
+	return &result, nil
+}
+
+// GetCompressionJob retrieves a specific compression job by ID.
+func (c *Client) GetCompressionJob(ctx context.Context, jobID string) (*CompressionJob, error) {
+	var result CompressionJob
+	if err := c.Call(ctx, "compression.jobs.get", map[string]interface{}{"job_id": jobID}, &result); err != nil {
+		return nil, err
+	}
+	return &result, nil
+}

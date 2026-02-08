@@ -143,6 +143,10 @@ func Setup(app *fiber.App, cfg *config.Config) {
 	// File upload
 	compression.Post("/upload", compressionV2Handler.CompressUpload)
 
+	// Phase 3: Jobs endpoints for dashboard integration
+	compression.Get("/jobs", compressionV2Handler.ListCompressionJobs)
+	compression.Get("/jobs/:job_id", compressionV2Handler.GetCompressionJob)
+
 	// WebSocket endpoint for real-time updates
 	app.Get("/ws", wsHandler.HandleWebSocket)
 
