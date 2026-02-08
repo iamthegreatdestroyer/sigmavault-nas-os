@@ -92,14 +92,6 @@ jobs:
               working-directory: src/api
               run: go tool cover -html=coverage.out -o coverage.html
 
-            - name: Upload coverage to Codecov
-              uses: codecov/codecov-action@v4
-              with:
-                  file: ./src/api/coverage.out
-                  flags: go-api
-                  name: go-api-${{ matrix.go-version }}
-                  fail_ci_if_error: false
-
             - name: Archive coverage reports
               if: always()
               uses: actions/upload-artifact@v4

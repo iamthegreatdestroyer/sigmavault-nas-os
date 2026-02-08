@@ -51,14 +51,6 @@ jobs:
                     --cov-fail-under=90 \
                     -v
 
-            - name: Upload coverage to Codecov
-              uses: codecov/codecov-action@v4
-              with:
-                  file: ./src/engined/coverage.xml
-                  flags: rpc-engine
-                  name: rpc-engine-${{ matrix.python-version }}
-                  fail_ci_if_error: true
-
             - name: Archive coverage reports
               if: always()
               uses: actions/upload-artifact@v4
