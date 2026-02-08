@@ -1,0 +1,53 @@
+[build-system]
+requires = ["setuptools>=65.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sigmavault-nativeui"
+version = "0.1.0"
+description = "Native GNOME desktop UI for SigmaVault NAS compression management"
+authors = [{name = "SigmaVault Dev Team"}]
+license = {text = "Apache-2.0"}
+requires-python = ">=3.10"
+
+dependencies = [
+    "PyGObject>=3.46.0",        # GTK4 bindings
+    "pydantic>=2.0.0",          # Data validation
+    "aiohttp>=3.9.0",           # Async HTTP client
+    "python-dateutil>=2.8.0",   # Date utilities
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-cov>=4.0.0",
+    "black>=23.0.0",
+    "isort>=5.0.0",
+    "flake8>=6.0.0",
+    "mypy>=1.0.0",
+]
+
+[project.scripts]
+sigmavault-nativeui = "sigmavault_desktop.__main__:main"
+
+[project.gui-scripts]
+sigmavault-nativeui = "sigmavault_desktop.__main__:main"
+
+[tool.setuptools]
+packages = ["sigmavault_desktop", "sigmavault_desktop.api", "sigmavault_desktop.views", 
+             "sigmavault_desktop.widgets", "sigmavault_desktop.utils"]
+
+[tool.black]
+line-length = 100
+target-version = ["py310", "py311"]
+
+[tool.isort]
+profile = "black"
+line_length = 100
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false

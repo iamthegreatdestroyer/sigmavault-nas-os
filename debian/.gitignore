@@ -1,0 +1,21 @@
+# Debian packaging artifacts
+*.deb
+*.dsc
+*.tar.xz
+*.tar.gz
+*.changes
+*.buildinfo
+.debhelper/
+debian/.debhelper/
+debian/sigmavault-desktop/
+debian/files
+debian/*.log
+debian/*.substvars
+debian/debhelper-build-stamp
+
+# Build directories
+build/
+dist/
+*.egg-info/
+__pycache__/
+*.pyc

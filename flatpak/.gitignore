@@ -1,0 +1,9 @@
+# Flatpak build artifacts
+build-dir/
+repo/
+.flatpak-builder/
+*.flatpak
+
+# Downloaded dependencies during build
+*.tar.gz
+*.whl

@@ -1,0 +1,8 @@
+#!/bin/sh
+# Launcher script for SigmaVault Desktop UI in Flatpak
+
+# Set Python path to include our application
+export PYTHONPATH="/app/lib/python3.12/site-packages:${PYTHONPATH}"
+
+# Run the application
+exec python3 -m sigmavault_desktop "$@"

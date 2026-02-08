@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Copyright 2026 SigmaVault Project -->
+<component type="desktop-application">
+    <id>com.sigmavault.desktop</id>
+    <metadata_license>CC0-1.0</metadata_license>
+    <project_license>AGPL-3.0-or-later</project_license>
+
+    <name>SigmaVault Desktop</name>
+    <summary>Desktop interface for SigmaVault NAS OS</summary>
+
+    <description>
+        <p>
+      SigmaVault Desktop is a modern GTK4 application for managing your SigmaVault NAS system. 
+      It provides comprehensive monitoring and control over compression jobs, storage management, 
+      agent swarm coordination, and system configuration.
+        </p>
+        <p>Features:</p>
+        <ul>
+            <li>Real-time dashboard with system metrics and compression statistics</li>
+            <li>Compression job management with detailed progress tracking</li>
+            <li>Storage management: disks, ZFS pools, datasets, and network shares</li>
+            <li>Elite Agent Collective monitoring (40-agent swarm across 4 tiers)</li>
+            <li>System settings: network configuration, service management, notifications</li>
+            <li>Beautiful libadwaita interface with dark mode support</li>
+        </ul>
+        <p>
+      Built with Python, GTK4, and libadwaita for a modern, responsive user experience.
+        </p>
+    </description>
+
+    <launchable type="desktop-id">com.sigmavault.desktop.desktop</launchable>
+
+    <provides>
+        <binary>sigmavault-desktop</binary>
+    </provides>
+
+    <screenshots>
+        <screenshot type="default">
+            <caption>Dashboard with system overview and compression statistics</caption>
+            <!-- TODO: Add actual screenshot URL -->
+            <!-- <image>https://example.com/screenshots/dashboard.png</image> -->
+        </screenshot>
+        <screenshot>
+            <caption>Compression job management interface</caption>
+            <!-- <image>https://example.com/screenshots/jobs.png</image> -->
+        </screenshot>
+        <screenshot>
+            <caption>Storage management with ZFS pools and datasets</caption>
+            <!-- <image>https://example.com/screenshots/storage.png</image> -->
+        </screenshot>
+        <screenshot>
+            <caption>Agent swarm monitoring dashboard</caption>
+            <!-- <image>https://example.com/screenshots/agents.png</image> -->
+        </screenshot>
+        <screenshot>
+            <caption>System settings and network configuration</caption>
+            <!-- <image>https://example.com/screenshots/settings.png</image> -->
+        </screenshot>
+    </screenshots>
+
+    <url type="homepage">https://github.com/iamthegreatdestroyer/sigmavault-nas-os</url>
+    <url type="bugtracker">https://github.com/iamthegreatdestroyer/sigmavault-nas-os/issues</url>
+    <url type="vcs-browser">https://github.com/iamthegreatdestroyer/sigmavault-nas-os</url>
+
+    <developer id="com.sigmavault">
+        <name>SigmaVault Project</name>
+    </developer>
+
+    <categories>
+        <category>System</category>
+        <category>FileTools</category>
+        <category>Settings</category>
+    </categories>
+
+    <keywords>
+        <keyword>nas</keyword>
+        <keyword>storage</keyword>
+        <keyword>compression</keyword>
+        <keyword>zfs</keyword>
+        <keyword>system</keyword>
+        <keyword>management</keyword>
+    </keywords>
+
+    <recommends>
+        <control>pointing</control>
+        <control>keyboard</control>
+        <display_length compare="ge">768</display_length>
+    </recommends>
+
+    <requires>
+        <display_length compare="ge">360</display_length>
+        <internet>always</internet>
+    </requires>
+
+    <content_rating type="oars-1.1" />
+
+    <releases>
+        <release version="0.1.0" date="2026-02-08">
+            <description>
+                <p>Initial release of SigmaVault Desktop UI</p>
+                <ul>
+                    <li>Dashboard with system metrics and compression statistics</li>
+                    <li>Job management interface with filtering and detail views</li>
+                    <li>Storage management for disks, pools, datasets, and shares</li>
+                    <li>Agent swarm monitoring with real-time metrics</li>
+                    <li>System settings for network, services, and notifications</li>
+                    <li>Modern GTK4 + libadwaita interface</li>
+                    <li>Auto-refresh with configurable intervals</li>
+                </ul>
+            </description>
+        </release>
+    </releases>
+
+    <update_contact>dev@sigmavault.example.com</update_contact>
+</component>

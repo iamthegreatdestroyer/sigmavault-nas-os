@@ -1,0 +1,142 @@
+/* SigmaVault Desktop UI — Custom Stylesheet
+ *
+ * Built for GTK4 + libadwaita.
+ * Adwaita already provides: dim-label, caption, heading, title-1 … title-4.
+ * We define only the project-specific classes here.
+ *
+ * Colour tokens reference Adwaita CSS variables so they automatically adapt
+ * to light / dark mode.
+ */
+
+/* ─── Card ─────────────────────────────────────────────────────── */
+/* Used by StatCard and job-detail status banner.                   */
+.card {
+    background-color: alpha(@card_bg_color, 0.8);
+    border-radius: 12px;
+    padding: 16px;
+    border: 1px solid alpha(@borders, 0.5);
+    box-shadow: 0 1px 3px alpha(black, 0.04);
+}
+
+/* Slight lift on hover for interactive cards */
+.card:hover {
+    box-shadow: 0 2px 6px alpha(black, 0.08);
+}
+
+/* ─── Status Colors ────────────────────────────────────────────── */
+/* Applied to value labels and status icons via set_value_css_class */
+
+.success {
+    color: @success_color;
+}
+
+.warning {
+    color: @warning_color;
+}
+
+.error {
+    color: @error_color;
+}
+
+.accent {
+    color: @accent_color;
+}
+
+/* Stronger variant for status icon backgrounds (job detail banner) */
+.success-bg {
+    background-color: alpha(@success_color, 0.15);
+    color: @success_color;
+}
+
+.warning-bg {
+    background-color: alpha(@warning_color, 0.15);
+    color: @warning_color;
+}
+
+.error-bg {
+    background-color: alpha(@error_color, 0.15);
+    color: @error_color;
+}
+
+.accent-bg {
+    background-color: alpha(@accent_color, 0.15);
+    color: @accent_color;
+}
+
+/* ─── Dashboard Sections ───────────────────────────────────────── */
+/* Section spacing inside the scrollable dashboard view             */
+.dashboard-section {
+    margin-bottom: 24px;
+}
+
+/* Grid of stat cards — even spacing */
+.stat-grid {
+    margin-top: 8px;
+}
+
+.stat-grid > * {
+    margin: 4px;
+}
+
+/* ─── Job List ─────────────────────────────────────────────────── */
+/* Subtle separator between job rows                                */
+.job-list row {
+    padding: 4px 0;
+}
+
+.job-list row:not(:last-child) {
+    border-bottom: 1px solid alpha(@borders, 0.3);
+}
+
+/* Filter bar at top of jobs view */
+.filter-bar {
+    padding: 8px 12px;
+    background-color: alpha(@headerbar_bg_color, 0.5);
+    border-radius: 8px;
+    margin-bottom: 8px;
+}
+
+/* ─── Job Detail ───────────────────────────────────────────────── */
+/* Status banner at top of job detail view */
+.status-banner {
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 16px;
+}
+
+/* Detail row key-value pairs */
+.detail-row {
+    padding: 8px 0;
+}
+
+.detail-row:not(:last-child) {
+    border-bottom: 1px solid alpha(@borders, 0.2);
+}
+
+/* ─── Misc ─────────────────────────────────────────────────────── */
+/* Monospaced text for IDs, paths, and technical values */
+.monospace {
+    font-family: monospace;
+    font-size: 0.9em;
+}
+
+/* Pulsing animation for "running" status indicators */
+@keyframes pulse-accent {
+    0%   { opacity: 1.0; }
+    50%  { opacity: 0.5; }
+    100% { opacity: 1.0; }
+}
+
+.pulse {
+    animation: pulse-accent 1.5s ease-in-out infinite;
+}
+
+/* Empty-state placeholder text */
+.empty-state {
+    padding: 48px 24px;
+    text-align: center;
+}
+
+.empty-state .dim-label {
+    font-size: 1.1em;
+}

@@ -1,0 +1,43 @@
+Source: sigmavault-desktop
+Section: utils
+Priority: optional
+Maintainer: SigmaVault Project <dev@sigmavault.example.com>
+Build-Depends: debhelper-compat (= 13),
+dh-python,
+python3-all (>= 3.11),
+python3-setuptools,
+python3-aiohttp (>= 3.9.0)
+Standards-Version: 4.6.2
+Homepage: https://github.com/iamthegreatdestroyer/sigmavault-nas-os
+Vcs-Git: https://github.com/iamthegreatdestroyer/sigmavault-nas-os.git
+Vcs-Browser: https://github.com/iamthegreatdestroyer/sigmavault-nas-os
+
+Package: sigmavault-desktop
+Architecture: all
+Depends: ${python3:Depends},
+${misc:Depends},
+python3 (>= 3.11),
+python3-gi (>= 3.42.0),
+gir1.2-gtk-4.0 (>= 4.10.0),
+gir1.2-adwaita-1 (>= 1.4.0),
+python3-aiohttp (>= 3.9.0)
+Recommends: sigmavault-api,
+sigmavault-engined
+Suggests: gnome-shell
+Description: Desktop interface for SigmaVault NAS OS
+SigmaVault Desktop is a modern GTK4 application for managing your
+SigmaVault NAS system. It provides comprehensive monitoring and control
+over compression jobs, storage management, agent swarm coordination,
+and system configuration.
+.
+Features:
+
+- Real-time dashboard with system metrics
+- Compression job management with detailed progress tracking
+- Storage management: disks, ZFS pools, datasets, and network shares
+- Elite Agent Collective monitoring (40-agent swarm)
+- System settings: network configuration, service management
+- Beautiful libadwaita interface with dark mode support
+  .
+  Built with Python, GTK4, and libadwaita for a modern, responsive
+  user experience.

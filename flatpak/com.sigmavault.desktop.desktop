@@ -1,0 +1,16 @@
+[Desktop Entry]
+Type=Application
+Name=SigmaVault Desktop
+GenericName=NAS Management Interface
+Comment=Desktop interface for SigmaVault NAS OS compression and system management
+Icon=com.sigmavault.desktop
+Exec=sigmavault-desktop
+Terminal=false
+Categories=System;FileTools;Settings;
+Keywords=nas;storage;compression;system;management;backup;
+StartupNotify=true
+StartupWMClass=sigmavault-desktop
+
+# Additional metadata
+X-GNOME-UsesNotifications=true
+X-GNOME-SingleWindow=true

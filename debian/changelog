@@ -1,0 +1,15 @@
+sigmavault-desktop (0.1.0-1) unstable; urgency=medium
+
+  * Initial release of SigmaVault Desktop UI
+  * Dashboard with system metrics and compression statistics
+  * Job management interface with filtering and detail views
+  * Storage management for disks, pools, datasets, and shares
+  * Agent swarm monitoring with real-time metrics
+  * System settings for network, services, and notifications
+  * Modern GTK4 + libadwaita interface
+  * Auto-refresh with configurable intervals (5-20s)
+  * 5 fully-integrated views covering entire API surface
+  * Comprehensive error handling and logging
+  * Responsive design for narrow and wide screens
+
+ -- SigmaVault Project <dev@sigmavault.example.com>  Sat, 08 Feb 2026 00:00:00 +0000

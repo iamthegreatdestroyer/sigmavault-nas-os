@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=SigmaVault
+Comment=Compression management for NAS storage
+Icon=tux
+Exec=sigmavault-nativeui
+Categories=Utility;System;
+Terminal=false
+StartupNotify=true
+Keywords=compression;storage;nas;backup;

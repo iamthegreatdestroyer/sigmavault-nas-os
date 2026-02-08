@@ -1,0 +1,112 @@
+# Flatpak Manifest for SigmaVault Desktop UI
+# Build with: flatpak-builder build-dir com.sigmavault.desktop.yml --force-clean --install --user
+
+app-id: com.sigmavault.desktop
+runtime: org.gnome.Platform
+runtime-version: "47"
+sdk: org.gnome.Sdk
+command: sigmavault-desktop
+
+finish-args:
+  # Network access for API calls to backend (localhost:12080)
+  - --share=network
+
+  # Display server access
+  - --socket=wayland
+  - --socket=fallback-x11
+  - --share=ipc
+
+  # GPU acceleration for smooth UI
+  - --device=dri
+
+  # Access to home directory for config/logs
+  - --filesystem=home
+
+  # Session bus for desktop integration
+  - --socket=session-bus
+
+  # System bus for service management (if needed)
+  - --socket=system-bus
+
+  # Allow talking to network manager (for system settings view)
+  - --system-talk-name=org.freedesktop.NetworkManager
+
+modules:
+  # Python dependencies from PyPI
+  - name: python-dependencies
+    buildsystem: simple
+    build-commands:
+      - pip3 install --verbose --exists-action=i --no-index --find-links="file://${PWD}"
+        --prefix=${FLATPAK_DEST} aiohttp charset-normalizer multidict yarl frozenlist aiosignal attrs async-timeout idna
+    sources:
+      # aiohttp 3.13.3 and dependencies
+      # Note: In production, use exact package URLs from PyPI with SHA256 checksums
+      # For now, we'll use pip's ability to fetch from PyPI during build
+      - type: file
+        url: https://files.pythonhosted.org/packages/source/a/aiohttp/aiohttp-3.13.3.tar.gz
+        sha256: 38a19bc3b686e3d1e4c9b65e88b8f5c76b3c48935e6aa7d8e2e7ab8b34f1a3f2
+
+      - type: file
+        url: https://files.pythonhosted.org/packages/source/m/multidict/multidict-6.1.0.tar.gz
+        sha256: 22ae2ebf9b0c69d206c003e2f6a914ea33f0a932d4aa16f236afc049d9958f4a
+
+      - type: file
+        url: https://files.pythonhosted.org/packages/source/y/yarl/yarl-1.18.3.tar.gz
+        sha256: 5a83b14bc46c92344e7d097e773ed3c6427dcd46e4e4de0f35de5854ee2c699e
+
+      - type: file
+        url: https://files.pythonhosted.org/packages/source/f/frozenlist/frozenlist-1.5.0.tar.gz
+        sha256: 81d5af29e61b9c8348e876d442253723928dce6433e0e76cd925cd83f1b4b817
+
+      - type: file
+        url: https://files.pythonhosted.org/packages/source/a/aiosignal/aiosignal-1.3.2.tar.gz
+        sha256: 78ed67db6c7b7ced4f98e495e572106d5c432a93e1ddd1bf475e1dc05f5b7df2
+
+      - type: file
+        url: https://files.pythonhosted.org/packages/source/a/attrs/attrs-24.3.0.tar.gz
+        sha256: 8f5c07333d543103541ba7be0e2ce16eeee8130cb0b3f9238ab904ce1e85baff
+
+      - type: file
+        url: https://files.pythonhosted.org/packages/source/a/async-timeout/async_timeout-5.0.2.tar.gz
+        sha256: d340776b08de89b219114022ff6ad2e24ba8d93feda6f782e64b27b67a0ed2e9
+
+      - type: file
+        url: https://files.pythonhosted.org/packages/source/c/charset-normalizer/charset_normalizer-3.4.1.tar.gz
+        sha256: 44251f18cd68a75b56585dd00dae26183e102cd5e0f9f1466e6df5da2ed64ea3
+
+      - type: file
+        url: https://files.pythonhosted.org/packages/source/i/idna/idna-3.10.tar.gz
+        sha256: 12f65c9b470abda6dc35cf8e63cc574b1c52b11df2c86030af0ac09b01b13ea9
+
+  # Main application
+  - name: sigmavault-desktop
+    buildsystem: simple
+    build-commands:
+      # Copy application files to installation directory
+      - mkdir -p ${FLATPAK_DEST}/lib/python3.12/site-packages/
+      - cp -r sigmavault_desktop ${FLATPAK_DEST}/lib/python3.12/site-packages/
+
+      # Install launcher script
+      - install -Dm755 flatpak/sigmavault-desktop ${FLATPAK_DEST}/bin/sigmavault-desktop
+
+      # Install desktop file
+      - install -Dm644 flatpak/com.sigmavault.desktop.desktop ${FLATPAK_DEST}/share/applications/com.sigmavault.desktop.desktop
+
+      # Install icon (SVG scalable)
+      - install -Dm644 flatpak/icons/com.sigmavault.desktop.svg ${FLATPAK_DEST}/share/icons/hicolor/scalable/apps/com.sigmavault.desktop.svg
+
+      # Install icons (PNG various sizes)
+      - install -Dm644 flatpak/icons/16x16/com.sigmavault.desktop.png ${FLATPAK_DEST}/share/icons/hicolor/16x16/apps/com.sigmavault.desktop.png
+      - install -Dm644 flatpak/icons/32x32/com.sigmavault.desktop.png ${FLATPAK_DEST}/share/icons/hicolor/32x32/apps/com.sigmavault.desktop.png
+      - install -Dm644 flatpak/icons/48x48/com.sigmavault.desktop.png ${FLATPAK_DEST}/share/icons/hicolor/48x48/apps/com.sigmavault.desktop.png
+      - install -Dm644 flatpak/icons/64x64/com.sigmavault.desktop.png ${FLATPAK_DEST}/share/icons/hicolor/64x64/apps/com.sigmavault.desktop.png
+      - install -Dm644 flatpak/icons/128x128/com.sigmavault.desktop.png ${FLATPAK_DEST}/share/icons/hicolor/128x128/apps/com.sigmavault.desktop.png
+      - install -Dm644 flatpak/icons/256x256/com.sigmavault.desktop.png ${FLATPAK_DEST}/share/icons/hicolor/256x256/apps/com.sigmavault.desktop.png
+
+      # Install AppStream metadata
+      - install -Dm644 flatpak/com.sigmavault.desktop.metainfo.xml ${FLATPAK_DEST}/share/metainfo/com.sigmavault.desktop.metainfo.xml
+
+    sources:
+      # Application source from desktop-ui directory
+      - type: dir
+        path: ../src/desktop-ui

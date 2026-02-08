@@ -1,0 +1,62 @@
+#!/usr/bin/make -f
+# -*- makefile -*-
+
+# Uncomment this to turn on verbose mode.
+#export DH_VERBOSE=1
+
+export PYBUILD_NAME=sigmavault-desktop
+export PYBUILD_DISABLE=test
+
+%:
+	dh $@ --with python3 --buildsystem=pybuild
+
+override_dh_auto_clean:
+	dh_auto_clean
+	rm -rf build/
+	rm -rf *.egg-info/
+	find . -name '*.pyc' -delete
+	find . -name '__pycache__' -type d -exec rm -rf {} + || true
+
+override_dh_auto_build:
+	# Copy desktop UI source to build directory
+	dh_auto_build
+
+override_dh_auto_install:
+	dh_auto_install
+	
+	# Install application files
+	install -d debian/sigmavault-desktop/usr/lib/python3/dist-packages/
+	cp -r src/desktop-ui/sigmavault_desktop debian/sigmavault-desktop/usr/lib/python3/dist-packages/
+	
+	# Install launcher script
+	install -d debian/sigmavault-desktop/usr/bin/
+	install -m 755 debian/sigmavault-desktop.sh debian/sigmavault-desktop/usr/bin/sigmavault-desktop
+	
+	# Install desktop file
+	install -d debian/sigmavault-desktop/usr/share/applications/
+	install -m 644 flatpak/com.sigmavault.desktop.desktop debian/sigmavault-desktop/usr/share/applications/
+	
+	# Install AppStream metadata
+	install -d debian/sigmavault-desktop/usr/share/metainfo/
+	install -m 644 flatpak/com.sigmavault.desktop.metainfo.xml debian/sigmavault-desktop/usr/share/metainfo/
+	
+	# Install icons
+	install -d debian/sigmavault-desktop/usr/share/icons/hicolor/scalable/apps/
+	install -m 644 flatpak/icons/com.sigmavault.desktop.svg debian/sigmavault-desktop/usr/share/icons/hicolor/scalable/apps/
+	
+	# Install CSS stylesheet
+	install -d debian/sigmavault-desktop/usr/share/sigmavault-desktop/
+	install -m 644 src/desktop-ui/sigmavault_desktop/data/style.css debian/sigmavault-desktop/usr/share/sigmavault-desktop/
+
+override_dh_python3:
+	dh_python3 --shebang=/usr/bin/python3
+
+override_dh_installdocs:
+	dh_installdocs
+	# Install documentation
+	install -d debian/sigmavault-desktop/usr/share/doc/sigmavault-desktop/
+	install -m 644 src/desktop-ui/README.md debian/sigmavault-desktop/usr/share/doc/sigmavault-desktop/
+
+# Don't run tests during build (requires GTK runtime)
+override_dh_auto_test:
+	@echo "Skipping tests (requires GTK runtime)"
