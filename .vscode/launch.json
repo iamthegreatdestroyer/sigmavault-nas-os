@@ -1,0 +1,124 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug Go API",
+      "type": "go",
+      "request": "launch",
+      "mode": "debug",
+      "program": "${workspaceFolder}/src/api",
+      "cwd": "${workspaceFolder}/src/api",
+      "env": {
+        "SIGMAVAULT_ENV": "development",
+        "RPC_ENGINE_URL": "http://localhost:5000",
+        "DATABASE_URL": "postgres://sigmavault:password@localhost:5432/sigmavault?sslmode=disable",
+        "REDIS_URL": "redis://localhost:6379/0",
+        "LOG_LEVEL": "debug"
+      },
+      "args": [],
+      "showLog": true,
+      "preLaunchTask": "Run Python Engine"
+    },
+    {
+      "name": "Debug Python Engine",
+      "type": "python",
+      "request": "launch",
+      "module": "engined.main",
+      "cwd": "${workspaceFolder}/src/engined",
+      "console": "integratedTerminal",
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}/src/engined",
+        "LOG_LEVEL": "DEBUG"
+      },
+      "justMyCode": false
+    },
+    {
+      "name": "Debug Desktop UI",
+      "type": "python",
+      "request": "launch",
+      "program": "${workspaceFolder}/src/desktop-ui/main.py",
+      "cwd": "${workspaceFolder}/src/desktop-ui",
+      "console": "integratedTerminal",
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}/src/desktop-ui",
+        "GTK_DEBUG": "interactive",
+        "G_MESSAGES_DEBUG": "all"
+      },
+      "justMyCode": false
+    },
+    {
+      "name": "Test: Python Engine (pytest)",
+      "type": "python",
+      "request": "launch",
+      "module": "pytest",
+      "args": [
+        "${workspaceFolder}/src/engined/tests",
+        "-v",
+        "--cov=engined",
+        "--cov-report=html"
+      ],
+      "cwd": "${workspaceFolder}/src/engined",
+      "console": "integratedTerminal"
+    },
+    {
+      "name": "Test: Desktop UI (pytest)",
+      "type": "python",
+      "request": "launch",
+      "module": "pytest",
+      "args": [
+        "${workspaceFolder}/src/desktop-ui/tests",
+        "-v",
+        "--cov=.",
+        "--cov-report=html"
+      ],
+      "cwd": "${workspaceFolder}/src/desktop-ui",
+      "console": "integratedTerminal"
+    },
+    {
+      "name": "Test: Go API (current package)",
+      "type": "go",
+      "request": "launch",
+      "mode": "test",
+      "program": "${fileDirname}",
+      "cwd": "${workspaceFolder}/src/api",
+      "env": {
+        "DATABASE_URL": "postgres://sigmavault:password@localhost:5432/sigmavault_test?sslmode=disable",
+        "REDIS_URL": "redis://localhost:6379/1"
+      }
+    },
+    {
+      "name": "Attach to Go API",
+      "type": "go",
+      "request": "attach",
+      "mode": "local",
+      "processId": "${command:pickProcess}",
+      "cwd": "${workspaceFolder}/src/api"
+    },
+    {
+      "name": "Debug Current Go File",
+      "type": "go",
+      "request": "launch",
+      "mode": "debug",
+      "program": "${file}",
+      "cwd": "${fileDirname}"
+    },
+    {
+      "name": "Debug Current Python File",
+      "type": "python",
+      "request": "launch",
+      "program": "${file}",
+      "console": "integratedTerminal",
+      "justMyCode": false
+    }
+  ],
+  "compounds": [
+    {
+      "name": "Full Stack Debug",
+      "configurations": ["Debug Python Engine", "Debug Go API"],
+      "stopAll": true,
+      "presentation": {
+        "order": 1
+      }
+    }
+  ]
+}

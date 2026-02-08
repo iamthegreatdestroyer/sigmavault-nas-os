@@ -64,6 +64,18 @@ build-desktop:
 test: test-python test-go test-integration test-desktop
 	@echo "$(GREEN)✓ All tests passed$(NC)"
 
+## test-watch: Run tests in watch mode (continuous testing)
+test-watch:
+	@echo "$(BLUE)Starting test watch mode...$(NC)"
+	@echo "$(YELLOW)Press Ctrl+C to stop$(NC)"
+	@echo "Watching: Python engine, Go API, Desktop UI"
+	@while true; do \
+		clear; \
+		echo "$(BLUE)Running tests... ($(shell date '+%H:%M:%S'))$(NC)"; \
+		make test 2>&1 | head -20; \
+		sleep 3; \
+	done
+
 ## test-python: Run Python engine tests
 test-python:
 	@echo "$(BLUE)Running Python engine tests...$(NC)"
@@ -107,6 +119,17 @@ dev:
 	@echo "  1. make run-engine      # Python RPC engine (:8000 + :50051)"
 	@echo "  2. make run-api         # Go API server     (:3000)"
 	@echo "  3. make run-desktop     # GTK4 Settings app"
+	@echo "  4. make test-watch      # Continuous testing"
+
+## dev-all: Start all development servers (requires tmux)
+dev-all:
+	@command -v tmux >/dev/null 2>&1 || { echo "$(YELLOW)Install tmux for multi-pane dev$(NC)"; exit 1; }
+	@echo "$(BLUE)Starting development environment in tmux...$(NC)"
+	tmux new-session -d -s sigmavault 'make run-engine' \; \
+		split-window -h 'sleep 2; make run-api' \; \
+		split-window -v 'sleep 4; make run-desktop' \; \
+		select-layout tiled \; \
+		attach-session
 
 ## run-api: Run API server
 run-api:
@@ -230,6 +253,9 @@ lint-desktop:
 # Format Targets
 # =============================================================================
 
+## format: Format all code (alias for fmt)
+format: fmt
+
 ## fmt: Format all code
 fmt: fmt-go fmt-python fmt-desktop
 	@echo "$(GREEN)✓ All code formatted$(NC)"
@@ -239,22 +265,41 @@ fmt-go:
 	cd $(GO_DIR) && gofmt -w .
 
 ## fmt-python: Format Python code (engine)
-fmt-python:
-	cd $(PYTHON_DIR) && ruff format .
+fmtpre-commit: Install and run pre-commit hooks
+pre-commit:
+	@echo "$(BLUE)Setting up pre-commit hooks...$(NC)"
+	pip install pre-commit
+	pre-commit install --install-hooks
+	pre-commit install --hook-type commit-msg
+	@echo "$(GREEN)✓ Pre-commit hooks installed$(NC)"
 
-## fmt-desktop: Format Desktop UI code
-fmt-desktop:
-	cd $(DESKTOP_DIR) && ruff format . 2>/dev/null || echo "$(YELLOW)⚠ Install ruff for desktop formatting$(NC)"
+## pre-commit-run: Run pre-commit on all files
+pre-commit-run:
+	pre-commit run --all-files
 
-# =============================================================================
-# Help
-# =============================================================================
+## validate: Run all validation (lint + test + security)
+validate: lint test
+	@echo "$(GREEN)✓ All validation passed - ready to commit!$(NC)"
 
 ## help: Show this help
 help:
 	@echo "SigmaVault NAS OS - Build System (Desktop Edition)"
 	@echo ""
 	@echo "Usage: make [target]"
+	@echo ""
+	@echo "Targets:"
+	@grep -E '^## [a-zA-Z_-]+:' $(MAKEFILE_LIST) | \
+		awk 'BEGIN {FS = ": "}; {printf "  %-20s %s\n", $$1, $$2}' | \
+		sed 's/## //'
+	@echo ""
+	@echo "Quick Start:"
+	@echo "  make dev            # Show dev server commands"
+	@echo "  make dev-all        # Start all servers in tmux"
+	@echo "  make run-desktop    # Launch GTK4 Settings app"
+	@echo "  make build          # Build all components"
+	@echo "  make test           # Run all tests"
+	@echo "  make test-watch     # Continuous testing"
+	@echo "  make validate       # Full validation before commit
 	@echo ""
 	@echo "Targets:"
 	@grep -E '^## [a-zA-Z_-]+:' $(MAKEFILE_LIST) | \

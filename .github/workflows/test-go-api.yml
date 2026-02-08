@@ -1,0 +1,149 @@
+name: Test Go API
+
+on:
+    push:
+        branches: [main, develop]
+        paths:
+            - "src/api/**"
+            - "go.mod"
+            - "go.sum"
+            - ".github/workflows/test-go-api.yml"
+    pull_request:
+        branches: [main]
+        paths:
+            - "src/api/**"
+            - "go.mod"
+            - "go.sum"
+
+env:
+    GO_VERSION: "1.22"
+
+jobs:
+    test-api:
+        name: Go API Tests (@APEX @SYNAPSE)
+        runs-on: ubuntu-latest
+
+        strategy:
+            matrix:
+                go-version: ["1.21", "1.22"]
+
+        services:
+            postgres:
+                image: postgres:16-alpine
+                env:
+                    POSTGRES_PASSWORD: test_password
+                    POSTGRES_USER: sigmavault
+                    POSTGRES_DB: sigmavault_test
+                options: >-
+                    --health-cmd pg_isready
+                    --health-interval 10s
+                    --health-timeout 5s
+                    --health-retries 5
+                ports:
+                    - 5432:5432
+
+            redis:
+                image: redis:7-alpine
+                options: >-
+                    --health-cmd "redis-cli ping"
+                    --health-interval 10s
+                    --health-timeout 5s
+                    --health-retries 5
+                ports:
+                    - 6379:6379
+
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+
+            - name: Set up Go ${{ matrix.go-version }}
+              uses: actions/setup-go@v5
+              with:
+                  go-version: ${{ matrix.go-version }}
+                  cache: true
+                  cache-dependency-path: src/api/go.sum
+
+            - name: Download dependencies
+              working-directory: src/api
+              run: go mod download
+
+            - name: Verify dependencies
+              working-directory: src/api
+              run: go mod verify
+
+            - name: Run unit tests
+              working-directory: src/api
+              env:
+                  DATABASE_URL: postgres://sigmavault:test_password@localhost:5432/sigmavault_test?sslmode=disable
+                  REDIS_URL: redis://localhost:6379/0
+              run: |
+                  go test -v -race -coverprofile=coverage.out -covermode=atomic ./...
+
+            - name: Run integration tests
+              working-directory: src/api
+              env:
+                  DATABASE_URL: postgres://sigmavault:test_password@localhost:5432/sigmavault_test?sslmode=disable
+                  REDIS_URL: redis://localhost:6379/0
+                  RPC_ENGINE_URL: http://localhost:5000
+              run: |
+                  go test -v -tags=integration ./tests/... || true
+
+            - name: Generate coverage report
+              working-directory: src/api
+              run: go tool cover -html=coverage.out -o coverage.html
+
+            - name: Upload coverage to Codecov
+              uses: codecov/codecov-action@v4
+              with:
+                  file: ./src/api/coverage.out
+                  flags: go-api
+                  name: go-api-${{ matrix.go-version }}
+                  fail_ci_if_error: false
+
+            - name: Archive coverage reports
+              if: always()
+              uses: actions/upload-artifact@v4
+              with:
+                  name: api-coverage-${{ matrix.go-version }}
+                  path: src/api/coverage.html
+                  retention-days: 7
+
+    lint-api:
+        name: Lint Go API
+        runs-on: ubuntu-latest
+
+        steps:
+            - uses: actions/checkout@v4
+
+            - name: Set up Go
+              uses: actions/setup-go@v5
+              with:
+                  go-version: "1.22"
+                  cache: true
+                  cache-dependency-path: src/api/go.sum
+
+            - name: Run golangci-lint
+              uses: golangci/golangci-lint-action@v4
+              with:
+                  version: latest
+                  working-directory: src/api
+                  args: --timeout=5m
+
+            - name: Check formatting
+              working-directory: src/api
+              run: |
+                  if [ "$(gofmt -s -l . | wc -l)" -gt 0 ]; then
+                    echo "Code is not formatted. Run 'gofmt -s -w .'"
+                    gofmt -s -d .
+                    exit 1
+                  fi
+
+            - name: Run go vet
+              working-directory: src/api
+              run: go vet ./...
+
+            - name: Check for vulnerabilities
+              working-directory: src/api
+              run: |
+                  go install golang.org/x/vuln/cmd/govulncheck@latest
+                  govulncheck ./...

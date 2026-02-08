@@ -1,0 +1,212 @@
+# =============================================================================
+# SigmaVault NAS OS - Pre-commit Hooks Configuration
+# @ECLIPSE Quality Gates — Automation-First Development
+# =============================================================================
+# Install: pip install pre-commit && pre-commit install
+# Run manually: pre-commit run --all-files
+# Skip checks: SKIP=mypy git commit -m "message"
+# =============================================================================
+
+default_language_version:
+  python: python3.11
+  node: "20"
+
+repos:
+  # =============================================================================
+  # Python: Code Formatting & Quality
+  # =============================================================================
+  - repo: https://github.com/psf/black
+    rev: 24.1.1
+    hooks:
+      - id: black
+        name: Format Python code with Black
+        language_version: python3.11
+        files: \.(py)$
+        args: ["--line-length=100"]
+
+  - repo: https://github.com/pycqa/isort
+    rev: 5.13.2
+    hooks:
+      - id: isort
+        name: Sort Python imports
+        args: ["--profile", "black", "--line-length", "100"]
+        files: \.(py)$
+
+  - repo: https://github.com/pycqa/flake8
+    rev: 7.0.0
+    hooks:
+      - id: flake8
+        name: Lint Python with Flake8
+        args:
+          - "--max-line-length=100"
+          - "--extend-ignore=E203,W503"
+          - "--max-complexity=15"
+        files: \.(py)$
+
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.8.0
+    hooks:
+      - id: mypy
+        name: Type check Python with MyPy
+        additional_dependencies: [types-all]
+        args: ["--ignore-missing-imports", "--no-strict-optional"]
+        files: \.(py)$
+
+  # =============================================================================
+  # Go: Code Formatting & Quality
+  # =============================================================================
+  - repo: https://github.com/dnephin/pre-commit-golang
+    rev: v0.5.1
+    hooks:
+      - id: go-fmt
+        name: Format Go code with gofmt
+        files: \.go$
+
+      - id: go-vet
+        name: Vet Go code
+        files: \.go$
+
+      - id: go-imports
+        name: Fix Go imports with goimports
+        files: \.go$
+
+      - id: go-mod-tidy
+        name: Tidy Go modules
+        files: (\.go|go\.mod|go\.sum)$
+
+  - repo: https://github.com/golangci/golangci-lint
+    rev: v1.55.2
+    hooks:
+      - id: golangci-lint
+        name: Lint Go code
+        args: ["--timeout=5m"]
+        files: \.go$
+
+  # =============================================================================
+  # Shell Scripts: Validation
+  # =============================================================================
+  - repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: v0.9.0.6
+    hooks:
+      - id: shellcheck
+        name: Check shell scripts with ShellCheck
+        files: \.(sh|bash)$
+        args: ["--severity=warning"]
+
+  # =============================================================================
+  # Web/Frontend: JavaScript, TypeScript, CSS
+  # =============================================================================
+  - repo: https://github.com/pre-commit/mirrors-prettier
+    rev: v4.0.0-alpha.8
+    hooks:
+      - id: prettier
+        name: Format web files with Prettier
+        files: \.(js|ts|tsx|jsx|json|css|scss|md|yaml|yml)$
+        args: ["--write"]
+
+  - repo: https://github.com/pre-commit/mirrors-eslint
+    rev: v8.56.0
+    hooks:
+      - id: eslint
+        name: Lint JavaScript/TypeScript
+        files: \.(js|ts|tsx|jsx)$
+        args: ["--fix"]
+        additional_dependencies:
+          - eslint@8.56.0
+          - eslint-config-prettier@9.1.0
+
+  # =============================================================================
+  # Git Commit Messages & Conventional Commits
+  # =============================================================================
+  - repo: https://github.com/compilerla/conventional-pre-commit
+    rev: v3.0.0
+    hooks:
+      - id: conventional-pre-commit
+        name: Check commit message format
+        stages: [commit-msg]
+        args: ["--force-scope"]
+
+  # =============================================================================
+  # Security: Secret Detection
+  # =============================================================================
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.4.0
+    hooks:
+      - id: detect-secrets
+        name: Detect hardcoded secrets
+        args:
+          - "--baseline"
+          - ".secrets.baseline"
+        exclude: (package-lock\.json|pnpm-lock\.yaml|go\.sum|\.secrets\.baseline)
+
+  # =============================================================================
+  # General: File Quality Checks
+  # =============================================================================
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: trailing-whitespace
+        name: Trim trailing whitespace
+        args: ["--markdown-linebreak-ext=md"]
+
+      - id: end-of-file-fixer
+        name: Ensure files end with newline
+
+      - id: check-yaml
+        name: Validate YAML files
+        args: ["--safe"]
+
+      - id: check-json
+        name: Validate JSON files
+
+      - id: check-toml
+        name: Validate TOML files
+
+      - id: check-added-large-files
+        name: Prevent large files (>500KB)
+        args: ["--maxkb=500"]
+
+      - id: check-merge-conflict
+        name: Check for merge conflict markers
+
+      - id: check-case-conflict
+        name: Check for case conflicts
+
+      - id: mixed-line-ending
+        name: Fix mixed line endings
+        args: ["--fix=lf"]
+
+      - id: detect-private-key
+        name: Detect private keys
+
+  # =============================================================================
+  # Markdown: Linting and Formatting
+  # =============================================================================
+  - repo: https://github.com/igorshubovych/markdownlint-cli
+    rev: v0.38.0
+    hooks:
+      - id: markdownlint
+        name: Lint Markdown files
+        args: ["--fix"]
+        files: \.md$
+
+  # =============================================================================
+  # Docker: Dockerfile Linting
+  # =============================================================================
+  - repo: https://github.com/hadolint/hadolint
+    rev: v2.12.0
+    hooks:
+      - id: hadolint
+        name: Lint Dockerfiles
+        files: Dockerfile.*
+
+# =============================================================================
+# CI Configuration
+# =============================================================================
+ci:
+  autofix_commit_msg: "chore(pre-commit): auto-fix issues"
+  autofix_prs: true
+  autoupdate_commit_msg: "chore(pre-commit): autoupdate hooks"
+  autoupdate_schedule: weekly
+  skip: [mypy, golangci-lint] # Skip slow checks in CI
+  submodules: false

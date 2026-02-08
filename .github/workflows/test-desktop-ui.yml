@@ -1,0 +1,111 @@
+name: Test Desktop UI
+
+on:
+    push:
+        branches: [main, develop]
+        paths:
+            - "src/desktop-ui/**"
+            - ".github/workflows/test-desktop-ui.yml"
+    pull_request:
+        branches: [main]
+        paths:
+            - "src/desktop-ui/**"
+
+env:
+    PYTHON_VERSION: "3.11"
+
+jobs:
+    test-desktop:
+        name: Desktop UI Tests (@CANVAS @ECLIPSE)
+        runs-on: ubuntu-latest
+
+        strategy:
+            matrix:
+                python-version: ["3.11", "3.12"]
+
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+
+            - name: Set up Python ${{ matrix.python-version }}
+              uses: actions/setup-python@v5
+              with:
+                  python-version: ${{ matrix.python-version }}
+                  cache: "pip"
+                  cache-dependency-path: "src/desktop-ui/requirements*.txt"
+
+            - name: Install GTK4 and dependencies
+              run: |
+                  sudo apt-get update
+                  sudo apt-get install -y \
+                    libgtk-4-dev \
+                    libadwaita-1-dev \
+                    gobject-introspection \
+                    libgirepository1.0-dev \
+                    gir1.2-gtk-4.0 \
+                    gir1.2-adwaita-1
+
+            - name: Install Python dependencies
+              working-directory: src/desktop-ui
+              run: |
+                  pip install --upgrade pip
+                  pip install -r requirements.txt
+                  pip install -r requirements-test.txt
+
+            - name: Run syntax checks
+              working-directory: src/desktop-ui
+              run: python check_syntax.py
+
+            - name: Run pytest
+              working-directory: src/desktop-ui
+              run: |
+                  python -m pytest tests/ -v --cov=. --cov-report=xml --cov-report=html
+
+            - name: Upload coverage to Codecov
+              uses: codecov/codecov-action@v4
+              with:
+                  file: ./src/desktop-ui/coverage.xml
+                  flags: desktop-ui
+                  name: desktop-ui-${{ matrix.python-version }}
+                  fail_ci_if_error: false
+
+            - name: Archive coverage reports
+              if: always()
+              uses: actions/upload-artifact@v4
+              with:
+                  name: desktop-coverage-${{ matrix.python-version }}
+                  path: src/desktop-ui/htmlcov/
+                  retention-days: 7
+
+    lint-desktop:
+        name: Lint Desktop UI
+        runs-on: ubuntu-latest
+
+        steps:
+            - uses: actions/checkout@v4
+
+            - name: Set up Python
+              uses: actions/setup-python@v5
+              with:
+                  python-version: "3.11"
+                  cache: "pip"
+
+            - name: Install linting tools
+              run: |
+                  pip install black isort flake8 mypy
+
+            - name: Check formatting with black
+              working-directory: src/desktop-ui
+              run: black --check --diff .
+
+            - name: Check import order with isort
+              working-directory: src/desktop-ui
+              run: isort --check-only --diff .
+
+            - name: Lint with flake8
+              working-directory: src/desktop-ui
+              run: flake8 . --count --show-source --statistics
+
+            - name: Type check with mypy
+              working-directory: src/desktop-ui
+              run: mypy . --ignore-missing-imports || true

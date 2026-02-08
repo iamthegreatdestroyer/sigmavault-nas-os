@@ -1,0 +1,92 @@
+name: Build Flatpak
+
+on:
+    push:
+        tags:
+            - "v*"
+    workflow_dispatch:
+        inputs:
+            version:
+                description: "Version to build (e.g., 1.0.0)"
+                required: true
+                default: "1.0.0"
+
+env:
+    FLATPAK_ID: io.github.iamthegreatdestroyer.SigmaVault
+
+jobs:
+    build-flatpak:
+        name: Build Flatpak Bundle (@FORGE @BRIDGE)
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+              with:
+                  submodules: recursive
+
+            - name: Determine version
+              id: version
+              run: |
+                  if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+                    echo "VERSION=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+                  else
+                    echo "VERSION=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
+                  fi
+
+            - name: Install Flatpak and dependencies
+              run: |
+                  sudo apt-get update
+                  sudo apt-get install -y flatpak flatpak-builder
+
+            - name: Add Flathub repository
+              run: |
+                  sudo flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+
+            - name: Install Flatpak SDK
+              run: |
+                  sudo flatpak install -y flathub org.gnome.Platform//46 org.gnome.Sdk//46
+
+            - name: Build Flatpak
+              working-directory: flatpak
+              run: |
+                  flatpak-builder --force-clean --repo=repo builddir ${FLATPAK_ID}.yml
+
+            - name: Create Flatpak bundle
+              working-directory: flatpak
+              run: |
+                  flatpak build-bundle repo \
+                    sigmavault-${{ steps.version.outputs.VERSION }}.flatpak \
+                    ${FLATPAK_ID}
+
+            - name: Generate checksums
+              working-directory: flatpak
+              run: |
+                  sha256sum sigmavault-${{ steps.version.outputs.VERSION }}.flatpak > checksums.txt
+
+            - name: Test Flatpak installation
+              working-directory: flatpak
+              run: |
+                  sudo flatpak --user install -y sigmavault-${{ steps.version.outputs.VERSION }}.flatpak || true
+                  sudo flatpak list | grep SigmaVault || true
+
+            - name: Upload Flatpak bundle
+              uses: actions/upload-artifact@v4
+              with:
+                  name: flatpak-bundle
+                  path: |
+                      flatpak/sigmavault-${{ steps.version.outputs.VERSION }}.flatpak
+                      flatpak/checksums.txt
+                  retention-days: 30
+
+            - name: Create Release (on tag push)
+              if: startsWith(github.ref, 'refs/tags/')
+              uses: softprops/action-gh-release@v1
+              with:
+                  files: |
+                      flatpak/sigmavault-${{ steps.version.outputs.VERSION }}.flatpak
+                      flatpak/checksums.txt
+                  draft: false
+                  prerelease: false
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

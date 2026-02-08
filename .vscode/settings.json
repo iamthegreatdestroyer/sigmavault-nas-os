@@ -1,0 +1,89 @@
+{
+  "folders": [
+    {
+      "name": "🏠 SigmaVault NAS OS",
+      "path": "."
+    },
+    {
+      "name": "🔧 Go API",
+      "path": "src/api"
+    },
+    {
+      "name": "🐍 Python Engine",
+      "path": "src/engined"
+    },
+    {
+      "name": "🖥️ Desktop UI",
+      "path": "src/desktop-ui"
+    },
+    {
+      "name": "🌐 Web UI",
+      "path": "src/webui"
+    }
+  ],
+  "settings": {
+    "files.exclude": {
+      "**/.git": true,
+      "**/.venv": true,
+      "**/__pycache__": true,
+      "**/*.pyc": true,
+      "**/node_modules": true,
+      "**/.pytest_cache": true
+    },
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.fixAll": "explicit",
+      "source.organizeImports": "explicit"
+    },
+    "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
+    "python.linting.enabled": true,
+    "python.linting.flake8Enabled": true,
+    "python.linting.mypyEnabled": true,
+    "python.formatting.provider": "black",
+    "go.useLanguageServer": true,
+    "go.formatTool": "gofmt",
+    "go.lintTool": "golangci-lint",
+    "go.lintOnSave": "workspace",
+    "[python]": {
+      "editor.defaultFormatter": "ms-python.black-formatter",
+      "editor.formatOnSave": true
+    },
+    "[go]": {
+      "editor.defaultFormatter": "golang.go",
+      "editor.formatOnSave": true
+    },
+    "[javascript]": {
+      "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    "[typescript]": {
+      "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    "[json]": {
+      "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    "[yaml]": {
+      "editor.defaultFormatter": "esbenp.prettier-vscode"
+    }
+  },
+  "extensions": {
+    "recommendations": [
+      "golang.go",
+      "ms-python.python",
+      "ms-python.black-formatter",
+      "ms-python.isort",
+      "ms-python.mypy-type-checker",
+      "esbenp.prettier-vscode",
+      "dbaeumer.vscode-eslint",
+      "redhat.vscode-yaml",
+      "timonwong.shellcheck",
+      "github.copilot",
+      "ms-azuretools.vscode-docker",
+      "foxundermoon.shell-format"
+    ]
+  },
+  "launch": {
+    "version": "0.2.0",
+    "configurations": [],
+    "compounds": []
+  }
+}

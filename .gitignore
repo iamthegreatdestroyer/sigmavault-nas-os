@@ -1,5 +1,8 @@
 # IDE & Editor
 .vscode/
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/settings.json
 .idea/
 *.suo
 *.ntvs*

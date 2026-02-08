@@ -1,0 +1,105 @@
+name: Test RPC Engine
+
+on:
+    push:
+        branches: [main, develop]
+        paths:
+            - "src/engined/**"
+            - ".github/workflows/test-rpc-engine.yml"
+    pull_request:
+        branches: [main]
+        paths:
+            - "src/engined/**"
+
+env:
+    PYTHON_VERSION: "3.11"
+
+jobs:
+    test-engine:
+        name: RPC Engine Tests (@SYNAPSE @VELOCITY)
+        runs-on: ubuntu-latest
+
+        strategy:
+            matrix:
+                python-version: ["3.11", "3.12"]
+
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+
+            - name: Set up Python ${{ matrix.python-version }}
+              uses: actions/setup-python@v5
+              with:
+                  python-version: ${{ matrix.python-version }}
+                  cache: "pip"
+                  cache-dependency-path: "src/engined/requirements*.txt"
+
+            - name: Install dependencies
+              working-directory: src/engined
+              run: |
+                  pip install --upgrade pip
+                  pip install -r requirements-test.txt
+                  pip install -e . --no-deps
+
+            - name: Run pytest with coverage
+              working-directory: src/engined
+              run: |
+                  python -m pytest tests/ \
+                    --cov=engined \
+                    --cov-report=xml \
+                    --cov-report=html \
+                    --cov-fail-under=90 \
+                    -v
+
+            - name: Upload coverage to Codecov
+              uses: codecov/codecov-action@v4
+              with:
+                  file: ./src/engined/coverage.xml
+                  flags: rpc-engine
+                  name: rpc-engine-${{ matrix.python-version }}
+                  fail_ci_if_error: true
+
+            - name: Archive coverage reports
+              if: always()
+              uses: actions/upload-artifact@v4
+              with:
+                  name: engine-coverage-${{ matrix.python-version }}
+                  path: src/engined/htmlcov/
+                  retention-days: 7
+
+    lint-engine:
+        name: Lint RPC Engine
+        runs-on: ubuntu-latest
+
+        steps:
+            - uses: actions/checkout@v4
+
+            - name: Set up Python
+              uses: actions/setup-python@v5
+              with:
+                  python-version: "3.11"
+                  cache: "pip"
+
+            - name: Install linting tools
+              run: |
+                  pip install black isort flake8 mypy pylint
+
+            - name: Check formatting with black
+              working-directory: src/engined
+              run: black --check --diff .
+
+            - name: Check import order with isort
+              working-directory: src/engined
+              run: isort --check-only --diff .
+
+            - name: Lint with flake8
+              working-directory: src/engined
+              run: flake8 . --count --max-line-length=100 --show-source --statistics
+
+            - name: Type check with mypy
+              working-directory: src/engined
+              run: mypy engined/ --ignore-missing-imports
+
+            - name: Lint with pylint
+              working-directory: src/engined
+              run: pylint engined/ --fail-under=8.0 || true

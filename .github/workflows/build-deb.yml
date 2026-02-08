@@ -1,0 +1,97 @@
+name: Build Debian Package
+
+on:
+    push:
+        tags:
+            - "v*"
+    workflow_dispatch:
+        inputs:
+            version:
+                description: "Version to build (e.g., 1.0.0)"
+                required: true
+                default: "1.0.0"
+
+jobs:
+    build-deb:
+        name: Build .deb Package (@FORGE)
+        runs-on: ubuntu-latest
+        container:
+            image: debian:trixie
+
+        steps:
+            - name: Install build dependencies
+              run: |
+                  apt-get update
+                  apt-get install -y \
+                    build-essential \
+                    debhelper \
+                    devscripts \
+                    fakeroot \
+                    lintian \
+                    git \
+                    python3 \
+                    python3-pip \
+                    python3-venv \
+                    libgtk-4-dev \
+                    libadwaita-1-dev \
+                    meson \
+                    ninja-build \
+                    gobject-introspection
+
+            - name: Checkout repository
+              uses: actions/checkout@v4
+
+            - name: Determine version
+              id: version
+              run: |
+                  if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+                    echo "VERSION=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+                  else
+                    echo "VERSION=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
+                  fi
+
+            - name: Update changelog
+              working-directory: debian
+              run: |
+                  DEBFULLNAME="SigmaVault Team" \
+                  DEBEMAIL="team@sigmavault.io" \
+                  dch -v ${{ steps.version.outputs.VERSION }}-1 \
+                    -D trixie \
+                    "Release version ${{ steps.version.outputs.VERSION }}" || true
+
+            - name: Build package
+              run: |
+                  dpkg-buildpackage -b -uc -us
+
+            - name: Run lintian
+              run: |
+                  lintian ../*.deb || true
+
+            - name: Move packages to artifacts directory
+              run: |
+                  mkdir -p artifacts
+                  mv ../*.deb artifacts/
+                  mv ../*.buildinfo artifacts/ || true
+                  mv ../*.changes artifacts/ || true
+
+            - name: Generate checksums
+              working-directory: artifacts
+              run: |
+                  sha256sum *.deb > checksums.txt
+
+            - name: Upload packages
+              uses: actions/upload-artifact@v4
+              with:
+                  name: debian-packages
+                  path: artifacts/
+                  retention-days: 30
+
+            - name: Create Release (on tag push)
+              if: startsWith(github.ref, 'refs/tags/')
+              uses: softprops/action-gh-release@v1
+              with:
+                  files: artifacts/*
+                  draft: false
+                  prerelease: false
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
