@@ -7,6 +7,7 @@
 ## 🧪 Test Strategy
 
 ### Architecture Under Test
+
 ```
 Dashboard Client
     ↓ GET /api/v1/compression/jobs
@@ -30,15 +31,17 @@ HTTP 200 JSON to dashboard
 **Objective**: Verify Python handlers work correctly
 
 **Setup**:
+
 1. Start Python engine: `python -m engined.main`
    - Expected: Listens on localhost:5000/rpc
    - Verify: `curl http://localhost:5000/` returns 200
 
 2. Populate test jobs (manual or via script)
    - Note: Jobs added when compression completes
-   - Or manually add to _compression_jobs dict for testing
+   - Or manually add to \_compression_jobs dict for testing
 
 **Test 1.1: List Empty Registry**
+
 ```bash
 curl -X POST http://localhost:5000/rpc \
   -H "Content-Type: application/json" \
@@ -51,6 +54,7 @@ curl -X POST http://localhost:5000/rpc \
 ```
 
 **Expected Response**:
+
 ```json
 {
   "jsonrpc": "2.0",
@@ -63,6 +67,7 @@ curl -X POST http://localhost:5000/rpc \
 ```
 
 **Test 1.2: Get Non-Existent Job**
+
 ```bash
 curl -X POST http://localhost:5000/rpc \
   -H "Content-Type: application/json" \
@@ -75,6 +80,7 @@ curl -X POST http://localhost:5000/rpc \
 ```
 
 **Expected Response** (Error):
+
 ```json
 {
   "jsonrpc": "2.0",
@@ -94,10 +100,12 @@ curl -X POST http://localhost:5000/rpc \
 **Objective**: Complete a compression, verify job appears in registry
 
 **Setup**:
+
 1. Ensure Python engine running
 2. Compress test data via existing endpoint
 
 **Test 2.1: Compress Data**
+
 ```bash
 curl -X POST http://localhost:5000/rpc \
   -H "Content-Type: application/json" \
@@ -113,6 +121,7 @@ curl -X POST http://localhost:5000/rpc \
 ```
 
 **Expected Response**:
+
 ```json
 {
   "jsonrpc": "2.0",
@@ -121,7 +130,7 @@ curl -X POST http://localhost:5000/rpc \
     "success": true,
     "original_size": 50,
     "compressed_size": 45,
-    "compression_ratio": 0.90,
+    "compression_ratio": 0.9,
     "elapsed_seconds": 0.001,
     "method": "...",
     "data_type": "text",
@@ -135,6 +144,7 @@ curl -X POST http://localhost:5000/rpc \
 **Capture**: Save `job_id` from response (e.g., `abc123`)
 
 **Test 2.2: Query Registry for Job**
+
 ```bash
 curl -X POST http://localhost:5000/rpc \
   -H "Content-Type: application/json" \
@@ -147,6 +157,7 @@ curl -X POST http://localhost:5000/rpc \
 ```
 
 **Expected Response**:
+
 ```json
 {
   "jsonrpc": "2.0",
@@ -157,7 +168,7 @@ curl -X POST http://localhost:5000/rpc \
         "status": "completed",
         "original_size": 50,
         "compressed_size": 45,
-        "compression_ratio": 0.90,
+        "compression_ratio": 0.9,
         "elapsed_seconds": 0.001,
         "method": "...",
         "data_type": "text",
@@ -172,6 +183,7 @@ curl -X POST http://localhost:5000/rpc \
 ```
 
 **Test 2.3: Get Specific Job**
+
 ```bash
 curl -X POST http://localhost:5000/rpc \
   -H "Content-Type: application/json" \
@@ -184,6 +196,7 @@ curl -X POST http://localhost:5000/rpc \
 ```
 
 **Expected Response**:
+
 ```json
 {
   "jsonrpc": "2.0",
@@ -192,7 +205,7 @@ curl -X POST http://localhost:5000/rpc \
     "status": "completed",
     "original_size": 50,
     "compressed_size": 45,
-    "compression_ratio": 0.90,
+    "compression_ratio": 0.9,
     "elapsed_seconds": 0.001,
     "method": "...",
     "data_type": "text",
@@ -210,11 +223,13 @@ curl -X POST http://localhost:5000/rpc \
 **Objective**: Verify Go correctly calls Python RPC handlers
 
 **Setup**:
+
 1. Ensure Python engine running on :5000
 2. Build Go API: `cd src/api && go build -o api.exe`
 3. Start Go API: `./api.exe` (should connect to RPC on :5000)
 
 **Test 3.1: Test ListCompressionJobs Method**
+
 ```go
 // In Go code / test
 client := rpc.NewClient("http://localhost:5000/rpc")
@@ -231,6 +246,7 @@ assert.Greater(len(result.Jobs), 0)  // Should have at least 1 job from Test 2
 ```
 
 **Test 3.2: Test GetCompressionJob Method**
+
 ```go
 client := rpc.NewClient("http://localhost:5000/rpc")
 
@@ -250,15 +266,18 @@ assert.Equal("completed", job.Status)
 **Objective**: Verify HTTP API returns correct data
 
 **Setup**:
+
 1. Ensure Python engine with populated jobs
 2. Ensure Go API running on :12080
 
 **Test 4.1: List Jobs Endpoint**
+
 ```bash
 curl http://localhost:12080/api/v1/compression/jobs?limit=10
 ```
 
 **Expected Response** (200 OK):
+
 ```json
 {
   "jobs": [
@@ -267,7 +286,7 @@ curl http://localhost:12080/api/v1/compression/jobs?limit=10
       "status": "completed",
       "original_size": 50,
       "compressed_size": 45,
-      "compression_ratio": 0.90,
+      "compression_ratio": 0.9,
       "elapsed_seconds": 0.001,
       "method": "zlib",
       "data_type": "text",
@@ -280,27 +299,31 @@ curl http://localhost:12080/api/v1/compression/jobs?limit=10
 ```
 
 **Test 4.2: List with Status Filter**
+
 ```bash
 curl http://localhost:12080/api/v1/compression/jobs?status=completed&limit=10
 ```
 
 **Expected Response** (200 OK):
+
 - Same format as 4.1
 - Only jobs with status="completed"
 
 **Test 4.3: Get Specific Job Endpoint**
+
 ```bash
 curl http://localhost:12080/api/v1/compression/jobs/abc123...
 ```
 
 **Expected Response** (200 OK):
+
 ```json
 {
   "job_id": "abc123...",
   "status": "completed",
   "original_size": 50,
   "compressed_size": 45,
-  "compression_ratio": 0.90,
+  "compression_ratio": 0.9,
   "elapsed_seconds": 0.001,
   "method": "zlib",
   "data_type": "text",
@@ -310,11 +333,13 @@ curl http://localhost:12080/api/v1/compression/jobs/abc123...
 ```
 
 **Test 4.4: Get Non-Existent Job**
+
 ```bash
 curl http://localhost:12080/api/v1/compression/jobs/nonexistent &
 ```
 
 **Expected Response** (404 Not Found):
+
 ```json
 {
   "error": "Job not found"
@@ -322,11 +347,13 @@ curl http://localhost:12080/api/v1/compression/jobs/nonexistent &
 ```
 
 **Test 4.5: Empty Query Parameters**
+
 ```bash
 curl http://localhost:12080/api/v1/compression/jobs
 ```
 
 **Expected Response** (200 OK):
+
 - Default limit applied (100)
 - All jobs returned (no filter)
 
@@ -337,37 +364,45 @@ curl http://localhost:12080/api/v1/compression/jobs
 **Objective**: Verify listing, filtering, and sorting with multiple jobs
 
 **Setup**:
+
 1. Create 5 test jobs via direct Python calls or compress multiple files
 2. Set different statuses for testing (some completed, some failed if possible)
 
 **Test 5.1: List All**
+
 ```bash
 curl http://localhost:12080/api/v1/compression/jobs?limit=200
 ```
 
 **Expected**:
+
 - Returns all 5 jobs
 - Jobs sorted by created_at descending (newest first)
 
 **Test 5.2: Filter by Status**
+
 ```bash
 curl http://localhost:12080/api/v1/compression/jobs?status=completed&limit=100
 ```
 
 **Expected**:
+
 - Only completed jobs returned
 - Still sorted by created_at descending
 
 **Test 5.3: Limit Parameter**
+
 ```bash
 curl http://localhost:12080/api/v1/compression/jobs?limit=2
 ```
 
 **Expected**:
+
 - Only 2 jobs returned
 - Most recent 2
 
 **Test 5.4: Pagination Simulation**
+
 ```bash
 # First page
 curl http://localhost:12080/api/v1/compression/jobs?limit=2
@@ -381,15 +416,17 @@ curl http://localhost:12080/api/v1/compression/jobs?limit=2
 ## 🔍 Verification Checklist
 
 ### Python RPC Layer
+
 - [ ] RPC service responds on :5000
 - [ ] compression.jobs.list handler returns correct format
 - [ ] compression.jobs.get handler returns single job
-- [ ] Jobs stored in _compression_jobs after compression
+- [ ] Jobs stored in \_compression_jobs after compression
 - [ ] Status filter works correctly
 - [ ] Limit parameter respected
 - [ ] Sorting by created_at descending works
 
 ### Go RPC Client
+
 - [ ] ListCompressionJobs method makes correct RPC call
 - [ ] GetCompressionJob method makes correct RPC call
 - [ ] Type marshaling/unmarshaling correct
@@ -397,6 +434,7 @@ curl http://localhost:12080/api/v1/compression/jobs?limit=2
 - [ ] Default params applied when needed
 
 ### Go HTTP Handlers
+
 - [ ] ListCompressionJobs handler parses query params
 - [ ] GetCompressionJob handler extracts path param
 - [ ] Response JSON matches expected format
@@ -406,6 +444,7 @@ curl http://localhost:12080/api/v1/compression/jobs?limit=2
 - [ ] Mock fallback works when RPC unavailable
 
 ### HTTP Routes
+
 - [ ] Routes registered correctly
 - [ ] URL patterns match handler signatures
 - [ ] HTTP methods correct (GET for both)
@@ -428,6 +467,7 @@ Notes: [any observations]
 ## 🚀 Running the Full Integration Test
 
 **Quick Start Script** (bash):
+
 ```bash
 #!/bin/bash
 set -e
@@ -480,6 +520,7 @@ echo "✅ Integration tests complete"
 ## ✅ Success Criteria
 
 All tests pass when:
+
 1. ✅ Python RPC handlers respond correctly
 2. ✅ Go RPC client methods work
 3. ✅ Go HTTP handlers return data
@@ -494,6 +535,7 @@ All tests pass when:
 ## 📝 Next Steps After Testing
 
 If all tests pass:
+
 1. Create dashboard UI to consume endpoints
 2. Add real-time WebSocket updates
 3. Implement caching if needed
@@ -501,6 +543,7 @@ If all tests pass:
 5. Full system integration testing
 
 If tests fail:
+
 1. Identify which layer has problem
 2. Debug specific handler/method
 3. Fix and re-test
