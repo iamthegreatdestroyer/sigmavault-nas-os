@@ -54,7 +54,8 @@ Write-Info ""
 
 if ($NoEngine) {
     Write-Info "Skipping engine startup (assuming already running)"
-} else {
+}
+else {
     Write-Info "Starting Python RPC Engine..."
     
     # Activate venv if not already activated
@@ -62,7 +63,8 @@ if ($NoEngine) {
         if (Test-Path ".venv/Scripts/Activate.ps1") {
             & ".venv/Scripts/Activate.ps1"
             Write-Ok "Virtual environment activated"
-        } else {
+        }
+        else {
             Write-Warn "No virtual environment found, trying system Python"
         }
     }
@@ -94,7 +96,8 @@ if ($NoEngine) {
                 $engineReady = $true
                 break
             }
-        } catch {
+        }
+        catch {
             # Engine not ready yet
         }
     }
@@ -114,7 +117,8 @@ Write-Host ""
 
 if ($NoAPI) {
     Write-Info "Skipping API startup (assuming already running)"
-} else {
+}
+else {
     Write-Info "Starting Go API Server..."
     
     # Check if port is already in use
@@ -128,12 +132,14 @@ if ($NoAPI) {
             if ($health.status -eq "healthy") {
                 Write-Ok "Existing API server is responsive"
                 $NoAPI = $true
-            } else {
+            }
+            else {
                 Write-Err "Port $APIPort in use but appears to be wrong service"
                 Write-Info "Kill the process or use -APIPort to specify a different port"
                 exit 1
             }
-        } catch {
+        }
+        catch {
             Write-Err "Port $APIPort in use but not responding to API calls"
             Write-Info "Kill the process or use -APIPort to specify a different port"
             exit 1
@@ -173,7 +179,8 @@ if ($NoAPI) {
                     $apiReady = $true
                     break
                 }
-            } catch {
+            }
+            catch {
                 # API not ready yet
             }
         }
@@ -200,7 +207,8 @@ if ($NoUI) {
     Write-Info "Services are running in the background with logs:"
     Write-Info "  Engine: engine-stdout.log, engine-stderr.log"
     Write-Info "  API: api-stdout.log, api-stderr.log"
-} else {
+}
+else {
     Write-Host ""
     Write-Info "Launching Desktop UI..."
     Write-Info "  The UI window should open in a moment..."

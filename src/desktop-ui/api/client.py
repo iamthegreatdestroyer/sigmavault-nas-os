@@ -97,6 +97,10 @@ class SigmaVaultAPIClient:
 
     # ─── Storage ────────────────────────────────────────────────
 
+    def get_disks(self) -> Optional[dict]:
+        """GET /api/v1/storage/disks — List physical disks with SMART status."""
+        return self._get("/api/v1/storage/disks")
+
     def get_pools(self) -> Optional[dict]:
         """GET /api/v1/storage/pools — ZFS pool list with summary."""
         return self._get("/api/v1/storage/pools")
@@ -104,6 +108,10 @@ class SigmaVaultAPIClient:
     def get_pool(self, pool_id: str) -> Optional[dict]:
         """GET /api/v1/storage/pools/:id — Get specific pool."""
         return self._get(f"/api/v1/storage/pools/{pool_id}")
+
+    def get_datasets(self) -> Optional[dict]:
+        """GET /api/v1/storage/datasets — List ZFS datasets."""
+        return self._get("/api/v1/storage/datasets")
 
     def get_shares(self) -> Optional[dict]:
         """GET /api/v1/storage/shares — Network shares list."""
@@ -123,6 +131,14 @@ class SigmaVaultAPIClient:
         """GET /api/v1/compression/queue — Compression queue stats."""
         return self._get("/api/v1/compression/queue")
 
+    def get_compression_jobs(self) -> Optional[dict]:
+        """GET /api/v1/compression/jobs — Active compression jobs."""
+        return self._get("/api/v1/compression/jobs")
+
+    def get_compression_stats(self) -> Optional[dict]:
+        """GET /api/v1/compression/stats — Compression statistics and history."""
+        return self._get("/api/v1/compression/stats")
+
     def compress_file(
         self, path: str, algorithm: str = "auto", level: int = 6
     ) -> Optional[dict]:
@@ -131,10 +147,6 @@ class SigmaVaultAPIClient:
             "/api/v1/compression/jobs",
             {"path": path, "algorithm": algorithm, "level": level},
         )
-
-    def get_compression_jobs(self) -> Optional[dict]:
-        """GET /api/v1/compression/jobs — Active compression jobs."""
-        return self._get("/api/v1/compression/jobs")
 
     def compress_file_v2(self, path: str, algorithm: str = "zstd") -> Optional[dict]:
         """POST /api/v1/compression/file — Submit file compression."""

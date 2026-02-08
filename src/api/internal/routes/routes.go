@@ -90,6 +90,8 @@ func Setup(app *fiber.App, cfg *config.Config) {
 
 	// Storage endpoints
 	storage := protected.Group("/storage")
+	storage.Get("/disks", storageHandler.ListDisks)
+	storage.Get("/datasets", storageHandler.ListDatasets)
 	storage.Get("/pools", storageHandler.ListPools)
 	storage.Get("/pools/:id", storageHandler.GetPool)
 	storage.Post("/pools", middleware.RequireRole("admin"), storageHandler.CreatePool)
@@ -117,6 +119,7 @@ func Setup(app *fiber.App, cfg *config.Config) {
 
 	// Compression endpoints (legacy jobs-based API)
 	compression := protected.Group("/compression")
+	compression.Get("/stats", compressionV2Handler.GetCompressionStats)
 	compression.Post("/jobs", compressionHandler.StartCompression)
 	compression.Get("/jobs", compressionHandler.ListCompressionJobs)
 	compression.Get("/jobs/:id", compressionHandler.GetCompressionJob)

@@ -21,6 +21,64 @@ func NewStorageHandler(client *rpc.Client) *StorageHandler {
 	}
 }
 
+// ListDisks returns all physical storage disks with SMART health status.
+func (h *StorageHandler) ListDisks(c *fiber.Ctx) error {
+	// Try RPC engine first
+	if h.rpcClient != nil && h.rpcClient.IsConnected() {
+		rpcDisks, err := h.rpcClient.ListDisks(c.Context())
+		if err == nil {
+			return c.JSON(fiber.Map{
+				"disks": rpcDisks,
+				"count": len(rpcDisks),
+			})
+		}
+		log.Warn().Err(err).Msg("Failed to list disks via RPC, falling back to mock data")
+	}
+
+	// Fallback mock data
+	disks := []fiber.Map{
+		{
+			"name":   "sda",
+			"path":   "/dev/sda",
+			"model":  "Samsung 870 EVO",
+			"serial": "S123456789",
+			"size":   2 * 1024 * 1024 * 1024 * 1024, // 2TB
+			"type":   "ssd",
+			"smart": fiber.Map{
+				"health":       "healthy",
+				"temperature":  38,
+				"power_on_hrs": 1200,
+			},
+		},
+	}
+
+	return c.JSON(fiber.Map{
+		"disks": disks,
+		"count": len(disks),
+	})
+}
+
+// ListDatasets returns all ZFS datasets within pools.
+func (h *StorageHandler) ListDatasets(c *fiber.Ctx) error {
+	// Try RPC engine first
+	if h.rpcClient != nil && h.rpcClient.IsConnected() {
+		rpcDatasets, err := h.rpcClient.ListDatasets(c.Context(), &rpc.ListDatasetsParams{})
+		if err == nil {
+			return c.JSON(fiber.Map{
+				"datasets": rpcDatasets,
+				"count":    len(rpcDatasets),
+			})
+		}
+		log.Warn().Err(err).Msg("Failed to list datasets via RPC, falling back to empty list")
+	}
+
+	// Fallback - empty list
+	return c.JSON(fiber.Map{
+		"datasets": []interface{}{},
+		"count":    0,
+	})
+}
+
 // ListPools returns all ZFS storage pools.
 func (h *StorageHandler) ListPools(c *fiber.Ctx) error {
 	// Try RPC engine first

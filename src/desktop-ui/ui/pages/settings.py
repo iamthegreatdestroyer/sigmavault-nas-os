@@ -43,13 +43,13 @@ class SettingsPage(Gtk.Box):
 
         self._api_url_row = Adw.EntryRow(
             title="API URL",
-            text="http://localhost:3000",
+            text="http://localhost:12080",
         )
         api_group.add(self._api_url_row)
 
         self._ws_url_row = Adw.EntryRow(
             title="WebSocket URL",
-            text="ws://localhost:3000/ws",
+            text="ws://localhost:12080/ws",
         )
         api_group.add(self._ws_url_row)
 
