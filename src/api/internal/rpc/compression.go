@@ -132,22 +132,25 @@ func (c *Client) ListProfiles(ctx context.Context) ([]CompressionProfile, error)
 	return result, nil
 }
 
-// ListJobsParams are parameters for listing compression jobs.
-type ListJobsParams struct {
-	Status string `json:"status,omitempty"`
-	Type   string `json:"type,omitempty"`
-	Limit  int    `json:"limit,omitempty"`
-	Offset int    `json:"offset,omitempty"`
-}
-
-// ListCompressionJobs retrieves compression jobs.
-func (c *Client) ListCompressionJobs(ctx context.Context, params *ListJobsParams) ([]CompressionJob, error) {
-	var result []CompressionJob
-	if err := c.Call(ctx, "compression.jobs.list", params, &result); err != nil {
-		return nil, err
-	}
-	return result, nil
-}
+// NOTE: ListCompressionJobs is now implemented in compression_v2.go with different signature
+// The old implementation below is commented out to avoid conflicts:
+//
+// // ListJobsParams are parameters for listing compression jobs.
+// type ListJobsParams struct {
+// 	Status string `json:"status,omitempty"`
+// 	Type   string `json:"type,omitempty"`
+// 	Limit  int    `json:"limit,omitempty"`
+// 	Offset int    `json:"offset,omitempty"`
+// }
+//
+// // ListCompressionJobs retrieves compression jobs.
+// func (c *Client) ListCompressionJobs(ctx context.Context, params *ListJobsParams) ([]CompressionJob, error) {
+// 	var result []CompressionJob
+// 	if err := c.Call(ctx, "compression.jobs.list", params, &result); err != nil {
+// 		return nil, err
+// 	}
+// 	return result, nil
+// }
 
 // GetJobStatusParams are parameters for GetJobStatus.
 type GetJobStatusParams struct {

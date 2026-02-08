@@ -1,4 +1,5 @@
 # SigmaVault NAS OS - Next Steps Master Action Plan v5
+
 ## Maximizing Autonomy & Automation
 
 **Date:** February 8, 2026  
@@ -23,11 +24,13 @@ With Phase 3c complete (Desktop UI + Flatpak/Debian packaging), the project tran
 ## Phase 4: CI/CD Pipeline & Automation Infrastructure (Priority: CRITICAL)
 
 ### Objective
+
 Establish fully automated testing, building, and deployment infrastructure to eliminate manual operations.
 
 ### 4.1 GitHub Actions Workflows (Week 1)
 
 **Automation Goals:**
+
 - Zero-touch testing on every PR
 - Automatic package building on release tags
 - Continuous integration across all components
@@ -35,6 +38,7 @@ Establish fully automated testing, building, and deployment infrastructure to el
 **Deliverables:**
 
 1. **`.github/workflows/test-desktop-ui.yml`**
+
    ```yaml
    Purpose: Run Python tests, syntax checks, linting
    Triggers: Push to main, PRs targeting main
@@ -44,6 +48,7 @@ Establish fully automated testing, building, and deployment infrastructure to el
    ```
 
 2. **`.github/workflows/test-go-api.yml`**
+
    ```yaml
    Purpose: Go API unit tests, integration tests
    Triggers: Push to main, PRs targeting main
@@ -53,6 +58,7 @@ Establish fully automated testing, building, and deployment infrastructure to el
    ```
 
 3. **`.github/workflows/test-rpc-engine.yml`**
+
    ```yaml
    Purpose: Python RPC engine tests, type checking
    Triggers: Push to main, PRs targeting main
@@ -61,6 +67,7 @@ Establish fully automated testing, building, and deployment infrastructure to el
    ```
 
 4. **`.github/workflows/build-flatpak.yml`**
+
    ```yaml
    Purpose: Build Flatpak on Linux runner
    Triggers: Release tags (v*)
@@ -70,6 +77,7 @@ Establish fully automated testing, building, and deployment infrastructure to el
    ```
 
 5. **`.github/workflows/build-deb.yml`**
+
    ```yaml
    Purpose: Build .deb packages
    Triggers: Release tags (v*)
@@ -80,6 +88,7 @@ Establish fully automated testing, building, and deployment infrastructure to el
    ```
 
 6. **`.github/workflows/build-iso.yml`**
+
    ```yaml
    Purpose: Build SigmaVault NAS OS ISO
    Triggers: Release tags (v*), manual workflow_dispatch
@@ -98,6 +107,7 @@ Establish fully automated testing, building, and deployment infrastructure to el
    ```
 
 **Automation Features:**
+
 - **Auto-versioning:** Extract version from git tags, update all manifests
 - **Changelog generation:** Auto-generate from conventional commits
 - **Release notes:** Auto-create from PR descriptions and commit messages
@@ -105,6 +115,7 @@ Establish fully automated testing, building, and deployment infrastructure to el
 - **Mirror distribution:** Auto-upload to CDN, torrents, IPFS
 
 **Success Metrics:**
+
 - PR testing completes in < 10 minutes
 - Release builds complete in < 90 minutes
 - Zero manual intervention required for releases
@@ -115,6 +126,7 @@ Establish fully automated testing, building, and deployment infrastructure to el
 ### 4.2 Pre-commit Hooks & Local Automation (Week 1)
 
 **Automation Goals:**
+
 - Catch errors before they reach CI
 - Enforce code quality standards locally
 - Reduce CI failures and iteration time
@@ -122,21 +134,23 @@ Establish fully automated testing, building, and deployment infrastructure to el
 **Deliverables:**
 
 1. **`.pre-commit-config.yaml`**
+
    ```yaml
    Hooks:
-   - black (Python formatting)
-   - isort (import sorting)
-   - flake8 (Python linting)
-   - mypy (type checking)
-   - gofmt (Go formatting)
-   - golangci-lint (Go linting)
-   - shellcheck (shell script linting)
-   - prettier (YAML/JSON/Markdown formatting)
-   - commitlint (conventional commit enforcement)
-   - detect-secrets (credential scanning)
+     - black (Python formatting)
+     - isort (import sorting)
+     - flake8 (Python linting)
+     - mypy (type checking)
+     - gofmt (Go formatting)
+     - golangci-lint (Go linting)
+     - shellcheck (shell script linting)
+     - prettier (YAML/JSON/Markdown formatting)
+     - commitlint (conventional commit enforcement)
+     - detect-secrets (credential scanning)
    ```
 
 2. **`Makefile` Enhancement**
+
    ```makefile
    Targets:
    - make test          # Run all tests (Go, Python, Desktop UI)
@@ -152,13 +166,14 @@ Establish fully automated testing, building, and deployment infrastructure to el
    ```
 
 3. **VS Code Tasks & Launch Configs**
+
    ```json
    .vscode/tasks.json:
    - Run all tests
    - Run specific component tests
    - Build packages
    - Start dev servers
-   
+
    .vscode/launch.json:
    - Debug Go API
    - Debug Python engine
@@ -167,6 +182,7 @@ Establish fully automated testing, building, and deployment infrastructure to el
    ```
 
 **Automation Features:**
+
 - **Fast feedback:** Pre-commit runs in < 5 seconds
 - **Auto-fix:** Format and fix issues automatically where possible
 - **Skip option:** `SKIP=mypy git commit` for rapid iteration
@@ -177,6 +193,7 @@ Establish fully automated testing, building, and deployment infrastructure to el
 ### 4.3 Development Containers (Week 1-2)
 
 **Automation Goals:**
+
 - Reproducible development environment
 - Instant onboarding for new contributors
 - Consistent tooling across team
@@ -184,6 +201,7 @@ Establish fully automated testing, building, and deployment infrastructure to el
 **Deliverables:**
 
 1. **`.devcontainer/devcontainer.json`**
+
    ```json
    Features:
    - Debian 13 base image
@@ -198,15 +216,16 @@ Establish fully automated testing, building, and deployment infrastructure to el
 2. **`docker-compose.dev.yml`**
    ```yaml
    Services:
-   - postgres (test database)
-   - redis (cache, sessions)
-   - api (Go API with hot reload)
-   - engine (Python RPC with hot reload)
-   - webui (React dev server)
-   - desktop-ui (GTK app via X11 forwarding)
+     - postgres (test database)
+     - redis (cache, sessions)
+     - api (Go API with hot reload)
+     - engine (Python RPC with hot reload)
+     - webui (React dev server)
+     - desktop-ui (GTK app via X11 forwarding)
    ```
 
 **Automation Features:**
+
 - **One-click setup:** Open in VS Code, auto-build container
 - **Hot reload:** All services auto-restart on code changes
 - **Port forwarding:** Access all services from host
@@ -218,11 +237,13 @@ Establish fully automated testing, building, and deployment infrastructure to el
 ## Phase 5: Agent Swarm Activation & AI-Driven Operations (Priority: HIGH)
 
 ### Objective
+
 Activate the 40-agent Elite Agent Collective for autonomous compression, monitoring, and self-healing operations.
 
 ### 5.1 Agent Coordinator Infrastructure (Week 2)
 
 **Automation Goals:**
+
 - Autonomous decision-making without human intervention
 - Self-optimizing compression algorithms
 - Predictive failure detection and prevention
@@ -230,11 +251,12 @@ Activate the 40-agent Elite Agent Collective for autonomous compression, monitor
 **Deliverables:**
 
 1. **`src/agent-coordinator/`**
+
    ```
    Purpose: Central orchestration for 40-agent swarm
    Language: Python (async) + Rust (performance-critical)
    Architecture: Actor model with message passing
-   
+
    Components:
    - agent_registry.py      # Agent capabilities, status
    - task_dispatcher.py     # Intelligent task routing
@@ -244,6 +266,7 @@ Activate the 40-agent Elite Agent Collective for autonomous compression, monitor
    ```
 
 2. **Agent Specializations**
+
    ```
    Compression Agents (10):
    - Algorithm selection (zstd, lz4, brotli, custom)
@@ -251,28 +274,28 @@ Activate the 40-agent Elite Agent Collective for autonomous compression, monitor
    - Deduplication detection
    - Compression level tuning
    - Parallel compression coordination
-   
+
    Storage Agents (8):
    - ZFS pool management
    - Dataset lifecycle
    - Snapshot scheduling
    - Scrub coordination
    - Capacity planning
-   
+
    Network Agents (6):
    - Bandwidth optimization
    - Protocol selection (SMB, NFS, iSCSI)
    - Load balancing
    - Connection pooling
    - Latency monitoring
-   
+
    Security Agents (8):
    - Intrusion detection
    - Anomaly detection
    - Access pattern analysis
    - Encryption key rotation
    - Vulnerability scanning
-   
+
    System Agents (8):
    - Resource allocation
    - Process scheduling
@@ -282,6 +305,7 @@ Activate the 40-agent Elite Agent Collective for autonomous compression, monitor
    ```
 
 3. **Agent Communication Protocol**
+
    ```protobuf
    // protobuf definitions
    message AgentMessage {
@@ -290,14 +314,14 @@ Activate the 40-agent Elite Agent Collective for autonomous compression, monitor
      bytes payload = 3;
      int64 timestamp = 4;
    }
-   
+
    message TaskRequest {
      string task_id = 1;
      TaskType type = 2;
      map<string, string> parameters = 3;
      Priority priority = 4;
    }
-   
+
    message TaskResult {
      string task_id = 1;
      ResultStatus status = 2;
@@ -307,6 +331,7 @@ Activate the 40-agent Elite Agent Collective for autonomous compression, monitor
    ```
 
 **Automation Features:**
+
 - **Self-healing:** Agents detect and fix issues automatically
 - **Load balancing:** Tasks distributed based on agent capacity
 - **Fault tolerance:** Failed agents auto-restarted, tasks re-routed
@@ -314,6 +339,7 @@ Activate the 40-agent Elite Agent Collective for autonomous compression, monitor
 - **Emergent intelligence:** Agent collaboration creates complex behaviors
 
 **Success Metrics:**
+
 - 40 agents online and healthy 99.9% uptime
 - < 100ms task routing latency
 - 90%+ optimal compression ratio selection
@@ -324,6 +350,7 @@ Activate the 40-agent Elite Agent Collective for autonomous compression, monitor
 ### 5.2 ML-Powered Compression Optimization (Week 2-3)
 
 **Automation Goals:**
+
 - Autonomous selection of optimal compression algorithms
 - Real-time adaptation to data patterns
 - Predictive resource allocation
@@ -331,13 +358,14 @@ Activate the 40-agent Elite Agent Collective for autonomous compression, monitor
 **Deliverables:**
 
 1. **`src/ml-compression/`**
+
    ```python
    Models:
    - compression_predictor.py   # Predict best algorithm for data
    - block_size_optimizer.py    # Optimal block size selection
    - dedup_detector.py          # Find duplicate blocks
    - resource_predictor.py      # Predict CPU/memory needs
-   
+
    Training Pipeline:
    - data_collector.py          # Gather compression statistics
    - feature_extractor.py       # Extract file characteristics
@@ -347,6 +375,7 @@ Activate the 40-agent Elite Agent Collective for autonomous compression, monitor
    ```
 
 2. **Feature Extraction**
+
    ```python
    File Features:
    - Entropy (Shannon)
@@ -356,7 +385,7 @@ Activate the 40-agent Elite Agent Collective for autonomous compression, monitor
    - File type/extension
    - Access patterns (read/write ratio)
    - Size histogram
-   
+
    System Features:
    - Available CPU cores
    - Memory pressure
@@ -366,6 +395,7 @@ Activate the 40-agent Elite Agent Collective for autonomous compression, monitor
    ```
 
 3. **Model Architecture**
+
    ```
    Algorithm Selection:
    - Model: XGBoost classifier
@@ -373,7 +403,7 @@ Activate the 40-agent Elite Agent Collective for autonomous compression, monitor
    - Output: Probability distribution over algorithms
    - Training: Online learning from actual results
    - Accuracy target: 95%+ optimal selection
-   
+
    Block Size Optimization:
    - Model: Neural network (3 hidden layers)
    - Input: File features + hardware specs
@@ -383,6 +413,7 @@ Activate the 40-agent Elite Agent Collective for autonomous compression, monitor
    ```
 
 **Automation Features:**
+
 - **Auto-training:** Models retrain nightly on collected data
 - **A/B testing:** New models shadow-deployed, compared to production
 - **Fallback:** Revert to previous model if performance degrades
@@ -394,6 +425,7 @@ Activate the 40-agent Elite Agent Collective for autonomous compression, monitor
 ### 5.3 Autonomous Monitoring & Alerting (Week 3)
 
 **Automation Goals:**
+
 - Self-diagnosing system issues
 - Predictive alerting before failures
 - Auto-remediation of common problems
@@ -401,50 +433,53 @@ Activate the 40-agent Elite Agent Collective for autonomous compression, monitor
 **Deliverables:**
 
 1. **Prometheus + Grafana Stack**
+
    ```yaml
    Metrics Collection:
-   - System metrics (node_exporter)
-   - Go API metrics (custom /metrics endpoint)
-   - Python engine metrics (prometheus_client)
-   - Agent swarm metrics (custom agent_exporter)
-   - ZFS metrics (zfs_exporter)
-   - Compression metrics (custom collector)
-   
+     - System metrics (node_exporter)
+     - Go API metrics (custom /metrics endpoint)
+     - Python engine metrics (prometheus_client)
+     - Agent swarm metrics (custom agent_exporter)
+     - ZFS metrics (zfs_exporter)
+     - Compression metrics (custom collector)
+
    Dashboards:
-   - System Overview (CPU, memory, disk, network)
-   - Compression Performance (ratio, throughput, latency)
-   - Agent Swarm Health (active agents, task queue, errors)
-   - Storage Health (pools, datasets, snapshots)
-   - API Performance (request rate, latency, errors)
-   - User Activity (logins, operations, bandwidth)
+     - System Overview (CPU, memory, disk, network)
+     - Compression Performance (ratio, throughput, latency)
+     - Agent Swarm Health (active agents, task queue, errors)
+     - Storage Health (pools, datasets, snapshots)
+     - API Performance (request rate, latency, errors)
+     - User Activity (logins, operations, bandwidth)
    ```
 
 2. **AlertManager Configuration**
+
    ```yaml
    Alert Rules:
-   - High CPU usage (> 80% for 5m) → throttle compression
-   - Low memory (< 10% free) → trigger cleanup, alert
-   - High error rate (> 1% for 5m) → alert, auto-diagnose
-   - Agent failure (missing heartbeat 30s) → restart, alert
-   - Pool degraded → alert immediately
-   - Disk smart errors → alert, prepare replacement
-   - Compression ratio drop (> 20%) → investigate, alert
-   
+     - High CPU usage (> 80% for 5m) → throttle compression
+     - Low memory (< 10% free) → trigger cleanup, alert
+     - High error rate (> 1% for 5m) → alert, auto-diagnose
+     - Agent failure (missing heartbeat 30s) → restart, alert
+     - Pool degraded → alert immediately
+     - Disk smart errors → alert, prepare replacement
+     - Compression ratio drop (> 20%) → investigate, alert
+
    Auto-remediation:
-   - Restart failed services
-   - Clear temp files when disk full
-   - Throttle compression on high load
-   - Rebalance tasks across agents
-   - Rotate logs when oversized
+     - Restart failed services
+     - Clear temp files when disk full
+     - Throttle compression on high load
+     - Rebalance tasks across agents
+     - Rotate logs when oversized
    ```
 
 3. **Anomaly Detection**
+
    ```python
    Models:
    - Isolation Forest: Detect unusual metrics patterns
    - LSTM Autoencoder: Time series anomaly detection
    - Statistical Process Control: Threshold violations
-   
+
    Auto-Actions:
    - Log anomalies for analysis
    - Alert on severity threshold
@@ -453,6 +488,7 @@ Activate the 40-agent Elite Agent Collective for autonomous compression, monitor
    ```
 
 **Automation Features:**
+
 - **Self-healing:** 80%+ of common issues auto-resolved
 - **Predictive alerts:** Warn 15-30 minutes before failures
 - **Root cause analysis:** Agents trace issues to source
@@ -464,11 +500,13 @@ Activate the 40-agent Elite Agent Collective for autonomous compression, monitor
 ## Phase 6: Production Hardening & Security (Priority: HIGH)
 
 ### Objective
+
 Prepare system for production deployment with enterprise-grade security, reliability, and compliance.
 
 ### 6.1 Security Hardening (Week 3-4)
 
 **Automation Goals:**
+
 - Continuous security scanning
 - Automated vulnerability patching
 - Zero-trust architecture
@@ -476,6 +514,7 @@ Prepare system for production deployment with enterprise-grade security, reliabi
 **Deliverables:**
 
 1. **Zero-Trust Network Architecture**
+
    ```
    Implementation:
    - mTLS for all internal communication
@@ -487,28 +526,30 @@ Prepare system for production deployment with enterprise-grade security, reliabi
    ```
 
 2. **Security Scanning Pipeline**
+
    ```yaml
    Daily Scans:
-   - Container image scanning (Trivy)
-   - Dependency vulnerabilities (Snyk, Dependabot)
-   - Static analysis (CodeQL, semgrep)
-   - Secret detection (Gitleaks, detect-secrets)
-   - License compliance (FOSSA)
-   
+     - Container image scanning (Trivy)
+     - Dependency vulnerabilities (Snyk, Dependabot)
+     - Static analysis (CodeQL, semgrep)
+     - Secret detection (Gitleaks, detect-secrets)
+     - License compliance (FOSSA)
+
    Continuous:
-   - Runtime security (Falco)
-   - Network intrusion detection (Suricata)
-   - File integrity monitoring (AIDE)
-   - Log analysis (Wazuh)
+     - Runtime security (Falco)
+     - Network intrusion detection (Suricata)
+     - File integrity monitoring (AIDE)
+     - Log analysis (Wazuh)
    ```
 
 3. **Automated Patching**
+
    ```
    Strategy:
    - Critical CVEs: Auto-patch within 24 hours
    - High severity: Auto-patch within 7 days
    - Medium/low: Batch monthly
-   
+
    Process:
    - Dependabot creates PRs
    - Tests run automatically
@@ -518,6 +559,7 @@ Prepare system for production deployment with enterprise-grade security, reliabi
    ```
 
 **Automation Features:**
+
 - **Auto-remediation:** 90% of vulnerabilities auto-patched
 - **Compliance reporting:** SOC2, ISO 27001 evidence auto-generated
 - **Penetration testing:** Weekly automated security assessments
@@ -528,6 +570,7 @@ Prepare system for production deployment with enterprise-grade security, reliabi
 ### 6.2 High Availability & Disaster Recovery (Week 4)
 
 **Automation Goals:**
+
 - Zero-downtime deployments
 - Automatic failover
 - Data protection and recovery
@@ -535,6 +578,7 @@ Prepare system for production deployment with enterprise-grade security, reliabi
 **Deliverables:**
 
 1. **HA Architecture**
+
    ```
    Components:
    - Load balancer (HAProxy/Nginx) - Active/Active
@@ -546,47 +590,49 @@ Prepare system for production deployment with enterprise-grade security, reliabi
    ```
 
 2. **Backup Automation**
+
    ```yaml
    Strategy:
-   - Continuous: ZFS snapshots every 15 minutes
-   - Hourly: Incremental backups to S3
-   - Daily: Full backups to S3 + local disk
-   - Weekly: Test restore (automated verification)
-   
+     - Continuous: ZFS snapshots every 15 minutes
+     - Hourly: Incremental backups to S3
+     - Daily: Full backups to S3 + local disk
+     - Weekly: Test restore (automated verification)
+
    Retention:
-   - Snapshots: 7 days
-   - Hourly: 7 days
-   - Daily: 30 days
-   - Weekly: 1 year
-   - Monthly: 7 years (compliance)
-   
+     - Snapshots: 7 days
+     - Hourly: 7 days
+     - Daily: 30 days
+     - Weekly: 1 year
+     - Monthly: 7 years (compliance)
+
    Automation:
-   - Auto-encryption (AES-256)
-   - Auto-verification (checksum, test restore)
-   - Auto-rotation (delete old backups)
-   - Auto-reporting (backup status dashboard)
+     - Auto-encryption (AES-256)
+     - Auto-verification (checksum, test restore)
+     - Auto-rotation (delete old backups)
+     - Auto-reporting (backup status dashboard)
    ```
 
 3. **Disaster Recovery Playbook**
+
    ```python
    Automated DR Procedures:
-   
+
    1. detect_failure():
       - Monitor health checks
       - Detect service degradation
       - Trigger DR workflow
-   
+
    2. isolate_failure():
       - Route traffic away from failed node
       - Quarantine affected services
       - Prevent cascade failures
-   
+
    3. restore_service():
       - Promote replica to primary
       - Restore from latest backup
       - Verify data integrity
       - Resume traffic
-   
+
    4. post_incident():
       - Generate incident report
       - Update runbooks
@@ -594,6 +640,7 @@ Prepare system for production deployment with enterprise-grade security, reliabi
    ```
 
 **Automation Features:**
+
 - **RTO target:** < 5 minutes (automated failover)
 - **RPO target:** < 15 minutes (snapshot interval)
 - **Auto-scaling:** Based on load, schedule, predictions
@@ -605,11 +652,13 @@ Prepare system for production deployment with enterprise-grade security, reliabi
 ## Phase 7: Live-Build Integration & ISO Distribution (Priority: MEDIUM)
 
 ### Objective
+
 Automate ISO building and establish distribution network for SigmaVault NAS OS releases.
 
 ### 7.1 Live-Build Pipeline Enhancement (Week 5)
 
 **Automation Goals:**
+
 - Push-button ISO generation
 - Multi-architecture support
 - Reproducible builds
@@ -617,6 +666,7 @@ Automate ISO building and establish distribution network for SigmaVault NAS OS r
 **Deliverables:**
 
 1. **Enhanced live-build Configuration**
+
    ```
    live-build/
    ├── auto/
@@ -641,9 +691,10 @@ Automate ISO building and establish distribution network for SigmaVault NAS OS r
    ```
 
 2. **Build Automation Script**
+
    ```bash
    scripts/build-iso-automated.sh:
-   
+
    Features:
    - Detect architecture (amd64, arm64)
    - Pull latest .deb packages
@@ -653,7 +704,7 @@ Automate ISO building and establish distribution network for SigmaVault NAS OS r
    - Create torrent file
    - Upload to distribution network
    - Update release manifest
-   
+
    Options:
    - --arch: Target architecture
    - --variant: desktop, server, minimal
@@ -662,25 +713,27 @@ Automate ISO building and establish distribution network for SigmaVault NAS OS r
    ```
 
 3. **ISO Testing Pipeline**
+
    ```yaml
    Automated Tests:
-   - Boot test (QEMU/KVM)
-   - Installation test (unattended)
-   - Service startup verification
-   - Network connectivity check
-   - Desktop UI launch test
-   - Compression functionality test
-   - Agent swarm health check
-   
+     - Boot test (QEMU/KVM)
+     - Installation test (unattended)
+     - Service startup verification
+     - Network connectivity check
+     - Desktop UI launch test
+     - Compression functionality test
+     - Agent swarm health check
+
    Environments:
-   - BIOS boot
-   - UEFI boot
-   - Secure Boot
-   - Various CPU configs (cores, features)
-   - Various RAM configs (4GB, 8GB, 16GB+)
+     - BIOS boot
+     - UEFI boot
+     - Secure Boot
+     - Various CPU configs (cores, features)
+     - Various RAM configs (4GB, 8GB, 16GB+)
    ```
 
 **Automation Features:**
+
 - **Matrix builds:** All arch + variant combinations in parallel
 - **Auto-versioning:** Version embedded in ISO, read from git tags
 - **Reproducible:** Same inputs → identical outputs
@@ -692,6 +745,7 @@ Automate ISO building and establish distribution network for SigmaVault NAS OS r
 ### 7.2 Distribution Network (Week 5-6)
 
 **Automation Goals:**
+
 - Global CDN distribution
 - Torrent seeding
 - Mirror synchronization
@@ -700,13 +754,14 @@ Automate ISO building and establish distribution network for SigmaVault NAS OS r
 **Deliverables:**
 
 1. **CDN Setup**
+
    ```
    Infrastructure:
    - CloudFlare: Primary CDN, DDoS protection
    - GitHub Releases: Official download location
    - SourceForge: Legacy mirror
    - IPFS: Decentralized backup
-   
+
    Automation:
    - Auto-upload on release
    - Auto-purge cache on update
@@ -715,13 +770,14 @@ Automate ISO building and establish distribution network for SigmaVault NAS OS r
    ```
 
 2. **Torrent Infrastructure**
+
    ```
    Components:
    - Automatic .torrent creation
    - Seedbox network (3+ geographic locations)
    - DHT integration
    - WebTorrent support (browser downloads)
-   
+
    Automation:
    - Auto-seed on release
    - Monitor seed ratio
@@ -729,25 +785,27 @@ Automate ISO building and establish distribution network for SigmaVault NAS OS r
    ```
 
 3. **Mirror Network**
+
    ```yaml
    Mirrors:
-   - Official (sigmavault.org)
-   - University mirrors (5+ institutions)
-   - Community mirrors (10+ volunteers)
-   
+     - Official (sigmavault.org)
+     - University mirrors (5+ institutions)
+     - Community mirrors (10+ volunteers)
+
    Synchronization:
-   - rsync every 6 hours
-   - Integrity verification
-   - Health monitoring
-   - Auto-disable broken mirrors
-   
+     - rsync every 6 hours
+     - Integrity verification
+     - Health monitoring
+     - Auto-disable broken mirrors
+
    Mirror API:
-   - /api/mirrors → list active mirrors
-   - /api/mirrors/nearest → geo-location based
-   - /api/mirrors/fastest → benchmark results
+     - /api/mirrors → list active mirrors
+     - /api/mirrors/nearest → geo-location based
+     - /api/mirrors/fastest → benchmark results
    ```
 
 **Automation Features:**
+
 - **Smart routing:** Users auto-directed to fastest mirror
 - **Fallback:** Auto-retry failed downloads on alternate mirrors
 - **Analytics:** Download stats, geographic distribution, versions
@@ -758,11 +816,13 @@ Automate ISO building and establish distribution network for SigmaVault NAS OS r
 ## Phase 8: Documentation & Knowledge Base (Priority: MEDIUM)
 
 ### Objective
+
 Create comprehensive, searchable, and auto-generated documentation for all users and maintainers.
 
 ### 8.1 Auto-Generated Documentation (Week 6)
 
 **Automation Goals:**
+
 - Zero-drift documentation (always in sync with code)
 - Multi-format output (web, PDF, man pages)
 - Interactive examples
@@ -770,13 +830,14 @@ Create comprehensive, searchable, and auto-generated documentation for all users
 **Deliverables:**
 
 1. **API Documentation**
+
    ```
    Tools:
    - OpenAPI/Swagger (Go API)
    - Sphinx (Python RPC engine)
    - Typedoc (React web UI)
    - gtk-doc (Desktop UI)
-   
+
    Automation:
    - Auto-generate on commit
    - Deploy to docs.sigmavault.org
@@ -786,6 +847,7 @@ Create comprehensive, searchable, and auto-generated documentation for all users
    ```
 
 2. **User Documentation**
+
    ```
    Docusaurus Site:
    - Getting Started
@@ -794,7 +856,7 @@ Create comprehensive, searchable, and auto-generated documentation for all users
    - Troubleshooting
    - FAQ (auto-generated from issues)
    - Video tutorials (auto-captioned)
-   
+
    Automation:
    - Auto-update from markdown in repo
    - Screenshots auto-captured in CI
@@ -803,6 +865,7 @@ Create comprehensive, searchable, and auto-generated documentation for all users
    ```
 
 3. **Developer Documentation**
+
    ```
    Content:
    - Architecture diagrams (auto-generated from code)
@@ -811,7 +874,7 @@ Create comprehensive, searchable, and auto-generated documentation for all users
    - Contributing guide
    - Code style guide
    - Release process
-   
+
    Automation:
    - Mermaid/PlantUML diagrams from code
    - Coverage reports embedded
@@ -820,6 +883,7 @@ Create comprehensive, searchable, and auto-generated documentation for all users
    ```
 
 **Automation Features:**
+
 - **Always current:** Docs update with every release
 - **Multi-language:** Auto-translate to 10+ languages
 - **Offline support:** Bundled in ISO, accessible without internet
@@ -830,6 +894,7 @@ Create comprehensive, searchable, and auto-generated documentation for all users
 ### 8.2 Community Knowledge Base (Week 7)
 
 **Automation Goals:**
+
 - Crowd-sourced solutions
 - AI-powered support
 - Self-service resolution
@@ -837,6 +902,7 @@ Create comprehensive, searchable, and auto-generated documentation for all users
 **Deliverables:**
 
 1. **Discourse Forum Integration**
+
    ```
    Categories:
    - Announcements (official only)
@@ -845,7 +911,7 @@ Create comprehensive, searchable, and auto-generated documentation for all users
    - Feature Requests
    - Development
    - Showcase
-   
+
    Automation:
    - Auto-tag with AI (topic classification)
    - Auto-link related issues/PRs
@@ -854,6 +920,7 @@ Create comprehensive, searchable, and auto-generated documentation for all users
    ```
 
 2. **AI Support Bot**
+
    ```python
    Capabilities:
    - Answer common questions (trained on docs)
@@ -861,7 +928,7 @@ Create comprehensive, searchable, and auto-generated documentation for all users
    - Generate diagnostic reports
    - Suggest solutions
    - Escalate to humans when needed
-   
+
    Training:
    - Fine-tuned on SigmaVault docs + issues
    - Continuously learning from interactions
@@ -870,9 +937,10 @@ Create comprehensive, searchable, and auto-generated documentation for all users
    ```
 
 3. **Self-Diagnostic Tool**
+
    ```bash
    sigmavault-diagnostics:
-   
+
    Features:
    - Collect system info
    - Run health checks
@@ -880,7 +948,7 @@ Create comprehensive, searchable, and auto-generated documentation for all users
    - Generate support bundle
    - Upload to secure storage (opt-in)
    - Provide anonymized ID for support
-   
+
    Automation:
    - One-click diagnosis
    - Auto-suggest fixes
@@ -889,6 +957,7 @@ Create comprehensive, searchable, and auto-generated documentation for all users
    ```
 
 **Automation Features:**
+
 - **95% self-service resolution:** Most issues resolved without human support
 - **Proactive support:** Detect issues before users report
 - **Knowledge capture:** Every solution becomes searchable knowledge
@@ -899,11 +968,13 @@ Create comprehensive, searchable, and auto-generated documentation for all users
 ## Phase 9: Performance Optimization & Benchmarking (Priority: LOW)
 
 ### Objective
+
 Achieve industry-leading compression performance through continuous optimization and benchmarking.
 
 ### 9.1 Continuous Benchmarking (Week 8)
 
 **Automation Goals:**
+
 - Track performance over time
 - Detect regressions immediately
 - Compare against competitors
@@ -911,6 +982,7 @@ Achieve industry-leading compression performance through continuous optimization
 **Deliverables:**
 
 1. **Benchmark Suite**
+
    ```
    Benchmarks:
    - Compression ratio (various file types)
@@ -920,7 +992,7 @@ Achieve industry-leading compression performance through continuous optimization
    - Memory efficiency
    - End-to-end latency
    - Concurrent operations scaling
-   
+
    Datasets:
    - Silesia corpus (reference dataset)
    - Large files (1GB+ video, databases)
@@ -931,19 +1003,20 @@ Achieve industry-leading compression performance through continuous optimization
    ```
 
 2. **Performance Tracking**
+
    ```yaml
    Infrastructure:
    - Dedicated benchmark server
    - Run on every commit (smoke tests)
    - Run nightly (full suite)
    - Run on release (comprehensive)
-   
+
    Results Storage:
    - Time series database (InfluxDB)
    - Visualization (Grafana)
    - Historical comparison
    - Regression detection
-   
+
    Alerting:
    - > 5% regression → block PR
    - > 2% regression → investigate
@@ -951,13 +1024,14 @@ Achieve industry-leading compression performance through continuous optimization
    ```
 
 3. **Competitive Analysis**
+
    ```
    Compare Against:
    - Built-in tools (gzip, bzip2, xz)
    - Modern compressors (zstd, lz4, brotli)
    - Commercial NAS (Synology, QNAP, TrueNAS)
    - Cloud storage (S3, GCS, Azure Blob)
-   
+
    Metrics:
    - Compression ratio
    - Speed
@@ -966,6 +1040,7 @@ Achieve industry-leading compression performance through continuous optimization
    ```
 
 **Automation Features:**
+
 - **Continuous optimization:** Performance targets enforced in CI
 - **Automatic profiling:** Identify hot paths automatically
 - **A/B testing:** Test optimizations in shadow mode
@@ -976,11 +1051,13 @@ Achieve industry-leading compression performance through continuous optimization
 ## Phase 10: Ecosystem & Integrations (Priority: LOW)
 
 ### Objective
+
 Build ecosystem of plugins, integrations, and third-party tools.
 
 ### 10.1 Plugin System (Week 9)
 
 **Automation Goals:**
+
 - Easy plugin development
 - Sandboxed execution
 - Auto-discovery and updates
@@ -988,13 +1065,14 @@ Build ecosystem of plugins, integrations, and third-party tools.
 **Deliverables:**
 
 1. **Plugin API**
+
    ```python
    Interface:
    - Hooks (pre/post compression, storage events)
    - Data access (read metadata, not raw data)
    - UI extensions (add dashboard widgets)
    - Custom algorithms (register new compressors)
-   
+
    Security:
    - WebAssembly sandboxing
    - Resource limits (CPU, memory, network)
@@ -1003,6 +1081,7 @@ Build ecosystem of plugins, integrations, and third-party tools.
    ```
 
 2. **Plugin Marketplace**
+
    ```
    Features:
    - Browse/search plugins
@@ -1010,7 +1089,7 @@ Build ecosystem of plugins, integrations, and third-party tools.
    - Auto-updates
    - Ratings/reviews
    - Security scan results
-   
+
    Verified Plugins:
    - E-mail notifications
    - Slack/Discord webhooks
@@ -1031,6 +1110,7 @@ Build ecosystem of plugins, integrations, and third-party tools.
    ```
 
 **Automation Features:**
+
 - **Auto-discovery:** Plugins auto-register on install
 - **Dependency management:** Auto-install required plugins
 - **Conflict detection:** Warn about incompatible plugins
@@ -1041,18 +1121,21 @@ Build ecosystem of plugins, integrations, and third-party tools.
 ## Implementation Timeline
 
 ### Month 1: Core Automation
+
 - **Week 1:** CI/CD pipeline, pre-commit hooks, dev containers
 - **Week 2:** Agent coordinator, ML compression models
 - **Week 3:** Monitoring, alerting, security hardening
 - **Week 4:** HA setup, backup automation, DR testing
 
 ### Month 2: Production Readiness
+
 - **Week 5:** Live-build automation, ISO distribution
 - **Week 6:** Documentation generation, API docs
 - **Week 7:** Community platform, support bot
 - **Week 8:** Benchmarking suite, performance tracking
 
 ### Month 3: Ecosystem Development
+
 - **Week 9:** Plugin system, marketplace
 - **Week 10:** Pre-built integrations
 - **Week 11:** Beta testing program
@@ -1063,24 +1146,28 @@ Build ecosystem of plugins, integrations, and third-party tools.
 ## Success Metrics
 
 ### Automation KPIs
+
 - **Test automation:** 90%+ code coverage, < 10 min test suite
 - **Deployment automation:** Zero-touch releases, < 90 min end-to-end
 - **Operational automation:** 95%+ issues auto-resolved, < 5% human intervention
 - **Documentation automation:** 100% API coverage, auto-updated on release
 
 ### Performance KPIs
+
 - **Compression ratio:** 75%+ average (better than competition)
 - **Throughput:** 500+ MB/s per core (sustained)
 - **Agent efficiency:** 99%+ agent uptime, < 100ms task latency
 - **System efficiency:** < 5% CPU overhead, < 500MB memory footprint
 
 ### Reliability KPIs
+
 - **Availability:** 99.99% uptime (52 min/year downtime)
 - **RTO:** < 5 minutes (automated failover)
 - **RPO:** < 15 minutes (snapshot frequency)
 - **MTTR:** < 30 minutes (automated recovery)
 
 ### User Experience KPIs
+
 - **Install time:** < 10 minutes (ISO to running system)
 - **Setup time:** < 5 minutes (first-time configuration)
 - **Support resolution:** 95% self-service, < 24hr human response
@@ -1091,6 +1178,7 @@ Build ecosystem of plugins, integrations, and third-party tools.
 ## Resource Requirements
 
 ### Infrastructure
+
 - **CI/CD:** GitHub Actions runners (hosted, ~$500/month at scale)
 - **Monitoring:** Hosted Grafana Cloud or self-hosted ($0-200/month)
 - **CDN:** CloudFlare Pro ($20/month) + bandwidth
@@ -1098,11 +1186,13 @@ Build ecosystem of plugins, integrations, and third-party tools.
 - **Benchmark server:** Hetzner dedicated ($50/month)
 
 ### Development
+
 - **Time estimate:** 3 developers × 3 months = 9 person-months
 - **Skills required:** Go, Python, Rust, GTK, DevOps, ML/AI
 - **Part-time needs:** Security review, UX design, technical writing
 
 ### Community
+
 - **Forum hosting:** Discourse managed ($100/month)
 - **Support bot:** OpenAI API (~$50/month)
 - **Documentation hosting:** Vercel free tier or $20/month
@@ -1114,18 +1204,21 @@ Build ecosystem of plugins, integrations, and third-party tools.
 ## Risk Mitigation
 
 ### Technical Risks
+
 - **Agent coordination complexity:** Start with simple task routing, iterate
 - **ML model accuracy:** Fall back to heuristics if models underperform
 - **Performance regressions:** Automated benchmarking catches issues early
 - **Security vulnerabilities:** Daily scanning, automated patching, bug bounty
 
 ### Operational Risks
+
 - **CI/CD costs:** Use self-hosted runners for cost control
 - **Storage costs:** Aggressive artifact cleanup, expire old builds
 - **Support load:** AI bot handles 80%+, community for rest
 - **Burnout:** Automation reduces manual work, sustainable pace
 
 ### Project Risks
+
 - **Feature creep:** Strict prioritization, MVP first
 - **Scope expansion:** Phase gates, clear success criteria
 - **Timeline slippage:** Buffer time, cut scope if needed
@@ -1136,18 +1229,21 @@ Build ecosystem of plugins, integrations, and third-party tools.
 ## Next Actions (Immediate)
 
 ### This Week
+
 1. ✅ Commit Phase 3c work (COMPLETE)
 2. 🔄 **Create `.github/workflows/` directory and first workflow**
 3. 🔄 **Set up pre-commit hooks configuration**
 4. 🔄 **Enhance Makefile with test/build/dev targets**
 
 ### This Month
+
 1. Complete Phase 4 (CI/CD Pipeline)
 2. Begin Phase 5 (Agent Swarm Activation)
 3. Start Phase 6 (Security Hardening)
 4. Plan Phase 7 (Live-Build Integration)
 
 ### This Quarter
+
 1. Reach 90%+ automation coverage
 2. Deploy production-ready monitoring
 3. Launch beta program with ISO distribution
