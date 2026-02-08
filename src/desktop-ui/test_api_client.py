@@ -71,11 +71,11 @@ async def test_compression_jobs(client: SigmaVaultAPIClient) -> Optional[list]:
         # Get all jobs
         jobs = await client.get_compression_jobs(limit=100)
         print(f"✅ Total Jobs Found: {len(jobs)}")
-        
+
         if not jobs:
             print("   (No compression jobs in the system)")
             return jobs
-        
+
         # Show recent jobs
         print(f"\n   Recent Jobs (first 5):")
         for i, job in enumerate(jobs[:5], 1):
@@ -88,16 +88,16 @@ async def test_compression_jobs(client: SigmaVaultAPIClient) -> Optional[list]:
             print(f"       Time: {job.elapsed_seconds:.1f}s")
             if job.status != "pending":
                 print(f"       Throughput: {job.throughput_mbps:.2f} MB/s")
-        
+
         # Count by status
         status_counts = {}
         for job in jobs:
             status_counts[job.status] = status_counts.get(job.status, 0) + 1
-        
+
         print(f"\n   Summary by Status:")
         for status, count in sorted(status_counts.items()):
             print(f"      {status}: {count}")
-        
+
         return jobs
     except Exception as e:
         print(f"❌ ERROR: {type(e).__name__}: {e}")
@@ -107,10 +107,7 @@ async def test_compression_jobs(client: SigmaVaultAPIClient) -> Optional[list]:
         return None
 
 
-async def test_job_detail(
-    client: SigmaVaultAPIClient,
-    job_id: str
-) -> Optional[dict]:
+async def test_job_detail(client: SigmaVaultAPIClient, job_id: str) -> Optional[dict]:
     """Test getting single job details."""
     await print_section(f"TEST 4: Job Details ({job_id})")
     try:
@@ -148,31 +145,31 @@ async def run_all_tests(api_url: str = "http://localhost:12080") -> None:
 ║  Perfect for testing on Windows or any platform without GNOME.           ║
 ╚════════════════════════════════════════════════════════════════════════════╝
     """)
-    
+
     print(f"\n📡 API Base URL: {api_url}")
     print("⏳ Connecting to API...")
-    
+
     async with SigmaVaultAPIClient(api_url, timeout=10.0) as client:
         # Test 1: Health check
         is_healthy = await test_health_check(client)
-        
+
         if not is_healthy:
             print("\n⚠️  API is not responding. Make sure the API server is running:")
             print("   cd src/api && go run main.go")
             print("\n   Or check if API is running on a different address:")
             print("   SIGMAVAULT_API_ADDR=<address> python test_api_client.py")
             return
-        
+
         # Test 2: System status
         status = await test_system_status(client)
-        
+
         # Test 3: Compression jobs
         jobs = await test_compression_jobs(client)
-        
+
         # Test 4: Job details (if jobs exist)
         if jobs and len(jobs) > 0:
             await test_job_detail(client, jobs[0].job_id)
-    
+
     # Summary
     await print_section("Test Summary")
     print("✅ API Client is functioning correctly!")
@@ -190,11 +187,9 @@ async def main() -> None:
     """Main entry point."""
     # Allow custom API URL via environment variable
     import os
-    api_url = os.environ.get(
-        "SIGMAVAULT_API_URL",
-        "http://localhost:12080"
-    )
-    
+
+    api_url = os.environ.get("SIGMAVAULT_API_URL", "http://localhost:12080")
+
     try:
         await run_all_tests(api_url)
     except KeyboardInterrupt:
@@ -203,6 +198,7 @@ async def main() -> None:
     except Exception as e:
         print(f"\n\n❌ Unexpected error: {e}")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)
 

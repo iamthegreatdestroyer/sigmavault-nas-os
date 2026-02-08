@@ -10,14 +10,17 @@ async def test_api_health():
     """Test basic API health check."""
     try:
         import aiohttp
+
         print("✅ aiohttp available")
     except ImportError as e:
         print(f"❌ aiohttp not available: {e}")
         return False
-    
+
     try:
         async with aiohttp.ClientSession() as session:
-            async with session.get("http://localhost:12080/health", timeout=aiohttp.ClientTimeout(total=3)) as resp:
+            async with session.get(
+                "http://localhost:12080/health", timeout=aiohttp.ClientTimeout(total=3)
+            ) as resp:
                 if resp.status == 200:
                     print(f"✅ API Health Check: {resp.status} OK")
                     data = await resp.json()

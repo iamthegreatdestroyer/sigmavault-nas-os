@@ -51,7 +51,9 @@ class StoragePage(Gtk.Box):
 
     def _build_disks_tab(self) -> Gtk.Widget:
         scrolled = Gtk.ScrolledWindow(vexpand=True, hscrollbar_policy=Gtk.PolicyType.NEVER)
-        clamp = Adw.Clamp(maximum_size=800, margin_top=16, margin_bottom=16, margin_start=16, margin_end=16)
+        clamp = Adw.Clamp(
+            maximum_size=800, margin_top=16, margin_bottom=16, margin_start=16, margin_end=16
+        )
         scrolled.set_child(clamp)
 
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16)
@@ -75,7 +77,9 @@ class StoragePage(Gtk.Box):
 
         # Placeholder row
         self._disk_placeholder = Adw.ActionRow(
-            title="Loading...", subtitle="Fetching disk inventory", icon_name="content-loading-symbolic"
+            title="Loading...",
+            subtitle="Fetching disk inventory",
+            icon_name="content-loading-symbolic",
         )
         self._disks_group.add(self._disk_placeholder)
 
@@ -83,7 +87,9 @@ class StoragePage(Gtk.Box):
 
     def _build_pools_tab(self) -> Gtk.Widget:
         scrolled = Gtk.ScrolledWindow(vexpand=True, hscrollbar_policy=Gtk.PolicyType.NEVER)
-        clamp = Adw.Clamp(maximum_size=800, margin_top=16, margin_bottom=16, margin_start=16, margin_end=16)
+        clamp = Adw.Clamp(
+            maximum_size=800, margin_top=16, margin_bottom=16, margin_start=16, margin_end=16
+        )
         scrolled.set_child(clamp)
 
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16)
@@ -91,7 +97,9 @@ class StoragePage(Gtk.Box):
 
         # Action toolbar
         toolbar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
-        create_btn = Gtk.Button(label="Create Pool", icon_name="list-add-symbolic", css_classes=["suggested-action"])
+        create_btn = Gtk.Button(
+            label="Create Pool", icon_name="list-add-symbolic", css_classes=["suggested-action"]
+        )
         create_btn.connect("clicked", self._on_create_pool)
         refresh_btn = Gtk.Button(label="Refresh", icon_name="view-refresh-symbolic")
         refresh_btn.connect("clicked", lambda _: self._refresh_data())
@@ -106,7 +114,9 @@ class StoragePage(Gtk.Box):
         box.append(self._pools_group)
 
         self._pool_placeholder = Adw.ActionRow(
-            title="No pools detected", subtitle="Create a pool to get started", icon_name="drive-multidisk-symbolic"
+            title="No pools detected",
+            subtitle="Create a pool to get started",
+            icon_name="drive-multidisk-symbolic",
         )
         self._pools_group.add(self._pool_placeholder)
 
@@ -114,7 +124,9 @@ class StoragePage(Gtk.Box):
 
     def _build_datasets_tab(self) -> Gtk.Widget:
         scrolled = Gtk.ScrolledWindow(vexpand=True, hscrollbar_policy=Gtk.PolicyType.NEVER)
-        clamp = Adw.Clamp(maximum_size=800, margin_top=16, margin_bottom=16, margin_start=16, margin_end=16)
+        clamp = Adw.Clamp(
+            maximum_size=800, margin_top=16, margin_bottom=16, margin_start=16, margin_end=16
+        )
         scrolled.set_child(clamp)
 
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16)
@@ -161,7 +173,11 @@ class StoragePage(Gtk.Box):
                         icon_name="drive-multidisk-symbolic",
                     )
                     # Add scrub button
-                    scrub_btn = Gtk.Button(icon_name="view-refresh-symbolic", valign=Gtk.Align.CENTER, tooltip_text="Start Scrub")
+                    scrub_btn = Gtk.Button(
+                        icon_name="view-refresh-symbolic",
+                        valign=Gtk.Align.CENTER,
+                        tooltip_text="Start Scrub",
+                    )
                     scrub_btn.connect("clicked", self._on_scrub_pool, pool.get("name"))
                     row.add_suffix(scrub_btn)
                     self._pools_group.add(row)
@@ -190,6 +206,7 @@ class StoragePage(Gtk.Box):
         """Launch GNOME Disks application."""
         try:
             from gi.repository import Gio as _Gio
+
             app_info = _Gio.AppInfo.create_from_commandline(
                 "gnome-disks", "GNOME Disks", _Gio.AppInfoCreateFlags.NONE
             )

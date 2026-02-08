@@ -139,9 +139,7 @@ class SigmaVaultAPIClient:
         """GET /api/v1/compression/stats — Compression statistics and history."""
         return self._get("/api/v1/compression/stats")
 
-    def compress_file(
-        self, path: str, algorithm: str = "auto", level: int = 6
-    ) -> Optional[dict]:
+    def compress_file(self, path: str, algorithm: str = "auto", level: int = 6) -> Optional[dict]:
         """POST /api/v1/compression/jobs — Submit compression job."""
         return self._post(
             "/api/v1/compression/jobs",

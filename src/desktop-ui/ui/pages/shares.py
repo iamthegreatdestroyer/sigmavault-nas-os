@@ -24,7 +24,9 @@ class SharesPage(Gtk.Box):
         scrolled = Gtk.ScrolledWindow(vexpand=True, hscrollbar_policy=Gtk.PolicyType.NEVER)
         self.append(scrolled)
 
-        clamp = Adw.Clamp(maximum_size=800, margin_top=16, margin_bottom=16, margin_start=16, margin_end=16)
+        clamp = Adw.Clamp(
+            maximum_size=800, margin_top=16, margin_bottom=16, margin_start=16, margin_end=16
+        )
         scrolled.set_child(clamp)
 
         content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=24)
@@ -32,7 +34,9 @@ class SharesPage(Gtk.Box):
 
         # Toolbar
         toolbar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
-        add_btn = Gtk.Button(label="Add Share", icon_name="list-add-symbolic", css_classes=["suggested-action"])
+        add_btn = Gtk.Button(
+            label="Add Share", icon_name="list-add-symbolic", css_classes=["suggested-action"]
+        )
         add_btn.connect("clicked", self._on_add_share)
         refresh_btn = Gtk.Button(label="Refresh", icon_name="view-refresh-symbolic")
         refresh_btn.connect("clicked", lambda _: self._refresh_shares())

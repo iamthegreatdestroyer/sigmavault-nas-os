@@ -184,9 +184,7 @@ class SigmaVaultWindow(Adw.ApplicationWindow):
 
         logger.info("Navigated to page: %s", page_id)
 
-    def _on_sidebar_row_selected(
-        self, _listbox: Gtk.ListBox, row: Gtk.ListBoxRow | None
-    ) -> None:
+    def _on_sidebar_row_selected(self, _listbox: Gtk.ListBox, row: Gtk.ListBoxRow | None) -> None:
         if row is not None:
             self.navigate_to(row.page_id)  # type: ignore[attr-defined]
 
@@ -233,9 +231,7 @@ class SigmaVaultWindow(Adw.ApplicationWindow):
                 idle_count = health.get("agents", {}).get("idle", agent_count)
                 busy_count = agent_count - idle_count
                 if busy_count > 0:
-                    self._agent_label.set_text(
-                        f"{agent_count} agents ({busy_count} busy)"
-                    )
+                    self._agent_label.set_text(f"{agent_count} agents ({busy_count} busy)")
                 else:
                     self._agent_label.set_text(f"{agent_count} agents idle")
             else:

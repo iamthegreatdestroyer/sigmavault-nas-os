@@ -23,7 +23,9 @@ class NetworkPage(Gtk.Box):
         scrolled = Gtk.ScrolledWindow(vexpand=True, hscrollbar_policy=Gtk.PolicyType.NEVER)
         self.append(scrolled)
 
-        clamp = Adw.Clamp(maximum_size=800, margin_top=16, margin_bottom=16, margin_start=16, margin_end=16)
+        clamp = Adw.Clamp(
+            maximum_size=800, margin_top=16, margin_bottom=16, margin_start=16, margin_end=16
+        )
         scrolled.set_child(clamp)
 
         content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=24)
@@ -58,7 +60,9 @@ class NetworkPage(Gtk.Box):
         )
         content.append(peers_group)
 
-        add_peer_btn = Gtk.Button(label="Add Peer", icon_name="list-add-symbolic", css_classes=["suggested-action"])
+        add_peer_btn = Gtk.Button(
+            label="Add Peer", icon_name="list-add-symbolic", css_classes=["suggested-action"]
+        )
         add_peer_btn.connect("clicked", self._on_add_peer)
 
         self._no_peers_row = Adw.ActionRow(
@@ -72,14 +76,10 @@ class NetworkPage(Gtk.Box):
         stats_group = Adw.PreferencesGroup(title="Traffic Statistics")
         content.append(stats_group)
 
-        self._rx_row = Adw.ActionRow(
-            title="Received", subtitle="—", icon_name="go-down-symbolic"
-        )
+        self._rx_row = Adw.ActionRow(title="Received", subtitle="—", icon_name="go-down-symbolic")
         stats_group.add(self._rx_row)
 
-        self._tx_row = Adw.ActionRow(
-            title="Transmitted", subtitle="—", icon_name="go-up-symbolic"
-        )
+        self._tx_row = Adw.ActionRow(title="Transmitted", subtitle="—", icon_name="go-up-symbolic")
         stats_group.add(self._tx_row)
 
         # Phase 6 notice

@@ -14,7 +14,7 @@ from gi.repository import Gtk, Adwaita
 
 class StatCard(Gtk.Box):
     """A card widget displaying a labeled statistic.
-    
+
     Layout:
         ┌──────────────────┐
         │  [icon]  Title   │
@@ -22,7 +22,7 @@ class StatCard(Gtk.Box):
         │   subtitle       │
         └──────────────────┘
     """
-    
+
     def __init__(
         self,
         title: str = "",
@@ -31,7 +31,7 @@ class StatCard(Gtk.Box):
         icon_name: str = "",
     ):
         """Initialize stat card.
-        
+
         Args:
             title: Card title (e.g., 'CPU Usage')
             value: Main value display (e.g., '45.2%')
@@ -47,73 +47,73 @@ class StatCard(Gtk.Box):
             margin_end=16,
             hexpand=True,
         )
-        
+
         # Add card styling
         self.add_css_class("card")
-        
+
         # Header row: icon + title
         header = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
         header.set_halign(Gtk.Align.CENTER)
-        
+
         if icon_name:
             icon = Gtk.Image.new_from_icon_name(icon_name)
             icon.set_pixel_size(16)
             icon.add_css_class("dim-label")
             header.append(icon)
-        
+
         self._title_label = Gtk.Label(label=title)
         self._title_label.add_css_class("dim-label")
         self._title_label.add_css_class("caption")
         header.append(self._title_label)
-        
+
         self.append(header)
-        
+
         # Value (large, bold)
         self._value_label = Gtk.Label(label=value)
         self._value_label.add_css_class("title-1")
         self._value_label.set_halign(Gtk.Align.CENTER)
         self.append(self._value_label)
-        
+
         # Subtitle
         self._subtitle_label = Gtk.Label(label=subtitle)
         self._subtitle_label.add_css_class("dim-label")
         self._subtitle_label.add_css_class("caption")
         self._subtitle_label.set_halign(Gtk.Align.CENTER)
         self.append(self._subtitle_label)
-    
+
     def set_value(self, value: str) -> None:
         """Update the displayed value.
-        
+
         Args:
             value: New value string
         """
         self._value_label.set_label(value)
-    
+
     def set_subtitle(self, subtitle: str) -> None:
         """Update the subtitle text.
-        
+
         Args:
             subtitle: New subtitle string
         """
         self._subtitle_label.set_label(subtitle)
-    
+
     def set_title(self, title: str) -> None:
         """Update the title text.
-        
+
         Args:
             title: New title string
         """
         self._title_label.set_label(title)
-    
+
     def set_value_css_class(self, css_class: str) -> None:
         """Set a CSS class on the value label for coloring.
-        
+
         Args:
             css_class: CSS class name (e.g., 'success', 'error', 'accent')
         """
         # Remove previous status classes
         for cls in ("success", "error", "accent", "warning"):
             self._value_label.remove_css_class(cls)
-        
+
         if css_class:
             self._value_label.add_css_class(css_class)

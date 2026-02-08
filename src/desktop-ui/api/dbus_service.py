@@ -125,10 +125,9 @@ class SigmaVaultDBusService:
 
             elif method_name == "GetHealth":
                 import json
+
                 health = self._api.get_health()
-                invocation.return_value(
-                    GLib.Variant("(s)", (json.dumps(health or {}),))
-                )
+                invocation.return_value(GLib.Variant("(s)", (json.dumps(health or {}),)))
 
             elif method_name == "ShowPage":
                 page_id = parameters.get_child_value(0).get_string()

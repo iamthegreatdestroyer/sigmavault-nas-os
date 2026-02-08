@@ -43,7 +43,7 @@ jobs:
                     gobject-introspection \
                     libgirepository1.0-dev \
                     gir1.2-gtk-4.0 \
-                    gir1.2-adwaita-1
+                    gir1.2-adw-1
 
             - name: Install Python dependencies
               working-directory: src/desktop-ui

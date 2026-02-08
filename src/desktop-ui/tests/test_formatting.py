@@ -15,8 +15,8 @@ from sigmavault_desktop.utils.formatting import (
     status_to_css_class,
 )
 
-
 # ─── format_bytes ─────────────────────────────────────────────────────
+
 
 class TestFormatBytes:
     """Test human-readable byte formatting."""
@@ -60,6 +60,7 @@ class TestFormatBytes:
 
 # ─── format_duration ──────────────────────────────────────────────────
 
+
 class TestFormatDuration:
     """Test human-readable duration formatting."""
 
@@ -95,6 +96,7 @@ class TestFormatDuration:
 
 # ─── format_percent ───────────────────────────────────────────────────
 
+
 class TestFormatPercent:
     """Test percentage formatting."""
 
@@ -122,9 +124,10 @@ class TestFormatPercent:
 
 # ─── format_ratio ─────────────────────────────────────────────────────
 
+
 class TestFormatRatio:
     """Test compression ratio formatting.
-    
+
     Note: format_ratio treats ratio as compressed/original fraction.
     A ratio of 0.15 means 15% of original → 6.7:1 compression.
     A ratio >= 1.0 means no savings.
@@ -155,6 +158,7 @@ class TestFormatRatio:
 
 # ─── format_throughput ────────────────────────────────────────────────
 
+
 class TestFormatThroughput:
     """Test throughput formatting."""
 
@@ -175,6 +179,7 @@ class TestFormatThroughput:
 
 
 # ─── status_to_icon ───────────────────────────────────────────────────
+
 
 class TestStatusToIcon:
     """Test status to GTK icon name mapping."""
@@ -206,6 +211,7 @@ class TestStatusToIcon:
 
 # ─── status_to_css_class ─────────────────────────────────────────────
 
+
 class TestStatusToCssClass:
     """Test status to CSS class mapping."""
 
@@ -232,15 +238,16 @@ class TestStatusToCssClass:
 
 # ─── Edge cases & robustness ─────────────────────────────────────────
 
+
 class TestEdgeCases:
     """Cross-cutting edge case tests."""
 
     def test_format_bytes_exact_boundaries(self):
         """Test at exact KB/MB/GB boundaries."""
         assert "1.00 KB" == format_bytes(1024)
-        assert "1.00 MB" == format_bytes(1024 ** 2)
-        assert "1.00 GB" == format_bytes(1024 ** 3)
-        assert "1.00 TB" == format_bytes(1024 ** 4)
+        assert "1.00 MB" == format_bytes(1024**2)
+        assert "1.00 GB" == format_bytes(1024**3)
+        assert "1.00 TB" == format_bytes(1024**4)
 
     def test_format_duration_boundary(self):
         """Test at exact time boundaries."""

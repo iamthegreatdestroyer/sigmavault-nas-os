@@ -28,7 +28,9 @@ class CompressionPage(Gtk.Box):
         scrolled = Gtk.ScrolledWindow(vexpand=True, hscrollbar_policy=Gtk.PolicyType.NEVER)
         self.append(scrolled)
 
-        clamp = Adw.Clamp(maximum_size=800, margin_top=16, margin_bottom=16, margin_start=16, margin_end=16)
+        clamp = Adw.Clamp(
+            maximum_size=800, margin_top=16, margin_bottom=16, margin_start=16, margin_end=16
+        )
         scrolled.set_child(clamp)
 
         content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=24)
@@ -133,7 +135,9 @@ class CompressionPage(Gtk.Box):
                     gfile = files.get_item(i)
                     path = gfile.get_path()
                     if path:
-                        logger.info("Submitting compression: %s (algo=%s, level=%d)", path, algo, level)
+                        logger.info(
+                            "Submitting compression: %s (algo=%s, level=%d)", path, algo, level
+                        )
                         try:
                             self._api.compress_file(path, algorithm=algo, level=level)
                         except Exception as e:

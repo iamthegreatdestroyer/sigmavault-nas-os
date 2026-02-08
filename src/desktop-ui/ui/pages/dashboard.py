@@ -28,7 +28,9 @@ class DashboardPage(Gtk.Box):
         scrolled = Gtk.ScrolledWindow(vexpand=True, hscrollbar_policy=Gtk.PolicyType.NEVER)
         self.append(scrolled)
 
-        clamp = Adw.Clamp(maximum_size=900, margin_top=24, margin_bottom=24, margin_start=16, margin_end=16)
+        clamp = Adw.Clamp(
+            maximum_size=900, margin_top=24, margin_bottom=24, margin_start=16, margin_end=16
+        )
         scrolled.set_child(clamp)
 
         content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=24)
@@ -67,7 +69,12 @@ class DashboardPage(Gtk.Box):
             "System", "computer-symbolic", "Loading...", "—"
         )
 
-        for card in [self._agent_card, self._storage_card, self._compression_card, self._health_card]:
+        for card in [
+            self._agent_card,
+            self._storage_card,
+            self._compression_card,
+            self._health_card,
+        ]:
             cards_row.append(card["widget"])
 
         # ── Recent activity ──
@@ -81,9 +88,7 @@ class DashboardPage(Gtk.Box):
             activity_group.add(row)
             self._activity_rows.append(row)
 
-    def _make_summary_card(
-        self, title: str, icon: str, value: str, subtitle: str
-    ) -> dict:
+    def _make_summary_card(self, title: str, icon: str, value: str, subtitle: str) -> dict:
         """Create a summary card widget. Returns dict with widget + value/subtitle labels."""
         frame = Gtk.Frame(css_classes=["card"])
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
@@ -134,11 +139,15 @@ class DashboardPage(Gtk.Box):
                 uptime_sec = system.get("uptime", 0)
                 uptime_hours = uptime_sec // 3600
                 uptime_days = uptime_hours // 24
-                uptime_str = f"{uptime_days}d {uptime_hours % 24}h" if uptime_days > 0 else f"{uptime_hours}h"
-                
+                uptime_str = (
+                    f"{uptime_days}d {uptime_hours % 24}h"
+                    if uptime_days > 0
+                    else f"{uptime_hours}h"
+                )
+
                 cpu_pct = system.get("cpu_usage", 0)
                 mem_pct = system.get("memory_use_pct", 0)
-                
+
                 self._health_card["value"].set_text(f"{cpu_pct:.0f}% CPU")
                 self._health_card["subtitle"].set_text(f"Uptime: {uptime_str}, Mem: {mem_pct:.0f}%")
             else:
@@ -180,7 +189,7 @@ class DashboardPage(Gtk.Box):
                 job_list = jobs["jobs"]
                 active = sum(1 for j in job_list if j.get("status") == "running")
                 completed = sum(1 for j in job_list if j.get("status") == "completed")
-                
+
                 if active > 0:
                     self._compression_card["value"].set_text(f"{active} Running")
                     self._compression_card["subtitle"].set_text(f"{completed} completed")

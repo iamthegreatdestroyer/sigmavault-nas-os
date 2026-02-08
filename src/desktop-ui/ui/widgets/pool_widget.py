@@ -33,14 +33,10 @@ class PoolWidget(Gtk.Frame):
         box.append(header)
 
         header.append(Gtk.Image(icon_name="drive-multidisk-symbolic", pixel_size=24))
-        header.append(
-            Gtk.Label(label=name, css_classes=["heading"], xalign=0, hexpand=True)
-        )
+        header.append(Gtk.Label(label=name, css_classes=["heading"], xalign=0, hexpand=True))
 
         health_class = "success" if health == "ONLINE" else "error"
-        self._health_label = Gtk.Label(
-            label=health, css_classes=[health_class, "caption"]
-        )
+        self._health_label = Gtk.Label(label=health, css_classes=[health_class, "caption"])
         header.append(self._health_label)
 
         # Capacity progress bar

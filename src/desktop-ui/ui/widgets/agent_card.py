@@ -39,9 +39,7 @@ class AgentCard(Gtk.Frame):
         icon = Gtk.Image(icon_name="system-run-symbolic", pixel_size=20)
         header.append(icon)
 
-        self._name_label = Gtk.Label(
-            label=name, css_classes=["heading"], xalign=0, hexpand=True
-        )
+        self._name_label = Gtk.Label(label=name, css_classes=["heading"], xalign=0, hexpand=True)
         header.append(self._name_label)
 
         self._status_dot = Gtk.Image(

@@ -51,7 +51,9 @@ class AgentsPage(Gtk.Box):
         scrolled = Gtk.ScrolledWindow(vexpand=True, hscrollbar_policy=Gtk.PolicyType.NEVER)
         self.append(scrolled)
 
-        clamp = Adw.Clamp(maximum_size=900, margin_top=8, margin_bottom=16, margin_start=16, margin_end=16)
+        clamp = Adw.Clamp(
+            maximum_size=900, margin_top=8, margin_bottom=16, margin_start=16, margin_end=16
+        )
         scrolled.set_child(clamp)
 
         self._content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16)
@@ -88,9 +90,7 @@ class AgentsPage(Gtk.Box):
             total = len(agents)
             busy = sum(1 for a in agents if a.get("status") == "busy")
             idle = total - busy
-            self._summary_label.set_text(
-                f"{total} agents — {busy} busy, {idle} idle"
-            )
+            self._summary_label.set_text(f"{total} agents — {busy} busy, {idle} idle")
 
             for agent in agents:
                 name = agent.get("name", "Unknown")
@@ -102,9 +102,7 @@ class AgentsPage(Gtk.Box):
                 if name in self._agent_rows:
                     # Update existing row
                     row = self._agent_rows[name]
-                    row.set_subtitle(
-                        f"{specialty} — {status} — {tasks_completed} tasks"
-                    )
+                    row.set_subtitle(f"{specialty} — {status} — {tasks_completed} tasks")
                 else:
                     # Create new row
                     group = self._ensure_tier_group(tier)
@@ -119,7 +117,11 @@ class AgentsPage(Gtk.Box):
 
                     # Status indicator suffix
                     status_icon = Gtk.Image(
-                        icon_name="media-record-symbolic" if status == "idle" else "media-playback-start-symbolic",
+                        icon_name=(
+                            "media-record-symbolic"
+                            if status == "idle"
+                            else "media-playback-start-symbolic"
+                        ),
                         css_classes=["success" if status == "idle" else "warning"],
                         tooltip_text=status,
                     )

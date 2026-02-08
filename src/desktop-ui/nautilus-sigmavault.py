@@ -91,8 +91,7 @@ class SigmaVaultNautilusExtension(GObject.GObject, Nautilus.MenuProvider):
             try:
                 notification = Gio.Notification.new("SigmaVault")
                 notification.set_body(
-                    "SigmaVault Settings is not running.\n"
-                    "Start it from the application menu."
+                    "SigmaVault Settings is not running.\n" "Start it from the application menu."
                 )
                 app = Gio.Application.get_default()
                 if app:
