@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <gresources>
-  <gresource prefix="/com/sigmavault/Settings">
-    <file preprocess="xml-stripblanks">style.css</file>
-  </gresource>
+    <gresource prefix="/com/sigmavault/Settings">
+        <file preprocess="xml-stripblanks">style.css</file>
+    </gresource>
 </gresources>

@@ -13,7 +13,7 @@ from typing import Any, Optional
 
 logger = logging.getLogger("sigmavault.api.client")
 
-DEFAULT_API_URL = "http://localhost:3000"
+DEFAULT_API_URL = "http://localhost:12080"
 DEFAULT_TIMEOUT = 5  # seconds
 
 

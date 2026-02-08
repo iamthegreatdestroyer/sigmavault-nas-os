@@ -1,59 +1,59 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <schemalist>
-  <schema id="com.sigmavault.Settings" path="/com/sigmavault/settings/">
-    <!-- API Connection -->
-    <key name="api-url" type="s">
-      <default>'http://localhost:3000'</default>
-      <summary>API Server URL</summary>
-      <description>Base URL of the SigmaVault Go API server.</description>
-    </key>
-    <key name="ws-url" type="s">
-      <default>'ws://localhost:3000/ws'</default>
-      <summary>WebSocket URL</summary>
-      <description>WebSocket endpoint for real-time events.</description>
-    </key>
+    <schema id="com.sigmavault.Settings" path="/com/sigmavault/settings/">
+        <!-- API Connection -->
+        <key name="api-url" type="s">
+            <default>'http://localhost:3000'</default>
+            <summary>API Server URL</summary>
+            <description>Base URL of the SigmaVault Go API server.</description>
+        </key>
+        <key name="ws-url" type="s">
+            <default>'ws://localhost:3000/ws'</default>
+            <summary>WebSocket URL</summary>
+            <description>WebSocket endpoint for real-time events.</description>
+        </key>
 
-    <!-- Compression Defaults -->
-    <key name="default-algorithm" type="s">
-      <default>'auto'</default>
-      <summary>Default Compression Algorithm</summary>
-      <description>Default algorithm for compression jobs (auto, zstd, zlib, lz4, brotli).</description>
-    </key>
-    <key name="default-level" type="i">
-      <default>6</default>
-      <summary>Default Compression Level</summary>
-      <description>Default compression level (1-22).</description>
-    </key>
+        <!-- Compression Defaults -->
+        <key name="default-algorithm" type="s">
+            <default>'auto'</default>
+            <summary>Default Compression Algorithm</summary>
+            <description>Default algorithm for compression jobs (auto, zstd, zlib, lz4, brotli).</description>
+        </key>
+        <key name="default-level" type="i">
+            <default>6</default>
+            <summary>Default Compression Level</summary>
+            <description>Default compression level (1-22).</description>
+        </key>
 
-    <!-- Notifications -->
-    <key name="notify-compression-complete" type="b">
-      <default>true</default>
-      <summary>Notify on Compression Complete</summary>
-      <description>Show desktop notification when a compression job finishes.</description>
-    </key>
-    <key name="notify-agent-complete" type="b">
-      <default>true</default>
-      <summary>Notify on Agent Task Complete</summary>
-      <description>Show desktop notification when an agent task finishes.</description>
-    </key>
-    <key name="notify-disk-health" type="b">
-      <default>true</default>
-      <summary>Notify on Disk Health Warnings</summary>
-      <description>Show desktop notification for SMART health warnings.</description>
-    </key>
+        <!-- Notifications -->
+        <key name="notify-compression-complete" type="b">
+            <default>true</default>
+            <summary>Notify on Compression Complete</summary>
+            <description>Show desktop notification when a compression job finishes.</description>
+        </key>
+        <key name="notify-agent-complete" type="b">
+            <default>true</default>
+            <summary>Notify on Agent Task Complete</summary>
+            <description>Show desktop notification when an agent task finishes.</description>
+        </key>
+        <key name="notify-disk-health" type="b">
+            <default>true</default>
+            <summary>Notify on Disk Health Warnings</summary>
+            <description>Show desktop notification for SMART health warnings.</description>
+        </key>
 
-    <!-- Window State -->
-    <key name="window-width" type="i">
-      <default>1100</default>
-      <summary>Window Width</summary>
-    </key>
-    <key name="window-height" type="i">
-      <default>700</default>
-      <summary>Window Height</summary>
-    </key>
-    <key name="window-maximized" type="b">
-      <default>false</default>
-      <summary>Window Maximized</summary>
-    </key>
-  </schema>
+        <!-- Window State -->
+        <key name="window-width" type="i">
+            <default>1100</default>
+            <summary>Window Width</summary>
+        </key>
+        <key name="window-height" type="i">
+            <default>700</default>
+            <summary>Window Height</summary>
+        </key>
+        <key name="window-maximized" type="b">
+            <default>false</default>
+            <summary>Window Maximized</summary>
+        </key>
+    </schema>
 </schemalist>

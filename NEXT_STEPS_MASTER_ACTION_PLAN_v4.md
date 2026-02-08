@@ -1,4 +1,4 @@
-**# SigmaVault NAS OS — Next Steps Master Action Plan v4
+\*\*# SigmaVault NAS OS — Next Steps Master Action Plan v4
 
 **Date:** February 7, 2026
 **Author:** Project Audit & Planning Session
@@ -13,18 +13,21 @@
 The v3 plan called for building a React 19 + Tailwind 4 web dashboard (`[REF:PH1-004]`). That was wrong. SigmaVault NAS OS is a **desktop operating system** running GNOME on Debian, not a web appliance. The management interface should be native to the desktop environment.
 
 **Removed:**
+
 - `src/webui/` (React 19 + TypeScript + TailwindCSS)
 - All Vite build tooling, pnpm dependencies, browser-based dashboard
 - `sigmavault-webui.service` (nginx serving React)
 - Web UI CI/CD build jobs
 
 **Added:**
+
 - `src/desktop-ui/` (GTK4 + libadwaita + PyGObject)
 - Native GNOME integration via Nautilus, GNOME Disks, system tray
 - Desktop notifications for agent events
 - `.desktop` launcher file for app grid integration
 
 **Impact on Timeline:**
+
 - Net time savings: ~3-5 days (GNOME provides file manager, disk tools, system monitor for free)
 - Reduced dependencies: No Node.js, no pnpm, no browser runtime
 - Simpler deployment: Single Python package instead of bundled SPA + nginx
@@ -35,19 +38,19 @@ The v3 plan called for building a React 19 + Tailwind 4 web dashboard (`[REF:PH1
 
 ### What's Built & Working
 
-| Component | Status | Notes |
-|-----------|--------|-------|
-| **Go API Server** (`src/api/`) | ✅ Scaffolded & compiles | Fiber-based, handlers for agents/compression/storage/health/system, WebSocket hub, circuit breaker, auth middleware |
-| **Python RPC Engine** (`src/engined/`) | ✅ Scaffolded & runs | FastAPI + aiohttp hybrid, gRPC server, 40-agent swarm (simulated), agent registry, scheduler, recovery |
-| **Agent Swarm** (40 agents) | ⚠️ Simulated only | All 40 defined with tiers/specialties, task queue works, but `_execute_task` is a 0.1s sleep stub |
-| **Elite Agent Collective** (10 core) | ⚠️ Stub implementations | BaseAgent lifecycle works, registry works, API integration works. No real AI logic. |
-| **Compression Bridge** | ⚠️ Falls back to zlib | Designed to import EliteSigma-NAS, but submodules not cloned — uses `StubCompressionEngine` |
-| **WebSocket Hub** | ✅ Functional | Event system, circuit breaker, handler |
-| **CI/CD Pipeline** (`ci.yml`) | ✅ Well-structured | 5-stage pipeline: test → security → build → docker → release. Multi-arch. |
-| **GitHub Agents** (40 `.agent.md`) | ✅ Complete | Rich Copilot agent definitions for all 40 agents |
-| **Live-Build ISO Config** | ⚠️ Minimal | Package list exists, auto/config exists, but no desktop environment, no hooks, no installer |
-| **Git Submodules** | ❌ Not cloned | `.gitmodules` references 3 repos but `submodules/` directory doesn't exist locally |
-| **Documentation** | ✅ Extensive | 30+ docs covering phases, reports, protocols |
+| Component                              | Status                   | Notes                                                                                                               |
+| -------------------------------------- | ------------------------ | ------------------------------------------------------------------------------------------------------------------- |
+| **Go API Server** (`src/api/`)         | ✅ Scaffolded & compiles | Fiber-based, handlers for agents/compression/storage/health/system, WebSocket hub, circuit breaker, auth middleware |
+| **Python RPC Engine** (`src/engined/`) | ✅ Scaffolded & runs     | FastAPI + aiohttp hybrid, gRPC server, 40-agent swarm (simulated), agent registry, scheduler, recovery              |
+| **Agent Swarm** (40 agents)            | ⚠️ Simulated only        | All 40 defined with tiers/specialties, task queue works, but `_execute_task` is a 0.1s sleep stub                   |
+| **Elite Agent Collective** (10 core)   | ⚠️ Stub implementations  | BaseAgent lifecycle works, registry works, API integration works. No real AI logic.                                 |
+| **Compression Bridge**                 | ⚠️ Falls back to zlib    | Designed to import EliteSigma-NAS, but submodules not cloned — uses `StubCompressionEngine`                         |
+| **WebSocket Hub**                      | ✅ Functional            | Event system, circuit breaker, handler                                                                              |
+| **CI/CD Pipeline** (`ci.yml`)          | ✅ Well-structured       | 5-stage pipeline: test → security → build → docker → release. Multi-arch.                                           |
+| **GitHub Agents** (40 `.agent.md`)     | ✅ Complete              | Rich Copilot agent definitions for all 40 agents                                                                    |
+| **Live-Build ISO Config**              | ⚠️ Minimal               | Package list exists, auto/config exists, but no desktop environment, no hooks, no installer                         |
+| **Git Submodules**                     | ❌ Not cloned            | `.gitmodules` references 3 repos but `submodules/` directory doesn't exist locally                                  |
+| **Documentation**                      | ✅ Extensive             | 30+ docs covering phases, reports, protocols                                                                        |
 
 ### What's Aspirational (Not Yet Real)
 
@@ -62,14 +65,14 @@ The v3 plan called for building a React 19 + Tailwind 4 web dashboard (`[REF:PH1
 
 ### Critical Gap Analysis
 
-| Gap | Impact | Effort |
-|-----|--------|--------|
-| **No management UI** | Can't interact with NAS-specific features | MEDIUM — GTK panel + GNOME integration |
-| **Submodules not initialized** | Compression/VPN/Agents are stubs | LOW — `git submodule update --init` |
-| **Agent tasks are no-ops** | Core value proposition doesn't work | HIGH — need real task implementations |
-| **No actual storage management** | It's a "NAS OS" that can't manage storage | HIGH — fundamental feature gap |
-| **No GNOME desktop in ISO** | Can't boot to a usable desktop | MEDIUM — live-build package list update |
-| **ISO never built** | Can't install/distribute | MEDIUM — live-build config needs work |
+| Gap                              | Impact                                    | Effort                                  |
+| -------------------------------- | ----------------------------------------- | --------------------------------------- |
+| **No management UI**             | Can't interact with NAS-specific features | MEDIUM — GTK panel + GNOME integration  |
+| **Submodules not initialized**   | Compression/VPN/Agents are stubs          | LOW — `git submodule update --init`     |
+| **Agent tasks are no-ops**       | Core value proposition doesn't work       | HIGH — need real task implementations   |
+| **No actual storage management** | It's a "NAS OS" that can't manage storage | HIGH — fundamental feature gap          |
+| **No GNOME desktop in ISO**      | Can't boot to a usable desktop            | MEDIUM — live-build package list update |
+| **ISO never built**              | Can't install/distribute                  | MEDIUM — live-build config needs work   |
 
 ---
 
@@ -88,6 +91,7 @@ v4:  "Bootable GNOME desktop that IS a NAS, with native AI-powered management"
 SigmaVault is not a headless NAS appliance with a web admin panel. It's a **full Debian desktop** that happens to have deeply integrated NAS capabilities. Think of it like how Ubuntu Desktop includes "Files" (Nautilus) — SigmaVault includes an AI-powered storage management panel as a first-class desktop application.
 
 **GNOME provides for free:**
+
 - **Nautilus** → File browsing, drag-and-drop, network shares
 - **GNOME Disks** → Physical disk management, SMART monitoring
 - **GNOME System Monitor** → CPU/RAM/process monitoring
@@ -98,6 +102,7 @@ SigmaVault is not a headless NAS appliance with a web admin panel. It's a **full
 - **GLib/Gio** → System integration APIs
 
 **SigmaVault needs to build:**
+
 - **SigmaVault Settings** → GTK4 app for ZFS pools, compression, agents, shares, VPN
 - **System tray indicator** → Quick status and actions
 - **Desktop notifications** → Agent events, compression results, disk health
@@ -255,31 +260,37 @@ Using libadwaita's `Adw.NavigationSplitView` (sidebar + content pattern):
 ### 1.3 Key Integration Points
 
 **Go API Communication:**
+
 - The GTK app is a client of the same REST/WebSocket endpoints the web UI would have used
 - `GET /health`, `GET /api/v1/agents`, `POST /api/v1/agents/:id/task`, etc.
 - Use Python `requests` (sync) or `aiohttp` (async with GLib main loop integration)
 
 **WebSocket for Real-Time:**
+
 - Connect to `ws://localhost:3000/ws` for live agent status, compression progress, disk events
 - Bridge WebSocket events to GTK via `GLib.idle_add()` to update UI on main thread
 
 **Desktop Notifications:**
+
 - `Gio.Notification` for GNOME notification center integration
 - Events: compression complete, agent task finished, disk health warning, scrub complete
 - Actions on notifications: "View Results", "Open Storage", "Dismiss"
 
 **System Tray / Panel Indicator:**
+
 - `libappindicator3` or GNOME Shell extension for persistent status
 - Shows: swarm status (idle/busy), active compression jobs, quick actions
 - Menu: Start/Stop Services, Open Settings, Quick Compress
 
 **GSettings:**
+
 - Persist user preferences: default compression level, auto-scrub schedule, notification preferences
 - Schema installed to `/usr/share/glib-2.0/schemas/`
 
 ### 1.4 Desktop File & Installation
 
 `sigmavault-settings.desktop`:
+
 ```ini
 [Desktop Entry]
 Name=SigmaVault Settings
@@ -296,6 +307,7 @@ Installed to `/usr/share/applications/` — appears in GNOME app grid and Activi
 ### 1.5 Nautilus Integration (Right-Click Compress)
 
 Create a Nautilus extension (`python3-nautilus`) that adds:
+
 - Right-click → "Compress with SigmaVault" on any file/folder
 - Submits compression job to Go API
 - Shows desktop notification on completion
@@ -335,6 +347,7 @@ cd src/engined && python -m engined.main &
 ### Automation Strategy
 
 Use Copilot Agent Mode:
+
 ```
 @CANVAS Create the GTK4 + libadwaita SigmaVault Settings application.
 Use PyGObject with Adw.NavigationSplitView for sidebar layout.
@@ -342,6 +355,7 @@ Connect to Go API at localhost:3000. Pages: Dashboard, Storage, Compression, Age
 ```
 
 **Success criteria:**
+
 - Launch "SigmaVault Settings" from GNOME app grid
 - Dashboard shows live agent status from Go API
 - Sidebar navigation works across all pages
@@ -384,6 +398,7 @@ The Storage page in SigmaVault Settings replaces what would have been a web dash
 - **Shares tab:** SMB/NFS share management with Adw.EntryRow for config
 
 **GNOME Disks Integration:**
+
 - For physical disk operations (partitioning, formatting), launch GNOME Disks via `Gio.AppInfo`
 - SigmaVault handles only ZFS-layer operations (pools, datasets, shares)
 - This avoids duplicating what GNOME already does well
@@ -391,6 +406,7 @@ The Storage page in SigmaVault Settings replaces what would have been a web dash
 ### 2.3 File Management
 
 Nautilus handles file browsing natively. SigmaVault enhances it:
+
 - ZFS datasets mounted to `/srv/sigmavault/` appear in Nautilus sidebar via bookmark
 - SMB/NFS shares visible via GVfs (GNOME's virtual filesystem layer)
 - Right-click compression (Phase 1 Nautilus extension) works on any file
@@ -415,11 +431,13 @@ Once submodules are cloned (Phase 0), the `CompressionBridge` in `src/engined/en
 Two entry points for users:
 
 **1. Right-click in Nautilus** (from Phase 1 extension):
+
 - Select file → Right-click → "Compress with SigmaVault"
 - Nautilus extension POSTs to Go API
 - Desktop notification on completion with "View" action
 
 **2. Compression page in SigmaVault Settings:**
+
 - Drag files onto the compression page
 - Configure: algorithm, level, strategy per file type
 - Job queue with progress bars (Adw.ActionRow with GtkProgressBar)
@@ -440,9 +458,10 @@ User action (Nautilus or Settings app)
 ### 3.4 Fallback Strategy
 
 If EliteSigma-NAS isn't fully functional, enhance `StubCompressionEngine`:
+
 - Add zstd (much better than zlib)
 - Per-filetype strategy selection
-- Log what the full engine *would* do
+- Log what the full engine _would_ do
 
 **Success criteria:** Right-click a file in Nautilus → "Compress with SigmaVault" → see real compression happen → desktop notification with ratio.
 
@@ -455,18 +474,18 @@ If EliteSigma-NAS isn't fully functional, enhance `StubCompressionEngine`:
 
 ### 4.1 Priority Agents to Implement
 
-| Agent | Real Task | Implementation |
-|-------|-----------|----------------|
-| **TENSOR** | Run compression on files | Call CompressionBridge |
-| **CIPHER** | Encrypt/decrypt files | Python `cryptography` lib |
+| Agent         | Real Task                  | Implementation                       |
+| ------------- | -------------------------- | ------------------------------------ |
+| **TENSOR**    | Run compression on files   | Call CompressionBridge               |
+| **CIPHER**    | Encrypt/decrypt files      | Python `cryptography` lib            |
 | **ARCHITECT** | Recommend ZFS pool configs | Rule engine based on disk count/type |
-| **VELOCITY** | Benchmark storage I/O | Run `fio`, parse results |
-| **FORTRESS** | Security audit | Shell to `ss`, `find`, `ufw` |
-| **ORACLE** | Predict disk failures | Parse `smartctl`, rules-based |
-| **SENTRY** | Monitor system resources | Parse `/proc`, emit alerts |
-| **LATTICE** | ZFS health monitoring | `zpool status`, `zfs get` |
-| **SCRIBE** | Generate system reports | Aggregate data → markdown/PDF |
-| **FLUX** | CI/CD status | GitHub API integration |
+| **VELOCITY**  | Benchmark storage I/O      | Run `fio`, parse results             |
+| **FORTRESS**  | Security audit             | Shell to `ss`, `find`, `ufw`         |
+| **ORACLE**    | Predict disk failures      | Parse `smartctl`, rules-based        |
+| **SENTRY**    | Monitor system resources   | Parse `/proc`, emit alerts           |
+| **LATTICE**   | ZFS health monitoring      | `zpool status`, `zfs get`            |
+| **SCRIBE**    | Generate system reports    | Aggregate data → markdown/PDF        |
+| **FLUX**      | CI/CD status               | GitHub API integration               |
 
 ### 4.2 Agent Task Runner Refactor
 
@@ -501,6 +520,7 @@ The Agents page in SigmaVault Settings:
 **Context:** See `ryzanstein-integration-plan.md` for full architecture and rationale.
 **Automation:** 60% — core integration scriptable, desktop features need design.
 **Timeline:** Runs **in parallel** with Phase 4A since:
+
 - Phase 4A: Wire agents to real system tasks (ZFS, smartctl, fio)
 - Phase 4B: Wire agents to Ryzanstein for intelligent reasoning
 - They converge when agents have both capabilities
@@ -508,12 +528,14 @@ The Agents page in SigmaVault Settings:
 ### 4B.1 Core Integration (Week 1)
 
 **Add Ryzanstein as 4th Submodule:**
+
 ```bash
 git submodule add https://github.com/iamthegreatdestroyer/Ryzanstein.git submodules/ryzanstein
 git submodule update --init --recursive
 ```
 
 **Create systemd Service:**
+
 ```ini
 # /etc/systemd/system/sigmavault-ryzan.service
 [Unit]
@@ -535,6 +557,7 @@ WantedBy=multi-user.target
 ```
 
 **Create D-Bus Interface:**
+
 ```python
 # src/ryzan-bridge/dbus_service.py
 import dbus.service
@@ -542,14 +565,14 @@ import requests
 
 class RyzanDBusService(dbus.service.Object):
     """D-Bus interface: org.sigmavault.Ryzan"""
-    
+
     @dbus.service.method("org.sigmavault.Ryzan", in_signature='ss', out_signature='s')
     def Chat(self, model, messages):
         """Send chat request to Ryzanstein engine"""
         response = requests.post('http://localhost:8100/v1/chat/completions',
                                 json={'model': model, 'messages': messages})
         return response.json()
-    
+
     @dbus.service.method("org.sigmavault.Ryzan", out_signature='a{sv}')
     def GetStatus(self):
         """Get current model status and performance metrics"""
@@ -557,18 +580,20 @@ class RyzanDBusService(dbus.service.Object):
 ```
 
 **Create Unix Socket Bridge:**
+
 ```bash
 # /run/sigmavault/ryzan.sock — zero-overhead local inference
 socat UNIX-LISTEN:/run/sigmavault/ryzan.sock,fork TCP:localhost:8100
 ```
 
 **Wire Python RPC Engine:**
+
 ```python
 # src/engined/engined/llm/client.py
 class RyzanClient:
     """OpenAI-compatible client for local Ryzanstein engine"""
     base_url = "http://localhost:8100/v1"
-    
+
     async def chat(self, model: str, messages: list, tools: list = None):
         async with aiohttp.ClientSession() as session:
             async with session.post(f"{self.base_url}/chat/completions",
@@ -578,6 +603,7 @@ class RyzanClient:
 ```
 
 **Auto-detect CPU on Boot:**
+
 ```bash
 #!/bin/bash
 # detect-cpu.sh — selects optimal model for hardware
@@ -599,6 +625,7 @@ fi
 ### 4B.2 Agent Backbone (Week 2)
 
 **Replace Agent Stubs with Ryzanstein-Powered Execution:**
+
 ```python
 # src/engined/engined/agents/swarm.py
 from engined.llm.client import RyzanClient
@@ -607,7 +634,7 @@ class AgentSwarm:
     def __init__(self):
         self.ryzan = RyzanClient()
         self.agent_prompts = self._load_agent_prompts()
-    
+
     async def _execute_task(self, task: Task, agent: Agent) -> None:
         # BEFORE: await asyncio.sleep(0.1)  # No-op stub
         # AFTER: Real LLM-powered execution
@@ -624,6 +651,7 @@ class AgentSwarm:
 ```
 
 **Create Agent-Specific System Prompts:**
+
 ```bash
 # /etc/sigmavault/agent-prompts/ORACLE.txt
 You are ORACLE, a predictive analytics specialist for NAS storage systems.
@@ -633,6 +661,7 @@ Always provide confidence scores and cite specific SMART attributes.
 ```
 
 **Implement MCP Tool Definitions:**
+
 ```python
 # Each agent exposes its capabilities as MCP tools
 ORACLE_TOOLS = [
@@ -654,6 +683,7 @@ ORACLE_TOOLS = [
 ```
 
 **Wire Task Results to WebSocket:**
+
 ```python
 # When agent completes task, emit over WebSocket
 await self.ws_hub.emit("agent_task_complete", {
@@ -665,6 +695,7 @@ await self.ws_hub.emit("agent_task_complete", {
 ```
 
 **Add LLM Status Widget to Dashboard:**
+
 ```python
 # src/desktop-ui/ui/pages/dashboard.py
 class DashboardPage(Adw.Bin):
@@ -681,6 +712,7 @@ class DashboardPage(Adw.Bin):
 ### 4B.3 Desktop Integration (Week 3)
 
 **GNOME Shell Search Provider:**
+
 ```python
 # /usr/share/gnome-shell/search-providers/sigmavault-ryzan.ini
 [Shell Search Provider]
@@ -691,12 +723,13 @@ Version=2
 ```
 
 **Nautilus Right-Click Enhancement:**
+
 ```python
 # Add to existing nautilus-sigmavault.py
 def get_file_items(self, files):
     items = []
     # Existing compress action...
-    
+
     # NEW: Ask Ryzanstein
     item = Nautilus.MenuItem(
         name="SigmaVault::AskRyzan",
@@ -721,16 +754,17 @@ def _ask_ryzan(self, menu, files):
 ```
 
 **Settings App: "Chat with NAS" Panel:**
+
 ```python
 # src/desktop-ui/ui/pages/chat.py
 class ChatPage(Adw.NavigationPage):
     """Conversational interface to NAS management via Ryzanstein"""
-    
+
     def __init__(self):
         self.chat_view = Gtk.ListView()  # Chat bubbles
         self.input_entry = Gtk.Entry(placeholder_text="Ask your NAS anything...")
         self.input_entry.connect("activate", self._send_message)
-    
+
     def _send_message(self, entry):
         user_msg = entry.get_text()
         # Send to Ryzanstein
@@ -742,6 +776,7 @@ class ChatPage(Adw.NavigationPage):
 ```
 
 **Desktop Notifications with Action Buttons:**
+
 ```python
 # When agent completes task
 notification = Gio.Notification.new(f"Agent {agent_name} Complete")
@@ -752,6 +787,7 @@ app.send_notification(None, notification)
 ```
 
 **First-Boot Model Download Wizard:**
+
 ```python
 # On first launch if no model found
 dialog = Adw.MessageDialog.new(
@@ -768,17 +804,19 @@ dialog.connect("response", self._handle_model_download)
 ### 4B.4 Resource Management
 
 **cgroups v2 Limits:**
+
 ```ini
 # Ryzanstein yields to file serving
 sigmavault-ryzan.service:
   CPUQuota=80%  # drops to 30% under high I/O
   MemoryMax=70%
-  
+
 samba.service, nfs-server.service:
   CPUWeight=200  # high priority
 ```
 
 **ZFS ARC Priority:**
+
 ```bash
 # Ensure file cache gets 25% RAM before LLM
 echo 25% > /sys/module/zfs/parameters/zfs_arc_max
@@ -787,6 +825,7 @@ echo 25% > /sys/module/zfs/parameters/zfs_arc_max
 ### 4B.5 ISO Integration
 
 **Add to Package List:**
+
 ```
 # live-build/config/package-lists/sigmavault-core.list.chroot
 
@@ -800,6 +839,7 @@ ninja-build
 ```
 
 **Systemd Dependency Chain:**
+
 ```
 sigmavault-engine.service → sigmavault-ryzan.service → sigmavault-api.service
 ```
@@ -807,6 +847,7 @@ sigmavault-engine.service → sigmavault-ryzan.service → sigmavault-api.servic
 ### 4B.6 Natural Language NAS Management Examples
 
 **GNOME Shell Search:**
+
 ```
 User types: "ryzan: create mirrored pool from 4TB drives"
 → Ryzanstein interprets intent
@@ -816,6 +857,7 @@ User types: "ryzan: create mirrored pool from 4TB drives"
 ```
 
 **Conversational Admin:**
+
 ```
 User (in Chat panel): "Set up Samba share for home office, read-write for me, read-only for guests"
 Ryzan: "I'll create share 'home-office' at /srv/sigmavault/shares/home-office:
@@ -825,6 +867,7 @@ Ryzan: "I'll create share 'home-office' at /srv/sigmavault/shares/home-office:
 ```
 
 **Automated Alerts:**
+
 ```
 Desktop Notification:
 "⚠️ Drive /dev/sdc: elevated reallocated sectors (2→8 in 30 days).
@@ -837,18 +880,19 @@ Desktop Notification:
 
 **Why This Is "Built Into the OS" — Not Just Another Service:**
 
-| Feature | Typical LLM | Ryzanstein in SigmaVault |
-|---------|-------------|-------------------------|
-| Desktop shell | ❌ Separate app | ✅ GNOME Shell search provider |
-| File manager | ❌ Upload via web | ✅ Nautilus right-click menu |
-| Notifications | ❌ Browser tab | ✅ Native GNOME notifications |
-| D-Bus | ❌ HTTP only | ✅ `org.sigmavault.Ryzan` service |
-| Unix socket | ❌ TCP only | ✅ Zero-overhead `/run/sigmavault/ryzan.sock` |
-| Agent backbone | ❌ Cloud API | ✅ All 40 agents use LOCAL Ryzanstein |
-| Boot integration | ❌ Manual start | ✅ systemd service, auto-start |
-| Hardware detection | ❌ Generic | ✅ Auto-detects CPU → loads optimal model |
+| Feature            | Typical LLM       | Ryzanstein in SigmaVault                      |
+| ------------------ | ----------------- | --------------------------------------------- |
+| Desktop shell      | ❌ Separate app   | ✅ GNOME Shell search provider                |
+| File manager       | ❌ Upload via web | ✅ Nautilus right-click menu                  |
+| Notifications      | ❌ Browser tab    | ✅ Native GNOME notifications                 |
+| D-Bus              | ❌ HTTP only      | ✅ `org.sigmavault.Ryzan` service             |
+| Unix socket        | ❌ TCP only       | ✅ Zero-overhead `/run/sigmavault/ryzan.sock` |
+| Agent backbone     | ❌ Cloud API      | ✅ All 40 agents use LOCAL Ryzanstein         |
+| Boot integration   | ❌ Manual start   | ✅ systemd service, auto-start                |
+| Hardware detection | ❌ Generic        | ✅ Auto-detects CPU → loads optimal model     |
 
 **Success criteria:**
+
 - Type "ryzan: check disk health" in GNOME Shell → see analysis
 - Right-click PDF in Nautilus → "Ask Ryzanstein" → get summary
 - Chat with NAS in Settings app → create ZFS pool via conversation
@@ -936,6 +980,7 @@ systemctl enable sigmavault-engine
 ### 5.4 First-Boot Experience
 
 On first boot after installation:
+
 1. GNOME initial setup (user, timezone, network — built-in)
 2. SigmaVault first-run dialog (GTK): hostname, discover disks, suggest ZFS pool
 3. Services start automatically via systemd
@@ -944,6 +989,7 @@ On first boot after installation:
 ### 5.5 ISO Build in CI
 
 Update GitHub Actions to:
+
 1. Build Go API binary
 2. Package Python engine
 3. Package desktop UI (copy files, no build step needed for Python)
@@ -963,6 +1009,7 @@ Update GitHub Actions to:
 ### 6.1 Minimum Viable VPN (Personal Use)
 
 No mesh needed for personal use:
+
 - WireGuard server running on the NAS
 - Generate client configs from SigmaVault Settings app
 - QR code generation for mobile clients (via `qrencode` library)
@@ -971,6 +1018,7 @@ No mesh needed for personal use:
 ### 6.2 Desktop Integration
 
 Network page in SigmaVault Settings:
+
 - VPN status: active/inactive toggle (Adw.SwitchRow)
 - Connected peers list (Adw.ActionRow per peer)
 - "Add Peer" button → generates config + QR code dialog
@@ -1080,16 +1128,16 @@ Note: Phase 4A and 4B run in parallel — 4A wires agents to system tasks,
 
 ### Milestone Checkpoints
 
-| Week | Milestone | Verification |
-|------|-----------|-------------|
-| 0 | Submodules cloned (including Ryzanstein), all components build | `make test` passes |
-| 1-2 | SigmaVault Settings app shows live agent data | Launch from GNOME app grid |
-| 3-4 | ZFS pool creation and file management works | End-to-end via Settings + Nautilus |
-| 5 | Real compression via right-click in Nautilus | Compress file → notification with ratio |
-| 6-7 | 5+ agents performing real tasks (Phase 4A) | Trigger from Settings app, see results |
-| 6-9 | Ryzanstein LLM integrated, agents use local AI (Phase 4B) | Type "ryzan: check disk health" in Shell |
-| 10 | ISO boots in VM with GNOME + SigmaVault + Ryzanstein | VirtualBox/QEMU test |
-| 11-12 | VPN access from external device | Phone connects via WireGuard |
+| Week  | Milestone                                                      | Verification                             |
+| ----- | -------------------------------------------------------------- | ---------------------------------------- |
+| 0     | Submodules cloned (including Ryzanstein), all components build | `make test` passes                       |
+| 1-2   | SigmaVault Settings app shows live agent data                  | Launch from GNOME app grid               |
+| 3-4   | ZFS pool creation and file management works                    | End-to-end via Settings + Nautilus       |
+| 5     | Real compression via right-click in Nautilus                   | Compress file → notification with ratio  |
+| 6-7   | 5+ agents performing real tasks (Phase 4A)                     | Trigger from Settings app, see results   |
+| 6-9   | Ryzanstein LLM integrated, agents use local AI (Phase 4B)      | Type "ryzan: check disk health" in Shell |
+| 10    | ISO boots in VM with GNOME + SigmaVault + Ryzanstein           | VirtualBox/QEMU test                     |
+| 11-12 | VPN access from external device                                | Phone connects via WireGuard             |
 
 ---
 
@@ -1097,38 +1145,38 @@ Note: Phase 4A and 4B run in parallel — 4A wires agents to system tasks,
 
 ### New Files (Desktop Pivot)
 
-| File | Purpose | Phase |
-|------|---------|-------|
-| `src/desktop-ui/main.py` | GTK4 application entry point | 1 |
-| `src/desktop-ui/ui/window.py` | Main window with sidebar navigation | 1 |
-| `src/desktop-ui/ui/pages/*.py` | Dashboard, Storage, Compression, Agents, etc. | 1 |
-| `src/desktop-ui/ui/widgets/*.py` | Reusable GTK widgets | 1 |
-| `src/desktop-ui/api/client.py` | HTTP client for Go API | 1 |
-| `src/desktop-ui/api/websocket.py` | WebSocket client with GLib integration | 1 |
-| `src/desktop-ui/sigmavault-settings.desktop` | GNOME app launcher | 1 |
-| `src/desktop-ui/nautilus-sigmavault.py` | Nautilus right-click extension | 1 |
-| `src/desktop-ui/com.sigmavault.Settings.gschema.xml` | GSettings schema | 1 |
-| `scripts/bootstrap.sh` | One-command project setup | 0 |
-| `scripts/bootstrap.ps1` | Windows dev version | 0 |
-| `docker-compose.dev.yml` | Dev environment (backend only) | 0 |
+| File                                                 | Purpose                                       | Phase |
+| ---------------------------------------------------- | --------------------------------------------- | ----- |
+| `src/desktop-ui/main.py`                             | GTK4 application entry point                  | 1     |
+| `src/desktop-ui/ui/window.py`                        | Main window with sidebar navigation           | 1     |
+| `src/desktop-ui/ui/pages/*.py`                       | Dashboard, Storage, Compression, Agents, etc. | 1     |
+| `src/desktop-ui/ui/widgets/*.py`                     | Reusable GTK widgets                          | 1     |
+| `src/desktop-ui/api/client.py`                       | HTTP client for Go API                        | 1     |
+| `src/desktop-ui/api/websocket.py`                    | WebSocket client with GLib integration        | 1     |
+| `src/desktop-ui/sigmavault-settings.desktop`         | GNOME app launcher                            | 1     |
+| `src/desktop-ui/nautilus-sigmavault.py`              | Nautilus right-click extension                | 1     |
+| `src/desktop-ui/com.sigmavault.Settings.gschema.xml` | GSettings schema                              | 1     |
+| `scripts/bootstrap.sh`                               | One-command project setup                     | 0     |
+| `scripts/bootstrap.ps1`                              | Windows dev version                           | 0     |
+| `docker-compose.dev.yml`                             | Dev environment (backend only)                | 0     |
 
 ### Files to Remove
 
-| File/Directory | Reason |
-|----------------|--------|
+| File/Directory                  | Reason                                     |
+| ------------------------------- | ------------------------------------------ |
 | `src/webui/` (entire directory) | Empty React shell, replaced by desktop app |
 
 ### Existing Files to Modify
 
-| File | Change | Phase |
-|------|--------|-------|
-| `src/api/internal/handlers/storage.go` | Add real ZFS management | 2 |
-| `src/engined/engined/agents/swarm.py` | Replace sleep stub with real task routing | 4 |
-| `src/engined/engined/compression/bridge.py` | Verify EliteSigma import path | 3 |
-| `live-build/config/package-lists/sigmavault-core.list.chroot` | Add GNOME desktop + GTK deps | 5 |
-| `.github/workflows/ci.yml` | Remove webui build, add ISO build | 5 |
-| `Makefile` | Update dev/test/build targets (no pnpm) | 0 |
-| `README.md` | Update architecture diagram (desktop, not web) | 1 |
+| File                                                          | Change                                         | Phase |
+| ------------------------------------------------------------- | ---------------------------------------------- | ----- |
+| `src/api/internal/handlers/storage.go`                        | Add real ZFS management                        | 2     |
+| `src/engined/engined/agents/swarm.py`                         | Replace sleep stub with real task routing      | 4     |
+| `src/engined/engined/compression/bridge.py`                   | Verify EliteSigma import path                  | 3     |
+| `live-build/config/package-lists/sigmavault-core.list.chroot` | Add GNOME desktop + GTK deps                   | 5     |
+| `.github/workflows/ci.yml`                                    | Remove webui build, add ISO build              | 5     |
+| `Makefile`                                                    | Update dev/test/build targets (no pnpm)        | 0     |
+| `README.md`                                                   | Update architecture diagram (desktop, not web) | 1     |
 
 ---
 
@@ -1213,6 +1261,7 @@ That single session transforms the project from "invisible backend scaffolding" 
 ```
 
 **Key Addition:** Ryzanstein LLM engine integrated as native systemd service with:
+
 - D-Bus interface for desktop integration (GNOME Shell, Nautilus)
 - Unix socket for zero-overhead local inference
 - OpenAI-compatible API for agent consumption
@@ -1225,5 +1274,5 @@ cloud API calls.
 
 ---
 
-*This plan (v4) supersedes v3 by replacing the React Web UI with native GNOME desktop integration. The backend architecture (Go API + Python engine + submodules) is unchanged. The interface philosophy shifts from "browser tab managing a NAS appliance" to "desktop OS with integrated NAS capabilities."*
-**
+_This plan (v4) supersedes v3 by replacing the React Web UI with native GNOME desktop integration. The backend architecture (Go API + Python engine + submodules) is unchanged. The interface philosophy shifts from "browser tab managing a NAS appliance" to "desktop OS with integrated NAS capabilities."_
+\*\*

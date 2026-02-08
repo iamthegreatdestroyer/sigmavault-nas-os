@@ -7,16 +7,17 @@ Write-Host "  SigmaVault NAS OS — Dev Bootstrap" -ForegroundColor Cyan
 Write-Host "============================================" -ForegroundColor Cyan
 Write-Host ""
 
-function Write-Info  { param($msg) Write-Host "[INFO]  $msg" -ForegroundColor Blue }
-function Write-Ok    { param($msg) Write-Host "[OK]    $msg" -ForegroundColor Green }
-function Write-Warn  { param($msg) Write-Host "[WARN]  $msg" -ForegroundColor Yellow }
+function Write-Info { param($msg) Write-Host "[INFO]  $msg" -ForegroundColor Blue }
+function Write-Ok { param($msg) Write-Host "[OK]    $msg" -ForegroundColor Green }
+function Write-Warn { param($msg) Write-Host "[WARN]  $msg" -ForegroundColor Yellow }
 
 # ─── Check Python ──────────────────────────────────────────────
 Write-Info "Checking Python..."
 try {
     $pyVer = python --version 2>&1
     Write-Ok "Python found: $pyVer"
-} catch {
+}
+catch {
     Write-Warn "Python not found. Install Python 3.11+ from python.org"
 }
 
@@ -25,7 +26,8 @@ Write-Info "Checking Go..."
 try {
     $goVer = go version 2>&1
     Write-Ok "Go found: $goVer"
-} catch {
+}
+catch {
     Write-Warn "Go not found. Install Go 1.21+ from go.dev"
 }
 
@@ -34,7 +36,8 @@ Write-Info "Setting up Python virtual environment..."
 if (-not (Test-Path ".venv")) {
     python -m venv .venv
     Write-Ok "Created .venv"
-} else {
+}
+else {
     Write-Ok ".venv already exists"
 }
 
