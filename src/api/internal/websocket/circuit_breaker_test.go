@@ -374,7 +374,7 @@ func TestCircuitBreakerCachedDataFallback(t *testing.T) {
 
 	mock.SetFailureMode(10)
 	for i := 0; i < 3; i++ {
-		cb.Execute(func() (interface{}, error) {
+		_, _, _ = cb.Execute(func() (interface{}, error) { // intentionally ignore result in test
 			return mock.Call()
 		})
 	}
@@ -600,7 +600,7 @@ func TestCircuitBreakerErrorTypes(t *testing.T) {
 			cb := NewCircuitBreaker(2, 100*time.Millisecond)
 			initialFailures := cb.GetFailureCount()
 
-			cb.Execute(func() (interface{}, error) {
+			_, _, _ = cb.Execute(func() (interface{}, error) { // intentionally ignore result in test
 				return nil, tc.err
 			})
 
@@ -632,7 +632,7 @@ func TestCircuitBreakerMetrics(t *testing.T) {
 
 	mock.SetFailureMode(3)
 	for i := 0; i < 3; i++ {
-		cb.Execute(func() (interface{}, error) {
+		_, _, _ = cb.Execute(func() (interface{}, error) { // intentionally ignore result in test
 			return mock.Call()
 		})
 	}
@@ -642,7 +642,7 @@ func TestCircuitBreakerMetrics(t *testing.T) {
 	}
 
 	mock.SetFailureMode(0)
-	cb.Execute(func() (interface{}, error) {
+	_, _, _ = cb.Execute(func() (interface{}, error) { // intentionally ignore result in test
 		return mock.Call()
 	})
 
@@ -659,7 +659,7 @@ func TestCircuitBreakerEdgeCases(t *testing.T) {
 
 	t.Run("Threshold_of_1", func(t *testing.T) {
 		cb := NewCircuitBreaker(1, 50*time.Millisecond)
-		cb.Execute(func() (interface{}, error) {
+		_, _, _ = cb.Execute(func() (interface{}, error) { // intentionally ignore result in test
 			return nil, errors.New("single failure")
 		})
 		if cb.GetState() != StateOpen {
@@ -672,11 +672,11 @@ func TestCircuitBreakerEdgeCases(t *testing.T) {
 		mock := NewMockRPCClient()
 		mock.SetFailureMode(2)
 
-		cb.Execute(func() (interface{}, error) { return mock.Call() })
-		cb.Execute(func() (interface{}, error) { return mock.Call() })
+		_, _, _ = cb.Execute(func() (interface{}, error) { return mock.Call() }) // intentionally ignore result in test
+		_, _, _ = cb.Execute(func() (interface{}, error) { return mock.Call() }) // intentionally ignore result in test
 
 		mock.SetFailureMode(0)
-		cb.Execute(func() (interface{}, error) { return mock.Call() })
+		_, _, _ = cb.Execute(func() (interface{}, error) { return mock.Call() }) // intentionally ignore result in test
 
 		if cb.GetState() != StateClosed {
 			t.Errorf("Expected CLOSED with zero reset, got %s", cb.GetState())

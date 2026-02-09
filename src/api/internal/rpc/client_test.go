@@ -46,7 +46,7 @@ func TestClient_IsConnected(t *testing.T) {
 					Result:  json.RawMessage(`{"hostname": "test"}`),
 					ID:      1,
 				}
-				json.NewEncoder(w).Encode(response)
+				_ = json.NewEncoder(w).Encode(response) // error intentionally ignored in test
 			},
 			expectConn: true,
 		},
