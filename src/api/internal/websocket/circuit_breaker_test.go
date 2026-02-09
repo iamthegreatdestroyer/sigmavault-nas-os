@@ -726,7 +726,7 @@ func BenchmarkCircuitBreakerConcurrent(b *testing.B) {
 	b.ResetTimer()
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			cb.Execute(func() (interface{}, error) {
+			_, _, _ = cb.Execute(func() (interface{}, error) { // intentionally ignore result in benchmark
 				return mock.Call()
 			})
 		}
