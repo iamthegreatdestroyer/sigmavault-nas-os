@@ -546,7 +546,7 @@ func TestCompressionRatioTarget(t *testing.T) {
 		}
 
 		var result CompressDataResult
-		json.Unmarshal(resp.Result, &result)
+		_ = json.Unmarshal(resp.Result, &result) // error intentionally ignored in test
 
 		if result.CompressionRatio < targetCompressionRatio {
 			t.Errorf("Size %d: ratio %.2f%% below target %.2f%%",
@@ -588,7 +588,7 @@ func TestConcurrentCompression(t *testing.T) {
 			}
 
 			var result CompressDataResult
-			json.Unmarshal(resp.Result, &result)
+			_ = json.Unmarshal(resp.Result, &result) // error intentionally ignored in test
 			if !result.Success {
 				done <- fmt.Errorf("call %d compression failed", id)
 				return
@@ -667,7 +667,7 @@ func TestCompressionInvalidData(t *testing.T) {
 
 			// If we get here, check if success is false
 			var result map[string]interface{}
-			json.Unmarshal(resp.Result, &result)
+			_ = json.Unmarshal(resp.Result, &result) // error intentionally ignored in test
 			if success, ok := result["success"].(bool); ok && !success {
 				t.Logf("   %s: success=false (expected)", tc.name)
 				return
@@ -705,7 +705,7 @@ func TestDecompressInvalidData(t *testing.T) {
 	}
 
 	var result map[string]interface{}
-	json.Unmarshal(resp.Result, &result)
+	_ = json.Unmarshal(resp.Result, &result) // error intentionally ignored in test
 	if success, ok := result["success"].(bool); ok && !success {
 		t.Log("   success=false (expected)")
 		return

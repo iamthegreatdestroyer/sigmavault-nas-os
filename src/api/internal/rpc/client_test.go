@@ -98,7 +98,7 @@ func TestClient_Call_Success(t *testing.T) {
 			Result:  json.RawMessage(`{"success": true}`),
 			ID:      req.ID,
 		}
-		json.NewEncoder(w).Encode(response)
+		_ = json.NewEncoder(w).Encode(response) // error intentionally ignored in test
 	}))
 	defer server.Close()
 
@@ -120,7 +120,7 @@ func TestClient_Call_Success(t *testing.T) {
 func TestClient_Call_RPCError(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var req JSONRPCRequest
-		json.NewDecoder(r.Body).Decode(&req)
+		_ = json.NewDecoder(r.Body).Decode(&req) // error intentionally ignored in test
 
 		w.Header().Set("Content-Type", "application/json")
 		response := JSONRPCResponse{
@@ -131,7 +131,7 @@ func TestClient_Call_RPCError(t *testing.T) {
 			},
 			ID: req.ID,
 		}
-		json.NewEncoder(w).Encode(response)
+		_ = json.NewEncoder(w).Encode(response) // error intentionally ignored in test
 	}))
 	defer server.Close()
 
@@ -183,7 +183,7 @@ func TestClient_Call_Retry(t *testing.T) {
 		}
 
 		var req JSONRPCRequest
-		json.NewDecoder(r.Body).Decode(&req)
+		_ = json.NewDecoder(r.Body).Decode(&req) // error intentionally ignored in test
 
 		w.Header().Set("Content-Type", "application/json")
 		response := JSONRPCResponse{
@@ -191,7 +191,7 @@ func TestClient_Call_Retry(t *testing.T) {
 			Result:  json.RawMessage(`{"success": true}`),
 			ID:      req.ID,
 		}
-		json.NewEncoder(w).Encode(response)
+		_ = json.NewEncoder(w).Encode(response) // error intentionally ignored in test
 	}))
 	defer server.Close()
 

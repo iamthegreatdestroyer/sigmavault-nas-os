@@ -307,14 +307,14 @@ func TestCircuitBreakerStateTransitions(t *testing.T) {
 				switch op {
 				case "fail":
 					mock.SetFailureMode(1)
-					cb.Execute(func() (interface{}, error) {
+					_, _, _ = cb.Execute(func() (interface{}, error) { // intentionally ignore result in test
 						return mock.Call()
 					})
 					actualStates = append(actualStates, cb.GetState())
 
 				case "success":
 					mock.SetFailureMode(0)
-					cb.Execute(func() (interface{}, error) {
+					_, _, _ = cb.Execute(func() (interface{}, error) { // intentionally ignore result in test
 						return mock.Call()
 					})
 					actualStates = append(actualStates, cb.GetState())
@@ -327,7 +327,7 @@ func TestCircuitBreakerStateTransitions(t *testing.T) {
 				case "wait_and_success":
 					time.Sleep(tc.resetAfter + 10*time.Millisecond)
 					mock.SetFailureMode(0)
-					cb.Execute(func() (interface{}, error) {
+				_, _, _ = cb.Execute(func() (interface{}, error) { // intentionally ignore result in test
 						return mock.Call()
 					})
 					actualStates = append(actualStates, cb.GetState())
@@ -335,7 +335,7 @@ func TestCircuitBreakerStateTransitions(t *testing.T) {
 				case "wait_and_fail":
 					time.Sleep(tc.resetAfter + 10*time.Millisecond)
 					mock.SetFailureMode(1)
-					cb.Execute(func() (interface{}, error) {
+					_, _, _ = cb.Execute(func() (interface{}, error) { // intentionally ignore result in test
 						return mock.Call()
 					})
 					actualStates = append(actualStates, cb.GetState())
@@ -405,7 +405,7 @@ func TestCircuitBreakerCachedDataFallback(t *testing.T) {
 	}
 
 	initialCalls := mock.GetCallCount()
-	cb.Execute(func() (interface{}, error) {
+	_, _, _ = cb.Execute(func() (interface{}, error) { // intentionally ignore result in test
 		return mock.Call()
 	})
 	if mock.GetCallCount() != initialCalls {
@@ -425,7 +425,7 @@ func TestCircuitBreakerRecoveryAfterCooldown(t *testing.T) {
 
 	mock.SetFailureMode(5)
 	for i := 0; i < 2; i++ {
-		cb.Execute(func() (interface{}, error) {
+		_, _, _ = cb.Execute(func() (interface{}, error) { // intentionally ignore result in test
 			return mock.Call()
 		})
 	}
