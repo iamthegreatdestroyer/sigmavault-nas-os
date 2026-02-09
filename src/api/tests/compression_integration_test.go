@@ -75,7 +75,7 @@ func generateCompressibleData(size int) []byte {
 // generateRandomData generates random data (compresses poorly).
 func generateRandomData(size int) []byte {
 	data := make([]byte, size)
-	_ = rand.Read(data) // gosec: G104 - error intentionally ignored in test
+	_, _ = rand.Read(data) // gosec: G104 - intentionally ignore n and err in test
 	return data
 }
 
@@ -686,7 +686,7 @@ func TestDecompressInvalidData(t *testing.T) {
 
 	// Random data that's not valid compressed data
 	invalidData := make([]byte, 100)
-	rand.Read(invalidData)
+	_, _ = rand.Read(invalidData) // intentionally ignore n and err in test
 	encodedData := base64.StdEncoding.EncodeToString(invalidData)
 
 	params := map[string]interface{}{
