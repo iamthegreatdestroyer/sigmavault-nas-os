@@ -12,15 +12,15 @@ import gi
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adwaita", "1")
 
-from gi.repository import Gtk, Adwaita, Gio, GLib
+from gi.repository import Adwaita, Gio, GLib, Gtk
 
 from sigmavault_desktop.api.client import SigmaVaultAPIClient
 from sigmavault_desktop.api.models import CompressionJob
-from sigmavault_desktop.views.dashboard_view import DashboardView
-from sigmavault_desktop.views.jobs_view import JobsListView
-from sigmavault_desktop.views.job_detail_view import JobDetailView
-from sigmavault_desktop.views.storage_view import StorageView
 from sigmavault_desktop.views.agents_view import AgentsView
+from sigmavault_desktop.views.dashboard_view import DashboardView
+from sigmavault_desktop.views.job_detail_view import JobDetailView
+from sigmavault_desktop.views.jobs_view import JobsListView
+from sigmavault_desktop.views.storage_view import StorageView
 from sigmavault_desktop.views.system_settings_view import SystemSettingsView
 
 logger = logging.getLogger(__name__)

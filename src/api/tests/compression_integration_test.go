@@ -75,7 +75,7 @@ func generateCompressibleData(size int) []byte {
 // generateRandomData generates random data (compresses poorly).
 func generateRandomData(size int) []byte {
 	data := make([]byte, size)
-	rand.Read(data)
+	_ = rand.Read(data) // gosec: G104 - error intentionally ignored in test
 	return data
 }
 
@@ -506,7 +506,7 @@ func TestCompressionLatency(t *testing.T) {
 		}
 
 		var result CompressDataResult
-		json.Unmarshal(resp.Result, &result)
+		_ = json.Unmarshal(resp.Result, &result) // error intentionally ignored in test
 
 		t.Logf("   %dKB: latency=%v, ratio=%.2f%%, throughput=%.2f MB/s",
 			size/1024, duration, result.CompressionRatio*100,

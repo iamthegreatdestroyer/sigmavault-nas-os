@@ -15,11 +15,11 @@ import gi
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adwaita", "1")
 
-from gi.repository import Gtk, Adwaita, GLib
+from gi.repository import Adwaita, GLib, Gtk
 
 from sigmavault_desktop.api.client import SigmaVaultAPIClient
-from sigmavault_desktop.utils.formatting import format_bytes
 from sigmavault_desktop.utils.async_helpers import run_async, schedule_repeated
+from sigmavault_desktop.utils.formatting import format_bytes
 
 logger = logging.getLogger(__name__)
 

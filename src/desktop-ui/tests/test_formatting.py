@@ -5,14 +5,15 @@ Run with: python -m pytest test_formatting.py -v
 """
 
 import pytest
+
 from sigmavault_desktop.utils.formatting import (
     format_bytes,
     format_duration,
     format_percent,
     format_ratio,
     format_throughput,
-    status_to_icon,
     status_to_css_class,
+    status_to_icon,
 )
 
 # ─── format_bytes ─────────────────────────────────────────────────────

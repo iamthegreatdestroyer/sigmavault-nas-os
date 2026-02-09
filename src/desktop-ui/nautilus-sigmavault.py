@@ -14,7 +14,7 @@ import gi
 
 gi.require_version("Nautilus", "4.0")  # Nautilus 43+ (GNOME 43+/GTK4)
 gi.require_version("GObject", "2.0")
-from gi.repository import Nautilus, GObject, Gio, GLib  # noqa: E402
+from gi.repository import Gio, GLib, GObject, Nautilus  # noqa: E402
 
 logger = logging.getLogger("sigmavault.nautilus")
 

@@ -2,18 +2,18 @@
 
 from sigmavault_desktop.api.client import SigmaVaultAPIClient
 from sigmavault_desktop.api.models import (
-    CompressionJob,
-    SystemStatus,
-    APIResponse,
-    StorageDisk,
-    StoragePool,
-    StorageDataset,
-    StorageShare,
     Agent,
     AgentMetrics,
+    APIResponse,
+    CompressionJob,
     NetworkInterface,
-    SystemService,
+    StorageDataset,
+    StorageDisk,
+    StoragePool,
+    StorageShare,
     SystemNotification,
+    SystemService,
+    SystemStatus,
 )
 
 __all__ = [

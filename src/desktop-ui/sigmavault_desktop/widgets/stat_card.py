@@ -9,7 +9,7 @@ import gi
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adwaita", "1")
 
-from gi.repository import Gtk, Adwaita
+from gi.repository import Adwaita, Gtk
 
 
 class StatCard(Gtk.Box):

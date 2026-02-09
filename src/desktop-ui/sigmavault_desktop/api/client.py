@@ -1,23 +1,24 @@
 """API client for communicating with SigmaVault Go API."""
 
 import logging
-from typing import Optional, Dict, Any, List
+from typing import Any, Dict, List, Optional
+
 import aiohttp
 from pydantic import BaseModel, ValidationError
 
 from sigmavault_desktop.api.models import (
-    CompressionJob,
-    SystemStatus,
-    APIResponse,
-    StorageDisk,
-    StoragePool,
-    StorageDataset,
-    StorageShare,
     Agent,
     AgentMetrics,
+    APIResponse,
+    CompressionJob,
     NetworkInterface,
-    SystemService,
+    StorageDataset,
+    StorageDisk,
+    StoragePool,
+    StorageShare,
     SystemNotification,
+    SystemService,
+    SystemStatus,
 )
 
 logger = logging.getLogger(__name__)

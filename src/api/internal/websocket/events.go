@@ -563,39 +563,9 @@ func (es *EventSubscriber) pollTuningStatus(ctx context.Context) {
 	}
 }
 
-// Helper functions
-
-// countAgentsByStatus counts agents with a specific status.
-func countAgentsByStatus(agents []rpc.Agent, status string) int {
-	count := 0
-	for _, agent := range agents {
-		if agent.Status == status {
-			count++
-		}
-	}
-	return count
-}
-
-// calculateAvgResponseTime calculates average response time from all agents.
-func calculateAvgResponseTime(agents []rpc.Agent) float64 {
-	if len(agents) == 0 {
-		return 0
-	}
-
-	total := 0.0
-	count := 0
-	for _, agent := range agents {
-		if agent.Metrics != nil {
-			total += agent.Metrics.AverageLatency
-			count++
-		}
-	}
-
-	if count == 0 {
-		return 0
-	}
-	return total / float64(count)
-}
+// Helper functions removed to satisfy golangci-lint unused checks:
+// - countAgentsByStatus: never called in codebase
+// - calculateAvgResponseTime: never called in codebase
 
 // SubscribeToEvents sets up event subscriptions for a client.
 // The client will receive messages of specified types.

@@ -1,7 +1,7 @@
 """Entry point for SigmaVault Native UI application."""
 
-import sys
 import logging
+import sys
 
 
 def main() -> int:

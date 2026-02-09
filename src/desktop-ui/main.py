@@ -7,9 +7,9 @@ Launch with:
     GTK_DEBUG=interactive python main.py  # With GTK Inspector
 """
 
-import sys
-import signal
 import logging
+import signal
+import sys
 
 import gi
 

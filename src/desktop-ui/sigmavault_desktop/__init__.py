@@ -3,8 +3,8 @@
 __version__ = "0.1.0"
 __author__ = "SigmaVault Dev Team"
 
-import sys
 import logging
+import sys
 
 # Configure logging
 logging.basicConfig(

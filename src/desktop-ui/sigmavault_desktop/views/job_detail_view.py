@@ -12,7 +12,7 @@ import gi
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adwaita", "1")
 
-from gi.repository import Gtk, Adwaita
+from gi.repository import Adwaita, Gtk
 
 from sigmavault_desktop.api.models import CompressionJob
 from sigmavault_desktop.utils.formatting import (
@@ -21,8 +21,8 @@ from sigmavault_desktop.utils.formatting import (
     format_percent,
     format_ratio,
     format_throughput,
-    status_to_icon,
     status_to_css_class,
+    status_to_icon,
 )
 
 logger = logging.getLogger(__name__)

@@ -5,14 +5,14 @@ and navigates to JobDetailView on row activation.
 """
 
 import logging
-from typing import Optional, List, Callable
+from typing import Callable, List, Optional
 
 import gi
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adwaita", "1")
 
-from gi.repository import Gtk, Adwaita, GLib
+from gi.repository import Adwaita, GLib, Gtk
 
 from sigmavault_desktop.api.client import SigmaVaultAPIClient
 from sigmavault_desktop.api.models import CompressionJob

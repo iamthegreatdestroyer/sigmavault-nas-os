@@ -1,8 +1,8 @@
 """Data models for SigmaVault compression jobs and system status."""
 
 from dataclasses import dataclass, field
-from typing import Optional
 from datetime import datetime
+from typing import Optional
 
 
 @dataclass

@@ -9,16 +9,16 @@ from sigmavault_desktop.utils.formatting import (
     format_percent,
     format_ratio,
     format_throughput,
-    status_to_icon,
     status_to_css_class,
+    status_to_icon,
 )
 
 # async_helpers requires GTK (gi) — only import where available
 try:
     from sigmavault_desktop.utils.async_helpers import (
+        idle_add,
         run_async,
         schedule_repeated,
-        idle_add,
     )
 except ImportError:
     # Running on a system without GTK (Windows dev, CI, etc.)

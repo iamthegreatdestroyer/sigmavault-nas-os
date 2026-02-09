@@ -11,17 +11,17 @@ import gi
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
-from gi.repository import Adw, Gtk, GLib, Gio  # noqa: E402
+from gi.repository import Adw, Gio, GLib, Gtk  # noqa: E402
 
-from ui.pages.dashboard import DashboardPage
-from ui.pages.storage import StoragePage
-from ui.pages.compression import CompressionPage
+from api.client import SigmaVaultAPIClient
 from ui.pages.agents import AgentsPage
-from ui.pages.shares import SharesPage
+from ui.pages.compression import CompressionPage
+from ui.pages.dashboard import DashboardPage
 from ui.pages.network import NetworkPage
 from ui.pages.settings import SettingsPage
+from ui.pages.shares import SharesPage
+from ui.pages.storage import StoragePage
 from ui.widgets.status_indicator import StatusIndicator
-from api.client import SigmaVaultAPIClient
 
 logger = logging.getLogger("sigmavault.window")
 

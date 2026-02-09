@@ -7,7 +7,7 @@ import math
 import gi
 
 gi.require_version("Gtk", "4.0")
-from gi.repository import Gtk, Gdk  # noqa: E402
+from gi.repository import Gdk, Gtk  # noqa: E402
 
 
 class MetricGauge(Gtk.DrawingArea):

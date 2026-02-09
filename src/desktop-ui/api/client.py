@@ -7,8 +7,8 @@ Uses GLib.idle_add() pattern for GTK thread safety.
 
 import json
 import logging
-import urllib.request
 import urllib.error
+import urllib.request
 from typing import Any, Optional
 
 logger = logging.getLogger("sigmavault.api.client")

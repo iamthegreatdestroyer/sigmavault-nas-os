@@ -101,9 +101,9 @@ class SigmaVaultWebSocket:
 
     def _do_connect(self) -> None:
         """Perform WebSocket handshake over raw TCP socket."""
-        import socket
-        import hashlib
         import base64
+        import hashlib
+        import socket
         from urllib.parse import urlparse
 
         parsed = urlparse(self._url)

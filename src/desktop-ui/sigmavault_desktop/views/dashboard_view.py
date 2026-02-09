@@ -7,24 +7,24 @@ Displays:
 """
 
 import logging
-from typing import Optional, List
+from typing import List, Optional
 
 import gi
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adwaita", "1")
 
-from gi.repository import Gtk, Adwaita, GLib
+from gi.repository import Adwaita, GLib, Gtk
 
 from sigmavault_desktop.api.client import SigmaVaultAPIClient
 from sigmavault_desktop.api.models import CompressionJob, SystemStatus
+from sigmavault_desktop.utils.async_helpers import run_async
 from sigmavault_desktop.utils.formatting import (
     format_bytes,
     format_percent,
 )
-from sigmavault_desktop.utils.async_helpers import run_async
-from sigmavault_desktop.widgets.stat_card import StatCard
 from sigmavault_desktop.widgets.job_row import JobRow
+from sigmavault_desktop.widgets.stat_card import StatCard
 
 logger = logging.getLogger(__name__)
 

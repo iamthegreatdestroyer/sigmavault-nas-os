@@ -141,7 +141,7 @@ func (h *Hub) Run() {
 							"reason":     "buffer_full",
 							"error_code": "CONNECTION_DROP",
 						}
-						h.Broadcast(TypeConnectionError, errorMsg)
+						_ = h.Broadcast(TypeConnectionError, errorMsg) // Best effort notification
 						h.mu.Lock()
 					}
 				}
@@ -356,7 +356,7 @@ func (c *Client) writePump() {
 		case message, ok := <-c.Send:
 			if !ok {
 				// Channel closed
-				c.Conn.WriteMessage(websocket.CloseMessage, []byte{})
+				_ = c.Conn.WriteMessage(websocket.CloseMessage, []byte{}) // Best effort close
 				return
 			}
 

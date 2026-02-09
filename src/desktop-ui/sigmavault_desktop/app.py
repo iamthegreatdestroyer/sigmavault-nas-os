@@ -13,7 +13,7 @@ import gi
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adwaita", "1")
 
-from gi.repository import Gdk, Gtk, Adwaita, Gio
+from gi.repository import Adwaita, Gdk, Gio, Gtk
 
 from sigmavault_desktop.api.client import SigmaVaultAPIClient
 from sigmavault_desktop.window import MainWindow
