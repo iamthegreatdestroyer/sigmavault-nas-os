@@ -327,7 +327,7 @@ func TestCircuitBreakerStateTransitions(t *testing.T) {
 				case "wait_and_success":
 					time.Sleep(tc.resetAfter + 10*time.Millisecond)
 					mock.SetFailureMode(0)
-				_, _, _ = cb.Execute(func() (interface{}, error) { // intentionally ignore result in test
+					_, _, _ = cb.Execute(func() (interface{}, error) { // intentionally ignore result in test
 						return mock.Call()
 					})
 					actualStates = append(actualStates, cb.GetState())
@@ -686,13 +686,14 @@ func TestCircuitBreakerEdgeCases(t *testing.T) {
 	t.Run("Empty_cache_handling", func(t *testing.T) {
 		cb := NewCircuitBreaker(1, 100*time.Millisecond)
 
-		cb.Execute(func() (interface{}, error) {
+		_, _, _ = cb.Execute(func() (interface{}, error) { // intentionally ignore result in test
 			return nil, errors.New("failure")
 		})
 
-		result, _, fromCache := cb.Execute(func() (interface{}, error) {
+		result, err, fromCache := cb.Execute(func() (interface{}, error) {
 			return "should_not_see", nil
 		})
+		_ = err // error intentionally ignored in test
 
 		if fromCache && result != nil {
 			t.Error("Empty cache should return nil")
@@ -710,7 +711,7 @@ func BenchmarkCircuitBreakerExecution(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		cb.Execute(func() (interface{}, error) {
+		_, _, _ = cb.Execute(func() (interface{}, error) { // intentionally ignore result in benchmark
 			return mock.Call()
 		})
 	}

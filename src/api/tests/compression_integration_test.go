@@ -72,13 +72,6 @@ func generateCompressibleData(size int) []byte {
 	return data[:size]
 }
 
-// generateRandomData generates random data (compresses poorly).
-func generateRandomData(size int) []byte {
-	data := make([]byte, size)
-	_, _ = rand.Read(data) // gosec: G104 - intentionally ignore n and err in test
-	return data
-}
-
 // ============================================================================
 // Response Types for Compression API
 // ============================================================================
