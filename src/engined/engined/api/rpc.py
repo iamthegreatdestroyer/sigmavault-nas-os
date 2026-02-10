@@ -149,8 +149,12 @@ def handle_system_status() -> dict[str, Any]:
     }
 
 
-async def handle_agents_list(request: Request, params: dict[str, Any]) -> dict[str, Any]:
-    """Handle agents.list RPC call - returns list of all agents."""
+async def handle_agents_list(request: Request, params: dict[str, Any]) -> list[dict[str, Any]]:
+    """Handle agents.list RPC call - returns list of all agents.
+    
+    Returns array of agent objects directly (not wrapped in object).
+    Go client expects: []Agent
+    """
     from engined.agents.swarm import AgentSwarm
 
     swarm: AgentSwarm | None = getattr(request.app.state, "swarm", None)
@@ -173,11 +177,7 @@ async def handle_agents_list(request: Request, params: dict[str, Any]) -> dict[s
                 "memory_usage_mb": 0.0,
                 "last_active": now.isoformat(),
             })
-        return {
-            "agents": agents,
-            "total": len(agents),
-            "swarm_initialized": False,
-        }
+        return agents  # Return array directly, not wrapped in object
 
     # Get agents from initialized swarm
     tier_filter = params.get("tier")
@@ -191,11 +191,7 @@ async def handle_agents_list(request: Request, params: dict[str, Any]) -> dict[s
     if status_filter:
         agents = [a for a in agents if a.status.value == status_filter]
 
-    return {
-        "agents": [a.to_dict() for a in agents],
-        "total": len(agents),
-        "swarm_initialized": True,
-    }
+    return [a.to_dict() for a in agents]  # Return array directly, not wrapped in object
 
 
 async def handle_agents_status(request: Request) -> dict[str, Any]:
