@@ -77,6 +77,16 @@ async def handle_rpc(
             result = await handle_agents_list(request, params)
         elif method == "agents.status":
             result = await handle_agents_status(request)
+        elif method == "agents.get":
+            result = await handle_agents_get(request, params)
+        elif method == "agents.get_by_codename":
+            result = await handle_agents_get_by_codename(request, params)
+        elif method == "agents.metrics":
+            result = await handle_agents_metrics(request, params)
+        elif method == "agents.swarm_status":
+            result = await handle_agents_status(request)  # Alias for agents.status
+        elif method == "agents.list_tiers":
+            result = await handle_agents_list_tiers(request)
         elif method == "compression.jobs.list":
             result = handle_compression_jobs_list(params)
         elif method == "compression.jobs.get":
@@ -217,6 +227,175 @@ async def handle_agents_status(request: Request) -> dict[str, Any]:
         }
 
     return swarm.get_swarm_status()
+
+
+async def handle_agents_get(request: Request, params: dict[str, Any]) -> dict[str, Any]:
+    """Handle agents.get RPC call - returns specific agent by ID."""
+    from engined.agents.swarm import AgentSwarm, AGENT_DEFINITIONS, AgentStatus
+
+    agent_id = params.get("id")
+    if not agent_id:
+        raise ValueError("id parameter required")
+    
+    # Try to get agent from initialized swarm
+    swarm: AgentSwarm | None = getattr(request.app.state, "swarm", None)
+    if swarm and swarm.is_initialized:
+        agent = swarm.get_agent(agent_id)
+        if agent:
+            return agent.to_dict()
+    
+    # Fallback: construct agent from definitions
+    # agent_id format: agent-001, agent-002, etc.
+    try:
+        agent_num = int(agent_id.split("-")[-1]) - 1
+        if 0 <= agent_num < len(AGENT_DEFINITIONS):
+            agent_def = AGENT_DEFINITIONS[agent_num]
+            now = datetime.now(UTC)
+            return {
+                "agent_id": agent_id,
+                "name": agent_def["name"],
+                "tier": agent_def["tier"].value,
+                "specialty": agent_def["specialty"],
+                "status": AgentStatus.OFFLINE.value,
+                "tasks_completed": 0,
+                "success_rate": 1.0,
+                "avg_response_time_ms": 0.0,
+                "memory_usage_mb": 0.0,
+                "last_active": now.isoformat(),
+            }
+    except (ValueError, IndexError):
+        pass
+    
+    raise ValueError(f"Agent {agent_id} not found")
+
+
+async def handle_agents_get_by_codename(request: Request, params: dict[str, Any]) -> dict[str, Any]:
+    """Handle agents.get_by_codename RPC call - returns agent by codename."""
+    from engined.agents.swarm import AgentSwarm, AGENT_DEFINITIONS, AgentStatus
+
+    codename = params.get("codename")
+    if not codename:
+        raise ValueError("codename parameter required")
+    
+    # Try to get agent from initialized swarm
+    swarm: AgentSwarm | None = getattr(request.app.state, "swarm", None)
+    if swarm and swarm.is_initialized:
+        agents = swarm.list_agents()
+        for agent in agents:
+            if agent.name == codename:
+                return agent.to_dict()
+    
+    # Fallback: find in definitions
+    for i, agent_def in enumerate(AGENT_DEFINITIONS):
+        if agent_def["name"] == codename:
+            now = datetime.now(UTC)
+            return {
+                "agent_id": f"agent-{i+1:03d}",
+                "name": agent_def["name"],
+                "tier": agent_def["tier"].value,
+                "specialty": agent_def["specialty"],
+                "status": AgentStatus.OFFLINE.value,
+                "tasks_completed": 0,
+                "success_rate": 1.0,
+                "avg_response_time_ms": 0.0,
+                "memory_usage_mb": 0.0,
+                "last_active": now.isoformat(),
+            }
+    
+    raise ValueError(f"Agent {codename} not found")
+
+
+async def handle_agents_metrics(request: Request, params: dict[str, Any]) -> dict[str, Any]:
+    """Handle agents.metrics RPC call - returns agent performance metrics."""
+    from engined.agents.swarm import AgentSwarm
+
+    agent_id = params.get("id")
+    if not agent_id:
+        raise ValueError("id parameter required")
+    
+    swarm: AgentSwarm | None = getattr(request.app.state, "swarm", None)
+    
+    if not swarm or not swarm.is_initialized:
+        # Return default metrics for offline agent
+        now = datetime.now(UTC)
+        return {
+            "agent_id": agent_id,
+            "tasks_completed": 0,
+            "tasks_failed": 0,
+            "average_latency_ms": 0.0,
+            "success_rate": 1.0,
+            "total_processing_time_ms": 0,
+            "memory_usage": 0,
+            "last_updated": now.isoformat(),
+        }
+    
+    agent = swarm.get_agent(agent_id)
+    if not agent:
+        raise ValueError(f"Agent {agent_id} not found")
+    
+    now = datetime.now(UTC)
+    # Calculate tasks_failed from success_rate if possible
+    tasks_failed = 0
+    if agent.success_rate < 1.0 and agent.tasks_completed > 0:
+        tasks_failed = int(agent.tasks_completed * (1 - agent.success_rate))
+    
+    # Total processing time estimate (tasks × average latency)
+    total_processing_time_ms = int(agent.tasks_completed * agent.avg_response_time_ms)
+    
+    return {
+        "agent_id": agent_id,
+        "tasks_completed": agent.tasks_completed,
+        "tasks_failed": tasks_failed,
+        "average_latency_ms": agent.avg_response_time_ms,
+        "success_rate": agent.success_rate,
+        "total_processing_time_ms": total_processing_time_ms,
+        "memory_usage": agent.memory_usage_mb,
+        "last_updated": now.isoformat(),
+    }
+
+
+async def handle_agents_list_tiers(request: Request) -> dict[str, Any]:
+    """Handle agents.list_tiers RPC call - returns agent tier breakdown."""
+    from engined.agents.swarm import AgentSwarm, AGENT_DEFINITIONS, AgentTier
+
+    tier_map = {
+        AgentTier.CORE: {"name": "Core", "description": "Core compression agents"},
+        AgentTier.SPECIALIST: {"name": "Specialist", "description": "Specialized domain agents"},
+        AgentTier.SUPPORT: {"name": "Support", "description": "Supporting infrastructure agents"},
+    }
+    
+    # Count agents by tier
+    tier_counts: dict[str, int] = {
+        AgentTier.CORE.value: 0,
+        AgentTier.SPECIALIST.value: 0,
+        AgentTier.SUPPORT.value: 0,
+    }
+    
+    for agent_def in AGENT_DEFINITIONS:
+        tier_counts[agent_def["tier"].value] += 1
+    
+    # Build tier breakdown
+    tiers = []
+    agent_idx = 1
+    for tier_enum in [AgentTier.CORE, AgentTier.SPECIALIST, AgentTier.SUPPORT]:
+        tier_value = tier_enum.value
+        agent_ids = []
+        for i in range(tier_counts[tier_value]):
+            agent_ids.append(f"agent-{agent_idx:03d}")
+            agent_idx += 1
+        
+        tiers.append({
+            "tier": tier_value,
+            "name": tier_map[tier_enum]["name"],
+            "description": tier_map[tier_enum]["description"],
+            "agent_count": tier_counts[tier_value],
+            "agents": agent_ids,
+        })
+    
+    return {
+        "tiers": tiers,
+        "total_agents": len(AGENT_DEFINITIONS),
+    }
 
 
 def handle_compression_jobs_list(params: dict[str, Any]) -> dict[str, Any]:

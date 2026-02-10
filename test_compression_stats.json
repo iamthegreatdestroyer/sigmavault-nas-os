@@ -1,0 +1,6 @@
+{
+  "jsonrpc": "2.0",
+  "method": "compression.stats",
+  "params": {},
+  "id": 1
+}
