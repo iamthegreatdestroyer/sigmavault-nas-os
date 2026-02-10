@@ -102,6 +102,8 @@ async def handle_rpc(
             result = await handle_get_compression_config()
         elif method == "compression.config.set":
             result = await handle_set_compression_config(params)
+        elif method == "compression.stats":
+            result = await handle_compression_stats()
         else:
             return JSONRPCResponse(
                 error={"code": -32601, "message": f"Method not found: {method}"},
@@ -754,3 +756,17 @@ async def handle_set_compression_config(params: dict[str, Any]) -> dict[str, Any
         "use_semantic": new_config.use_semantic,
         "lossless": new_config.lossless,
     }
+
+async def handle_compression_stats() -> dict[str, Any]:
+    """
+    Handle compression.stats RPC call.
+    
+    Retrieves overall compression statistics across all jobs.
+    """
+    from engined.api.compression import get_compression_stats
+    
+    # Get the stats from the compression API
+    stats = await get_compression_stats()
+    
+    # Convert Pydantic model to dict for JSON serialization
+    return stats.model_dump()
