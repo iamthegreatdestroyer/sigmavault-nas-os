@@ -7,17 +7,17 @@ needed for integration testing. It doesn't require all the heavy ML dependencies
 
 import asyncio
 import base64
+import json
 import platform
 import time
 import zlib
-from datetime import datetime, timezone
-from typing import Any, Dict
-import json
+from datetime import UTC, datetime
+from typing import Any
 
 from aiohttp import web
 
 # In-memory storage for compression jobs
-_compression_jobs: Dict[str, Dict[str, Any]] = {}
+_compression_jobs: dict[str, dict[str, Any]] = {}
 _job_counter = 0
 
 
@@ -36,15 +36,15 @@ def compress_data(data: bytes, level: str = "balanced") -> tuple[bytes, dict]:
         "maximum": 9,
     }
     zlib_level = level_map.get(level, 6)
-    
+
     start_time = time.time()
     compressed = zlib.compress(data, level=zlib_level)
     elapsed = (time.time() - start_time) * 1000  # ms
-    
+
     original_size = len(data)
     compressed_size = len(compressed)
     ratio = compressed_size / original_size if original_size > 0 else 1.0
-    
+
     return compressed, {
         "original_size": original_size,
         "compressed_size": compressed_size,
@@ -60,7 +60,7 @@ def decompress_data(data: bytes) -> tuple[bytes, dict]:
     start_time = time.time()
     decompressed = zlib.decompress(data)
     elapsed = (time.time() - start_time) * 1000  # ms
-    
+
     return decompressed, {
         "compressed_size": len(data),
         "decompressed_size": len(decompressed),
@@ -75,10 +75,10 @@ async def handle_rpc(request: web.Request) -> web.Response:
         method = body.get("method", "")
         params = body.get("params", {}) or {}
         request_id = body.get("id")
-        
+
         result = None
         error = None
-        
+
         if method == "system.status":
             result = {
                 "hostname": platform.node(),
@@ -88,9 +88,9 @@ async def handle_rpc(request: web.Request) -> web.Response:
                 "memory_usage": {"total": 0, "used": 0, "free": 0, "available": 0, "used_percent": 0.0},
                 "disk_usage": [],
                 "load_average": {"load1": 0.0, "load5": 0.0, "load15": 0.0},
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
             }
-        
+
         elif method == "compression.compress.data":
             # Validate input
             data_b64 = params.get("data")
@@ -101,11 +101,11 @@ async def handle_rpc(request: web.Request) -> web.Response:
                     data = base64.b64decode(data_b64)
                     level = params.get("level", "balanced")
                     compressed, stats = compress_data(data, level)
-                    
+
                     # Calculate compression ratio (ratio of space saved)
                     # 0.7 = 70% compression = only 30% of original size remains
                     compression_ratio = 1.0 - (stats["compressed_size"] / stats["original_size"]) if stats["original_size"] > 0 else 0.0
-                    
+
                     result = {
                         "job_id": generate_job_id(),
                         "success": True,
@@ -117,8 +117,8 @@ async def handle_rpc(request: web.Request) -> web.Response:
                         "elapsed_seconds": stats["duration_ms"] / 1000.0,
                     }
                 except Exception as e:
-                    error = {"code": -32603, "message": f"Compression error: {str(e)}"}
-        
+                    error = {"code": -32603, "message": f"Compression error: {e!s}"}
+
         elif method == "compression.decompress.data":
             data_b64 = params.get("data")
             if not data_b64:
@@ -136,8 +136,8 @@ async def handle_rpc(request: web.Request) -> web.Response:
                         "elapsed_seconds": stats["duration_ms"] / 1000.0,
                     }
                 except Exception as e:
-                    error = {"code": -32603, "message": f"Decompression error: {str(e)}"}
-        
+                    error = {"code": -32603, "message": f"Decompression error: {e!s}"}
+
         elif method == "compression.queue.submit":
             job_id = generate_job_id()
             source_path = params.get("source_path", "")
@@ -145,9 +145,9 @@ async def handle_rpc(request: web.Request) -> web.Response:
             level = params.get("level", "balanced")
             priority = params.get("priority", "normal")
             job_type = params.get("job_type", "compress_data")
-            
+
             # Create job record
-            now = datetime.now(timezone.utc)
+            now = datetime.now(UTC)
             _compression_jobs[job_id] = {
                 "job_id": job_id,
                 "status": "queued",
@@ -163,12 +163,12 @@ async def handle_rpc(request: web.Request) -> web.Response:
                 "error": None,
                 "stats": None,
             }
-            
+
             # Simulate async job processing (start immediately for testing)
             _compression_jobs[job_id]["status"] = "running"
             _compression_jobs[job_id]["started_at"] = now.isoformat()
             _compression_jobs[job_id]["progress"] = 50.0
-            
+
             result = {
                 "job_id": job_id,
                 "status": "queued",
@@ -176,7 +176,7 @@ async def handle_rpc(request: web.Request) -> web.Response:
                 "job_type": job_type,
                 "created_at": now.isoformat(),
             }
-        
+
         elif method == "compression.queue.status":
             job_id = params.get("job_id", "")
             job = _compression_jobs.get(job_id)
@@ -188,7 +188,7 @@ async def handle_rpc(request: web.Request) -> web.Response:
                     job["progress"] = min(job["progress"] + 10.0, 100.0)
                     if job["progress"] >= 100.0:
                         job["status"] = "completed"
-                        job["completed_at"] = datetime.now(timezone.utc).isoformat()
+                        job["completed_at"] = datetime.now(UTC).isoformat()
                         job["stats"] = {
                             "original_size": 1024,
                             "compressed_size": 300,
@@ -206,7 +206,7 @@ async def handle_rpc(request: web.Request) -> web.Response:
                     "completed_at": job.get("completed_at"),
                     "error": job.get("error"),
                 }
-        
+
         elif method == "compression.queue.running":
             running = []
             pending = []
@@ -226,14 +226,14 @@ async def handle_rpc(request: web.Request) -> web.Response:
                     })
                 elif j["status"] == "queued":
                     pending.append(j)
-            
+
             result = {
                 "jobs": running,
                 "total_running": len(running),
                 "total_pending": len(pending),
                 "total_jobs": len(_compression_jobs),
             }
-        
+
         elif method == "compression.queue.cancel":
             job_id = params.get("job_id", "")
             job = _compression_jobs.get(job_id)
@@ -243,23 +243,23 @@ async def handle_rpc(request: web.Request) -> web.Response:
                 error = {"code": -32602, "message": f"Job cannot be cancelled: {job['status']}"}
             else:
                 job["status"] = "cancelled"
-                job["completed_at"] = datetime.now(timezone.utc).isoformat()
+                job["completed_at"] = datetime.now(UTC).isoformat()
                 result = {"job_id": job_id, "status": "cancelled"}
-        
+
         elif method == "compression.jobs.list":
             # Return list of all jobs with filtering
             status_filter = params.get("status")
             limit = params.get("limit", 100)
             offset = params.get("offset", 0)
-            
+
             jobs_list = list(_compression_jobs.values())
-            
+
             if status_filter:
                 jobs_list = [j for j in jobs_list if j["status"] == status_filter]
-            
+
             # Apply pagination
             jobs_list = jobs_list[offset:offset + limit]
-            
+
             result = {
                 "jobs": [{
                     "job_id": j["job_id"],
@@ -275,7 +275,7 @@ async def handle_rpc(request: web.Request) -> web.Response:
                 "limit": limit,
                 "offset": offset,
             }
-        
+
         elif method == "compression.config.get":
             result = {
                 "default_algorithm": "zlib",
@@ -283,19 +283,19 @@ async def handle_rpc(request: web.Request) -> web.Response:
                 "max_concurrent_jobs": 4,
                 "chunk_size": 65536,
             }
-        
+
         elif method == "compression.config.set":
             result = {
                 "success": True,
                 "message": "Configuration updated",
             }
-        
+
         # ==============================
         # Agent Methods
         # ==============================
         elif method == "agents.list":
             tier_filter = params.get("tier") if params else None
-            
+
             # Generate 40 agents (matching test expectations)
             agent_names = [
                 "APEX", "CIPHER", "ARCHITECT", "AXIOM", "VELOCITY",
@@ -307,7 +307,7 @@ async def handle_rpc(request: web.Request) -> web.Response:
                 "CANVAS", "LINGUA", "SCRIBE", "MENTOR", "BRIDGE",
                 "AEGIS", "LEDGER", "PULSE", "ARBITER", "ORACLE",
             ]
-            
+
             tier_map = {
                 "APEX": "core", "CIPHER": "core", "ARCHITECT": "core", "AXIOM": "core", "VELOCITY": "core",
                 "QUANTUM": "specialist", "TENSOR": "specialist", "FORTRESS": "specialist", "NEURAL": "specialist",
@@ -319,7 +319,7 @@ async def handle_rpc(request: web.Request) -> web.Response:
                 "CANVAS": "support", "LINGUA": "support", "SCRIBE": "support", "MENTOR": "support", "BRIDGE": "support",
                 "AEGIS": "support", "LEDGER": "support", "PULSE": "support", "ARBITER": "support", "ORACLE": "support",
             }
-            
+
             agents = []
             for i, name in enumerate(agent_names):
                 tier = tier_map.get(name, "support")
@@ -333,13 +333,13 @@ async def handle_rpc(request: web.Request) -> web.Response:
                     "status": "idle",
                     "load": 0.0,
                 })
-            
+
             result = {
                 "agents": agents,
                 "total": len(agents) if tier_filter else 40,
                 "swarm_initialized": True,
             }
-        
+
         elif method == "agents.status":
             result = {
                 "total_agents": 40,
@@ -349,10 +349,10 @@ async def handle_rpc(request: web.Request) -> web.Response:
                 "is_initialized": True,
                 "uptime_seconds": 3600.0,
             }
-        
+
         else:
             error = {"code": -32601, "message": f"Method not found: {method}"}
-        
+
         response = {
             "jsonrpc": "2.0",
             "id": request_id,
@@ -361,9 +361,9 @@ async def handle_rpc(request: web.Request) -> web.Response:
             response["error"] = error
         else:
             response["result"] = result
-        
+
         return web.json_response(response)
-    
+
     except json.JSONDecodeError:
         return web.json_response({
             "jsonrpc": "2.0",
@@ -373,7 +373,7 @@ async def handle_rpc(request: web.Request) -> web.Response:
     except Exception as e:
         return web.json_response({
             "jsonrpc": "2.0",
-            "error": {"code": -32603, "message": f"Internal error: {str(e)}"},
+            "error": {"code": -32603, "message": f"Internal error: {e!s}"},
             "id": body.get("id") if 'body' in dir() else None,
         })
 
@@ -382,7 +382,7 @@ async def health_check(request: web.Request) -> web.Response:
     """Health check endpoint."""
     return web.json_response({
         "status": "healthy",
-        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
     })
 
 
@@ -391,17 +391,17 @@ async def main():
     app = web.Application()
     app.router.add_post('/api/v1/rpc', handle_rpc)
     app.router.add_get('/health', health_check)
-    
+
     runner = web.AppRunner(app)
     await runner.setup()
     site = web.TCPSite(runner, '127.0.0.1', 8102)
     await site.start()
-    
+
     print("=" * 60)
     print("Test RPC Server started")
     print("=" * 60)
-    print(f"RPC Endpoint: http://localhost:8102/api/v1/rpc")
-    print(f"Health Check: http://localhost:8102/health")
+    print("RPC Endpoint: http://localhost:8102/api/v1/rpc")
+    print("Health Check: http://localhost:8102/health")
     print("=" * 60)
     print("Supported methods:")
     print("  - system.status")
@@ -414,7 +414,7 @@ async def main():
     print("  - compression.config.get")
     print("  - compression.config.set")
     print("=" * 60)
-    
+
     # Keep the server running
     try:
         while True:

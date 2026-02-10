@@ -7,8 +7,8 @@ Each agent responds with structured output indicating it received the task.
 
 import asyncio
 import logging
-from typing import Any, Dict
-from .base import BaseAgent, AgentCapability, AgentTask, TaskResult
+
+from .base import AgentCapability, AgentTask, BaseAgent, TaskResult
 
 logger = logging.getLogger(__name__)
 
@@ -37,10 +37,10 @@ class APEXAgent(BaseAgent):
     async def execute_task(self, task: AgentTask) -> TaskResult:
         """Execute software engineering task."""
         logger.info(f"{self.agent_id}: Processing {task.task_type}")
-        
+
         # Stub implementation
         await asyncio.sleep(0.1)  # Simulate work
-        
+
         return TaskResult(
             task_id=task.task_id,
             success=True,
@@ -78,9 +78,9 @@ class CIPHERAgent(BaseAgent):
     async def execute_task(self, task: AgentTask) -> TaskResult:
         """Execute cryptography/security task."""
         logger.info(f"{self.agent_id}: Processing {task.task_type}")
-        
+
         await asyncio.sleep(0.1)
-        
+
         return TaskResult(
             task_id=task.task_id,
             success=True,
@@ -118,9 +118,9 @@ class ARCHITECTAgent(BaseAgent):
     async def execute_task(self, task: AgentTask) -> TaskResult:
         """Execute architecture task."""
         logger.info(f"{self.agent_id}: Processing {task.task_type}")
-        
+
         await asyncio.sleep(0.1)
-        
+
         return TaskResult(
             task_id=task.task_id,
             success=True,
@@ -158,9 +158,9 @@ class AXIOMAgent(BaseAgent):
     async def execute_task(self, task: AgentTask) -> TaskResult:
         """Execute mathematical task."""
         logger.info(f"{self.agent_id}: Processing {task.task_type}")
-        
+
         await asyncio.sleep(0.1)
-        
+
         return TaskResult(
             task_id=task.task_id,
             success=True,
@@ -198,9 +198,9 @@ class VELOCITYAgent(BaseAgent):
     async def execute_task(self, task: AgentTask) -> TaskResult:
         """Execute performance optimization task."""
         logger.info(f"{self.agent_id}: Processing {task.task_type}")
-        
+
         await asyncio.sleep(0.1)
-        
+
         return TaskResult(
             task_id=task.task_id,
             success=True,

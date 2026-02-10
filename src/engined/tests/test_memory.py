@@ -8,20 +8,16 @@ Tests cover:
 - Memory associations and search
 """
 
-import asyncio
+from datetime import datetime
+
 import pytest
-from datetime import datetime, timedelta
-from unittest.mock import AsyncMock, MagicMock, patch
 
 from engined.agents.memory import (
+    AgentMemory,
+    MemoryEntry,
+    MemoryPriority,
     MemoryStore,
     MemoryType,
-    MemoryPriority,
-    MemoryEntry,
-    AgentMemory,
-    init_memory_system,
-    shutdown_memory_system,
-    get_memory_store,
 )
 
 
@@ -69,7 +65,7 @@ class TestMemoryEntry:
             accessed_at=now,
             priority=MemoryPriority.NORMAL,
         )
-        
+
         assert entry.id == "mem-001"
         assert entry.type == MemoryType.EPISODIC
         assert entry.priority == MemoryPriority.NORMAL
@@ -88,9 +84,9 @@ class TestMemoryEntry:
             accessed_at=now,
             priority=MemoryPriority.HIGH,
         )
-        
+
         d = entry.to_dict()
-        
+
         assert d["id"] == "mem-002"
         assert d["type"] == "semantic"
         assert d["priority"] == 75
@@ -108,7 +104,7 @@ class TestMemoryEntry:
             priority=MemoryPriority.NORMAL,
             tags={"compression", "optimization"}
         )
-        
+
         assert "compression" in entry.tags
         assert "optimization" in entry.tags
 
@@ -122,10 +118,10 @@ class TestMemoryEntry:
             created_at=now,
             accessed_at=now,
         )
-        
+
         initial_count = entry.access_count
         entry.access()
-        
+
         assert entry.access_count == initial_count + 1
 
 
@@ -145,12 +141,12 @@ class TestMemoryStore:
     async def test_store_start_stop(self):
         """Test store can start and stop."""
         store = MemoryStore()
-        
+
         assert not store._running
-        
+
         await store.start()
         assert store._running
-        
+
         await store.stop()
         assert not store._running
 
@@ -162,9 +158,9 @@ class TestMemoryStore:
             memory_type=MemoryType.EPISODIC,
             priority=MemoryPriority.NORMAL,
         )
-        
+
         assert memory_id is not None
-        
+
         retrieved = await store.retrieve(memory_id)
         assert retrieved is not None
         assert retrieved.content == {"test": "data"}
@@ -184,7 +180,7 @@ class TestMemoryStore:
             priority=MemoryPriority.HIGH,
             tags={"tag1", "tag2"}
         )
-        
+
         retrieved = await store.retrieve(memory_id)
         assert "tag1" in retrieved.tags
         assert "tag2" in retrieved.tags
@@ -204,9 +200,9 @@ class TestMemoryStore:
             priority=MemoryPriority.NORMAL,
             tags={"unimportant"}
         )
-        
+
         results = await store.search(tags={"important"})
-        
+
         assert len(results) == 1
         assert results[0].content["name"] == "memory1"
 
@@ -223,9 +219,9 @@ class TestMemoryStore:
             memory_type=MemoryType.SEMANTIC,
             priority=MemoryPriority.NORMAL,
         )
-        
+
         results = await store.search(memory_type=MemoryType.EPISODIC)
-        
+
         assert len(results) == 1
         assert results[0].content.get("episodic") is True
 
@@ -237,12 +233,12 @@ class TestMemoryStore:
             memory_type=MemoryType.EPISODIC,
             priority=MemoryPriority.LOW,
         )
-        
+
         assert await store.retrieve(memory_id) is not None
-        
+
         success = await store.forget(memory_id)
         assert success is True
-        
+
         assert await store.retrieve(memory_id) is None
 
     @pytest.mark.asyncio
@@ -253,9 +249,9 @@ class TestMemoryStore:
             memory_type=MemoryType.EPISODIC,
             priority=MemoryPriority.NORMAL,
         )
-        
+
         metrics = store.get_metrics()
-        
+
         assert "total_memories" in metrics
         assert "total_stored" in metrics
         assert "total_forgotten" in metrics
@@ -272,10 +268,10 @@ class TestMemoryStore:
             memory_type=MemoryType.EPISODIC,
             priority=MemoryPriority.NORMAL,
         )
-        
+
         mem1 = await store.retrieve(memory_id)
         initial_count = mem1.access_count
-        
+
         mem2 = await store.retrieve(memory_id)
         # access_count should increase on each retrieve
         assert mem2.access_count >= initial_count
@@ -308,7 +304,7 @@ class TestAgentMemory:
             duration_ms=150.0,
             success=True,
         )
-        
+
         assert memory_id is not None
 
     @pytest.mark.asyncio
@@ -321,7 +317,7 @@ class TestAgentMemory:
             duration_ms=5000.0,
             success=False,
         )
-        
+
         assert memory_id is not None
 
     @pytest.mark.asyncio
@@ -331,7 +327,7 @@ class TestAgentMemory:
             pattern_name="high_load_response",
             pattern_data={"threshold": 0.8, "action": "scale_up"}
         )
-        
+
         assert memory_id is not None
 
     @pytest.mark.asyncio
@@ -344,7 +340,7 @@ class TestAgentMemory:
             success_rate=0.95,
             avg_duration_ms=120.0,
         )
-        
+
         assert memory_id is not None
 
     @pytest.mark.asyncio
@@ -358,9 +354,9 @@ class TestAgentMemory:
             duration_ms=100.0,
             success=True,
         )
-        
+
         # Recall tasks of same type
         results = await agent_memory.recall_similar_tasks("analysis")
-        
+
         # Should find the stored task
         assert isinstance(results, list)

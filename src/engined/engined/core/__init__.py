@@ -7,6 +7,6 @@ This module provides foundational patterns for resilience and reliability:
 - Self-healing mechanisms
 """
 
-from .circuit_breaker import CircuitBreaker, CircuitBreakerState, CircuitBreakerConfig
+from .circuit_breaker import CircuitBreaker, CircuitBreakerConfig, CircuitBreakerState
 
-__all__ = ["CircuitBreaker", "CircuitBreakerState", "CircuitBreakerConfig"]
+__all__ = ["CircuitBreaker", "CircuitBreakerConfig", "CircuitBreakerState"]

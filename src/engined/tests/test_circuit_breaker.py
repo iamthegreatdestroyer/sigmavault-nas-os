@@ -16,15 +16,15 @@ Author: @ECLIPSE (Testing & Verification)
 """
 
 import asyncio
-import pytest
 import time
-from unittest.mock import AsyncMock, Mock, patch
+
+import pytest
 
 from engined.core.circuit_breaker import (
     CircuitBreaker,
-    CircuitBreakerState,
     CircuitBreakerConfig,
     CircuitBreakerOpenError,
+    CircuitBreakerState,
     circuit_breaker,
 )
 

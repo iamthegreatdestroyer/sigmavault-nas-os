@@ -1,3 +1,3 @@
 """SigmaVault Engine API Package"""
 
-__all__ = ["health", "compression", "encryption", "agents"]
+__all__ = ["agents", "compression", "encryption", "health"]

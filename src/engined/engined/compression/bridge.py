@@ -6,14 +6,15 @@ Bridge module connecting SigmaVault engined to EliteSigma-NAS compression engine
 Provides a clean interface for AI-powered compression operations.
 """
 
-import sys
 import asyncio
 import logging
-from pathlib import Path
+import sys
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
-from typing import Dict, Any, Optional, Callable, Awaitable
 from datetime import datetime
 from enum import Enum
+from pathlib import Path
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -73,10 +74,10 @@ class CompressionResult:
     method: str
     checksum: str
     is_lossless: bool
-    output_path: Optional[str] = None
-    compressed_data: Optional[bytes] = None
-    error: Optional[str] = None
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    output_path: str | None = None
+    compressed_data: bytes | None = None
+    error: str | None = None
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 class CompressionBridge:
@@ -90,7 +91,7 @@ class CompressionBridge:
     - ΣLANG semantic compression
     """
 
-    def __init__(self, config: Optional[CompressionConfig] = None):
+    def __init__(self, config: CompressionConfig | None = None):
         """Initialize compression bridge."""
         self.config = config or CompressionConfig()
         self._engine = None
@@ -112,20 +113,20 @@ class CompressionBridge:
             # Import EliteSigma-NAS components
             from nas_core.compression_engine import (
                 CompressionEngine,
-                SigmaCodebook,
                 DataTypeDetector,
+                SigmaCodebook,
             )
-            
+
             # Initialize codebook
             self._codebook = SigmaCodebook(max_glyphs=self.config.max_codebook_size)
-            
+
             # Initialize engine
             self._engine = CompressionEngine(codebook=self._codebook)
-            
+
             self._initialized = True
             logger.info("CompressionBridge initialized successfully")
             return True
-            
+
         except ImportError as e:
             logger.warning(f"EliteSigma-NAS not available: {e}")
             # Fall back to stub implementation
@@ -162,8 +163,8 @@ class CompressionBridge:
     async def compress_file(
         self,
         input_path: str,
-        output_path: Optional[str] = None,
-        job_id: Optional[str] = None,
+        output_path: str | None = None,
+        job_id: str | None = None,
     ) -> CompressionResult:
         """
         Compress a file using AI-powered compression.
@@ -236,7 +237,7 @@ class CompressionBridge:
     async def compress_data(
         self,
         data: bytes,
-        job_id: Optional[str] = None,
+        job_id: str | None = None,
     ) -> CompressionResult:
         """
         Compress raw bytes using AI-powered compression.
@@ -267,21 +268,21 @@ class CompressionBridge:
             chunk_size = self.config.chunk_size
             chunks = [data[i:i + chunk_size] for i in range(0, len(data), chunk_size)]
             total_chunks = len(chunks)
-            
+
             compressed_chunks = []
             bytes_processed = 0
             current_ratio = 1.0  # Initialize for empty data edge case
 
             for i, chunk in enumerate(chunks):
                 chunk_start = datetime.now()
-                
+
                 # Compress chunk
                 compressed_chunk = await self._compress_chunk(chunk)
                 compressed_chunks.append(compressed_chunk)
-                
+
                 bytes_processed += len(chunk)
                 elapsed = (datetime.now() - start_time).total_seconds()
-                
+
                 # Calculate ETA
                 if bytes_processed > 0:
                     rate = bytes_processed / elapsed
@@ -384,7 +385,7 @@ class CompressionBridge:
         self,
         input_path: str,
         output_path: str,
-        job_id: Optional[str] = None,
+        job_id: str | None = None,
     ) -> CompressionResult:
         """
         Decompress a file.
@@ -440,7 +441,7 @@ class CompressionBridge:
     async def decompress_data(
         self,
         data: bytes,
-        job_id: Optional[str] = None,
+        job_id: str | None = None,
     ) -> CompressionResult:
         """
         Decompress raw bytes.
@@ -508,7 +509,7 @@ class CompressionBridge:
                 error=str(e),
             )
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """Get compression engine statistics."""
         stats = {
             "initialized": self._initialized,

@@ -7,9 +7,8 @@ Supports multiple algorithms with adaptive optimization.
 
 from __future__ import annotations
 
-import asyncio
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum
 from typing import TYPE_CHECKING
 
@@ -129,16 +128,16 @@ async def start_compression(
     the optimal algorithm.
     """
     swarm: AgentSwarm | None = getattr(request.app.state, "swarm", None)
-    
+
     if not swarm or not swarm.is_initialized:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Agent swarm not ready",
         )
-    
+
     job_id = str(uuid.uuid4())
-    now = datetime.now(timezone.utc)
-    
+    now = datetime.now(UTC)
+
     result = CompressionResult(
         job_id=job_id,
         status=JobStatus.PENDING,
@@ -153,9 +152,9 @@ async def start_compression(
         completed_at=None,
         error=None,
     )
-    
+
     _compression_jobs[job_id] = result
-    
+
     # Queue background processing
     background_tasks.add_task(
         process_compression_job,
@@ -163,7 +162,7 @@ async def start_compression(
         compression_request,
         swarm,
     )
-    
+
     return result
 
 
@@ -174,17 +173,17 @@ async def process_compression_job(
 ) -> None:
     """Background task to process compression job."""
     import time
-    
+
     job = _compression_jobs.get(job_id)
     if not job:
         return
-    
+
     start_time = time.monotonic()
-    
+
     try:
         # Update status to analyzing
         job.status = JobStatus.ANALYZING
-        
+
         # Request agent to analyze and compress
         agent_result = await swarm.submit_compression_task(
             source_path=request.source_path,
@@ -192,24 +191,24 @@ async def process_compression_job(
             level=request.level.value,
             encrypt=request.encrypt,
         )
-        
+
         # Update with results
         job.status = JobStatus.COMPLETED
         job.algorithm_used = agent_result.get("algorithm", request.algorithm.value)
         job.original_size = agent_result.get("original_size", 0)
         job.compressed_size = agent_result.get("compressed_size", 0)
         job.destination_path = agent_result.get("destination_path", request.destination_path)
-        
+
         if job.original_size and job.compressed_size:
             job.compression_ratio = 1 - (job.compressed_size / job.original_size)
-        
+
         job.time_elapsed_ms = int((time.monotonic() - start_time) * 1000)
-        job.completed_at = datetime.now(timezone.utc).isoformat()
-        
+        job.completed_at = datetime.now(UTC).isoformat()
+
     except Exception as e:
         job.status = JobStatus.FAILED
         job.error = str(e)
-        job.completed_at = datetime.now(timezone.utc).isoformat()
+        job.completed_at = datetime.now(UTC).isoformat()
 
 
 @router.get("/jobs", response_model=list[CompressionResult])
@@ -224,13 +223,13 @@ async def list_compression_jobs(
     Optionally filter by status and paginate results.
     """
     jobs = list(_compression_jobs.values())
-    
+
     if status_filter:
         jobs = [j for j in jobs if j.status == status_filter]
-    
+
     # Sort by creation time (newest first)
     jobs.sort(key=lambda j: j.created_at, reverse=True)
-    
+
     return jobs[offset : offset + limit]
 
 
@@ -238,13 +237,13 @@ async def list_compression_jobs(
 async def get_compression_job(job_id: str) -> CompressionResult:
     """Get details of a specific compression job."""
     job = _compression_jobs.get(job_id)
-    
+
     if not job:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Job {job_id} not found",
         )
-    
+
     return job
 
 
@@ -256,42 +255,42 @@ async def cancel_compression_job(job_id: str) -> None:
     Only pending and analyzing jobs can be cancelled.
     """
     job = _compression_jobs.get(job_id)
-    
+
     if not job:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Job {job_id} not found",
         )
-    
+
     if job.status not in (JobStatus.PENDING, JobStatus.ANALYZING, JobStatus.COMPRESSING):
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail=f"Cannot cancel job with status {job.status}",
         )
-    
+
     job.status = JobStatus.CANCELLED
-    job.completed_at = datetime.now(timezone.utc).isoformat()
+    job.completed_at = datetime.now(UTC).isoformat()
 
 
 @router.get("/stats", response_model=CompressionStats)
 async def get_compression_stats() -> CompressionStats:
     """Get compression statistics across all jobs."""
     jobs = list(_compression_jobs.values())
-    
+
     completed = [j for j in jobs if j.status == JobStatus.COMPLETED]
     failed = [j for j in jobs if j.status == JobStatus.FAILED]
-    
+
     total_original = sum(j.original_size or 0 for j in completed)
     total_compressed = sum(j.compressed_size or 0 for j in completed)
-    
+
     # Count algorithm usage
     algorithm_counts: dict[str, int] = {}
     for job in completed:
         if job.algorithm_used:
             algorithm_counts[job.algorithm_used] = algorithm_counts.get(job.algorithm_used, 0) + 1
-    
+
     most_used = max(algorithm_counts, key=algorithm_counts.get) if algorithm_counts else "none"
-    
+
     return CompressionStats(
         total_jobs=len(jobs),
         completed_jobs=len(completed),
@@ -315,15 +314,15 @@ async def analyze_content(
     to recommend the best compression algorithm and level.
     """
     swarm: AgentSwarm | None = getattr(request.app.state, "swarm", None)
-    
+
     if not swarm or not swarm.is_initialized:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Agent swarm not ready",
         )
-    
+
     analysis = await swarm.analyze_content(source_path)
-    
+
     return {
         "source_path": source_path,
         "content_type": analysis.get("content_type", "unknown"),

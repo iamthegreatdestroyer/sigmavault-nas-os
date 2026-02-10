@@ -7,7 +7,7 @@ Allows querying agent status, submitting tasks, and monitoring performance.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum
 from typing import TYPE_CHECKING
 
@@ -97,7 +97,7 @@ AGENT_DEFINITIONS = [
     {"name": "WAVE", "tier": AgentTier.CORE, "specialty": "Signal processing compression"},
     {"name": "NEXUS", "tier": AgentTier.CORE, "specialty": "Cross-domain optimization"},
     {"name": "PULSE", "tier": AgentTier.CORE, "specialty": "Real-time compression"},
-    
+
     # Tier 2: Security & Encryption Agents (11-20)
     {"name": "CIPHER", "tier": AgentTier.SPECIALIST, "specialty": "Cryptographic operations"},
     {"name": "FORTRESS", "tier": AgentTier.SPECIALIST, "specialty": "Security hardening"},
@@ -109,7 +109,7 @@ AGENT_DEFINITIONS = [
     {"name": "PHANTOM", "tier": AgentTier.SPECIALIST, "specialty": "Secure erasure"},
     {"name": "AEGIS", "tier": AgentTier.SPECIALIST, "specialty": "Defense coordination"},
     {"name": "ORACLE", "tier": AgentTier.SPECIALIST, "specialty": "Security prediction"},
-    
+
     # Tier 3: Storage & Analytics Agents (21-30)
     {"name": "ARCHITECT", "tier": AgentTier.SPECIALIST, "specialty": "Storage architecture"},
     {"name": "LATTICE", "tier": AgentTier.SPECIALIST, "specialty": "ZFS optimization"},
@@ -121,7 +121,7 @@ AGENT_DEFINITIONS = [
     {"name": "ATLAS", "tier": AgentTier.SPECIALIST, "specialty": "Storage mapping"},
     {"name": "CHRONICLE", "tier": AgentTier.SPECIALIST, "specialty": "Audit logging"},
     {"name": "BEACON", "tier": AgentTier.SPECIALIST, "specialty": "Discovery services"},
-    
+
     # Tier 4: Network & Integration Agents (31-40)
     {"name": "SYNAPSE", "tier": AgentTier.SUPPORT, "specialty": "API orchestration"},
     {"name": "CRYPTO", "tier": AgentTier.SUPPORT, "specialty": "Network encryption"},
@@ -148,10 +148,10 @@ async def list_agents(
     Optionally filter by tier or status.
     """
     swarm: AgentSwarm | None = getattr(request.app.state, "swarm", None)
-    
+
     agents = []
-    now = datetime.now(timezone.utc)
-    
+    now = datetime.now(UTC)
+
     for i, agent_def in enumerate(AGENT_DEFINITIONS):
         agent_info = AgentInfo(
             agent_id=f"agent-{i+1:03d}",
@@ -165,14 +165,14 @@ async def list_agents(
             memory_usage_mb=128.0,
             last_active=now.isoformat(),
         )
-        
+
         if tier and agent_info.tier != tier:
             continue
         if status_filter and agent_info.status != status_filter:
             continue
-        
+
         agents.append(agent_info)
-    
+
     return agents
 
 
@@ -180,7 +180,7 @@ async def list_agents(
 async def get_swarm_status(request: Request) -> SwarmStatus:
     """Get overall swarm status and statistics."""
     swarm: AgentSwarm | None = getattr(request.app.state, "swarm", None)
-    
+
     if swarm and swarm.is_initialized:
         return SwarmStatus(
             total_agents=40,
@@ -192,7 +192,7 @@ async def get_swarm_status(request: Request) -> SwarmStatus:
             total_tasks_completed=swarm.completed_tasks,
             uptime_seconds=swarm.uptime_seconds,
         )
-    
+
     return SwarmStatus(
         total_agents=40,
         active_agents=0,
@@ -218,11 +218,11 @@ async def get_agent(request: Request, agent_id: str) -> AgentInfo:
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Agent {agent_id} not found",
         )
-    
+
     swarm: AgentSwarm | None = getattr(request.app.state, "swarm", None)
     agent_def = AGENT_DEFINITIONS[index]
-    now = datetime.now(timezone.utc)
-    
+    now = datetime.now(UTC)
+
     return AgentInfo(
         agent_id=agent_id,
         name=agent_def["name"],
@@ -249,18 +249,18 @@ async def submit_task(
     based on task type, agent availability, and specialization.
     """
     swarm: AgentSwarm | None = getattr(request.app.state, "swarm", None)
-    
+
     if not swarm or not swarm.is_initialized:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Agent swarm not ready",
         )
-    
+
     import uuid
-    
+
     task_id = str(uuid.uuid4())
-    now = datetime.now(timezone.utc)
-    
+    now = datetime.now(UTC)
+
     # Submit to swarm (actual implementation would queue the task)
     assigned_agent = await swarm.assign_task(
         task_id=task_id,
@@ -268,7 +268,7 @@ async def submit_task(
         payload=task_request.payload,
         priority=task_request.priority,
     )
-    
+
     return TaskResponse(
         task_id=task_id,
         status="queued",
@@ -292,20 +292,20 @@ async def list_specialties() -> dict:
         "specialist": [],
         "support": [],
     }
-    
+
     for agent_def in AGENT_DEFINITIONS:
         tier_key = agent_def["tier"].value
         specialties[tier_key].append({
             "name": agent_def["name"],
             "specialty": agent_def["specialty"],
         })
-    
+
     return specialties
 
 
 class DispatchRequest(BaseModel):
     """Request to dispatch a task via the scheduler."""
-    
+
     task_type: str = Field(description="Type of task (compression, encryption, analysis, storage, network)")
     payload: dict = Field(description="Task-specific payload")
     priority: str = Field(default="NORMAL", description="Task priority: CRITICAL, HIGH, NORMAL, LOW, BACKGROUND")
@@ -314,7 +314,7 @@ class DispatchRequest(BaseModel):
 
 class DispatchResponse(BaseModel):
     """Response from task dispatch."""
-    
+
     task_id: str
     status: str
     routed_agents: list[str]
@@ -325,7 +325,7 @@ class DispatchResponse(BaseModel):
 
 class SchedulerMetrics(BaseModel):
     """Scheduler performance metrics."""
-    
+
     tasks_scheduled: int
     tasks_completed: int
     tasks_failed: int
@@ -338,7 +338,7 @@ class SchedulerMetrics(BaseModel):
 
 class RecoveryStatus(BaseModel):
     """Agent recovery system status."""
-    
+
     is_monitoring: bool
     agents_healthy: int
     agents_degraded: int
@@ -362,26 +362,27 @@ async def dispatch_task(
     - Priority and queue depth
     - Agent health and circuit breaker state
     """
-    from engined.agents.scheduler import TaskScheduler, TaskPriority
     import uuid
-    
+
+    from engined.agents.scheduler import TaskPriority, TaskScheduler
+
     scheduler: TaskScheduler | None = getattr(request.app.state, "scheduler", None)
-    
+
     if not scheduler or not scheduler._running:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Task scheduler not ready",
         )
-    
+
     # Parse priority
     try:
         priority = TaskPriority[dispatch_request.priority.upper()]
     except KeyError:
         priority = TaskPriority.NORMAL
-    
+
     task_id = str(uuid.uuid4())
-    now = datetime.now(timezone.utc)
-    
+    now = datetime.now(UTC)
+
     # Schedule the task
     await scheduler.schedule(
         task_id=task_id,
@@ -390,10 +391,10 @@ async def dispatch_task(
         priority=priority,
         callback_url=dispatch_request.callback_url,
     )
-    
+
     # Get routed agents for this task type
     routed_agents = scheduler.router.route(dispatch_request.task_type)
-    
+
     return DispatchResponse(
         task_id=task_id,
         status="scheduled",
@@ -408,17 +409,17 @@ async def dispatch_task(
 async def get_scheduler_metrics(request: Request) -> SchedulerMetrics:
     """Get task scheduler performance metrics."""
     from engined.agents.scheduler import TaskScheduler
-    
+
     scheduler: TaskScheduler | None = getattr(request.app.state, "scheduler", None)
-    
+
     if not scheduler:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Task scheduler not initialized",
         )
-    
+
     metrics = scheduler.get_metrics()
-    
+
     return SchedulerMetrics(
         tasks_scheduled=metrics.get("tasks_scheduled", 0),
         tasks_completed=metrics.get("tasks_completed", 0),
@@ -435,17 +436,17 @@ async def get_scheduler_metrics(request: Request) -> SchedulerMetrics:
 async def get_recovery_status(request: Request) -> RecoveryStatus:
     """Get agent recovery system status."""
     from engined.agents.recovery import AgentRecovery
-    
+
     recovery: AgentRecovery | None = getattr(request.app.state, "recovery", None)
-    
+
     if not recovery:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Recovery system not initialized",
         )
-    
+
     status_data = recovery.get_status()
-    
+
     return RecoveryStatus(
         is_monitoring=status_data.get("is_monitoring", False),
         agents_healthy=status_data.get("agents_healthy", 0),
@@ -461,29 +462,29 @@ async def get_recovery_status(request: Request) -> RecoveryStatus:
 async def restart_agent(request: Request, agent_name: str) -> dict:
     """Manually trigger agent restart."""
     from engined.agents.recovery import AgentRecovery
-    
+
     recovery: AgentRecovery | None = getattr(request.app.state, "recovery", None)
-    
+
     if not recovery:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Recovery system not initialized",
         )
-    
+
     success = await recovery.restart_agent(agent_name)
-    
+
     if not success:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to restart agent {agent_name}",
         )
-    
+
     return {"status": "restarted", "agent": agent_name}
 
 
 class EventSystemStatus(BaseModel):
     """Event system status model."""
-    
+
     events_emitted: int = Field(description="Total events emitted")
     events_processed: int = Field(description="Events successfully processed")
     events_dropped: int = Field(description="Events dropped due to buffer overflow")
@@ -496,9 +497,9 @@ class EventSystemStatus(BaseModel):
 async def get_events_status(request: Request) -> EventSystemStatus:
     """Get event system status and metrics."""
     from engined.agents.events import get_event_emitter
-    
+
     emitter = get_event_emitter()
-    
+
     if not emitter:
         return EventSystemStatus(
             events_emitted=0,
@@ -508,9 +509,9 @@ async def get_events_status(request: Request) -> EventSystemStatus:
             handler_errors=0,
             is_running=False,
         )
-    
+
     metrics = emitter.get_metrics()
-    
+
     return EventSystemStatus(
         events_emitted=metrics.get("events_emitted", 0),
         events_processed=metrics.get("events_processed", 0),
@@ -523,7 +524,7 @@ async def get_events_status(request: Request) -> EventSystemStatus:
 
 class MemorySystemStatus(BaseModel):
     """MNEMONIC memory system status model."""
-    
+
     total_memories: int = Field(description="Total memories stored")
     total_stored: int = Field(description="Total memories ever stored")
     total_forgotten: int = Field(description="Total memories forgotten (decayed/evicted)")
@@ -537,9 +538,9 @@ class MemorySystemStatus(BaseModel):
 async def get_memory_status(request: Request) -> MemorySystemStatus:
     """Get MNEMONIC memory system status and metrics."""
     from engined.agents.memory import get_memory_store
-    
+
     store = get_memory_store()
-    
+
     if not store:
         return MemorySystemStatus(
             total_memories=0,
@@ -550,9 +551,9 @@ async def get_memory_status(request: Request) -> MemorySystemStatus:
             by_type={},
             is_running=False,
         )
-    
+
     metrics = store.get_metrics()
-    
+
     return MemorySystemStatus(
         total_memories=metrics.get("total_memories", 0),
         total_stored=metrics.get("total_stored", 0),
@@ -566,7 +567,7 @@ async def get_memory_status(request: Request) -> MemorySystemStatus:
 
 class TuningSystemStatus(BaseModel):
     """Self-tuning system status model."""
-    
+
     strategy: str = Field(description="Active tuning strategy")
     is_running: bool = Field(description="Whether tuning is running")
     parameters_count: int = Field(description="Number of tunable parameters")
@@ -581,9 +582,9 @@ class TuningSystemStatus(BaseModel):
 async def get_tuning_status(request: Request) -> TuningSystemStatus:
     """Get self-tuning system status and metrics."""
     from engined.agents.tuning import get_tuner
-    
+
     tuner = get_tuner()
-    
+
     if not tuner:
         return TuningSystemStatus(
             strategy="none",
@@ -595,9 +596,9 @@ async def get_tuning_status(request: Request) -> TuningSystemStatus:
             current_session=None,
             exploration_rate=0.0,
         )
-    
+
     metrics = tuner.get_metrics()
-    
+
     return TuningSystemStatus(
         strategy=metrics.get("strategy", "unknown"),
         is_running=metrics.get("is_running", False),
@@ -612,7 +613,7 @@ async def get_tuning_status(request: Request) -> TuningSystemStatus:
 
 class TuningParameterInfo(BaseModel):
     """Tunable parameter info model."""
-    
+
     name: str = Field(description="Parameter name")
     type: str = Field(description="Parameter type")
     current_value: float | int | str = Field(description="Current value")
@@ -626,10 +627,10 @@ class TuningParameterInfo(BaseModel):
 async def get_tuning_parameters(request: Request) -> dict:
     """Get all tunable parameters and their current values."""
     from engined.agents.tuning import get_tuner
-    
+
     tuner = get_tuner()
-    
+
     if not tuner:
         return {"parameters": {}}
-    
+
     return {"parameters": tuner.get_all_parameters()}

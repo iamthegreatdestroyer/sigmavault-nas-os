@@ -15,15 +15,13 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import json
+import logging
 import time
 from collections import defaultdict
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Set, Tuple
-from weakref import WeakValueDictionary
-
-import logging
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -49,18 +47,18 @@ class MemoryEntry:
     """A single memory entry in the MNEMONIC system."""
     id: str
     type: MemoryType
-    content: Dict[str, Any]
+    content: dict[str, Any]
     created_at: datetime
     accessed_at: datetime
     access_count: int = 0
     priority: MemoryPriority = MemoryPriority.NORMAL
-    tags: Set[str] = field(default_factory=set)
-    associations: Set[str] = field(default_factory=set)  # IDs of related memories
-    embedding: Optional[List[float]] = None  # For semantic search
+    tags: set[str] = field(default_factory=set)
+    associations: set[str] = field(default_factory=set)  # IDs of related memories
+    embedding: list[float] | None = None  # For semantic search
     decay_rate: float = 0.1  # How fast memory fades (0-1)
     strength: float = 1.0    # Current memory strength (0-1)
-    
-    def to_dict(self) -> Dict[str, Any]:
+
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for serialization."""
         return {
             "id": self.id,
@@ -75,9 +73,9 @@ class MemoryEntry:
             "decay_rate": self.decay_rate,
             "strength": self.strength,
         }
-    
+
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> MemoryEntry:
+    def from_dict(cls, data: dict[str, Any]) -> MemoryEntry:
         """Create from dictionary."""
         return cls(
             id=data["id"],
@@ -92,14 +90,14 @@ class MemoryEntry:
             decay_rate=data.get("decay_rate", 0.1),
             strength=data.get("strength", 1.0),
         )
-    
+
     def access(self) -> None:
         """Record an access to this memory, strengthening it."""
         self.accessed_at = datetime.now()
         self.access_count += 1
         # Strengthen memory on access (spaced repetition effect)
         self.strength = min(1.0, self.strength + 0.1)
-    
+
     def decay(self, elapsed_hours: float) -> None:
         """Apply time-based decay to memory strength."""
         if self.priority == MemoryPriority.CRITICAL:
@@ -111,12 +109,12 @@ class MemoryEntry:
 @dataclass
 class MemoryIndex:
     """Index for fast memory lookup."""
-    by_tag: Dict[str, Set[str]] = field(default_factory=lambda: defaultdict(set))
-    by_type: Dict[MemoryType, Set[str]] = field(default_factory=lambda: defaultdict(set))
-    by_agent: Dict[str, Set[str]] = field(default_factory=lambda: defaultdict(set))
-    temporal: List[Tuple[datetime, str]] = field(default_factory=list)  # (timestamp, id)
-    
-    def add(self, entry: MemoryEntry, agent_id: Optional[str] = None) -> None:
+    by_tag: dict[str, set[str]] = field(default_factory=lambda: defaultdict(set))
+    by_type: dict[MemoryType, set[str]] = field(default_factory=lambda: defaultdict(set))
+    by_agent: dict[str, set[str]] = field(default_factory=lambda: defaultdict(set))
+    temporal: list[tuple[datetime, str]] = field(default_factory=list)  # (timestamp, id)
+
+    def add(self, entry: MemoryEntry, agent_id: str | None = None) -> None:
         """Add entry to indices."""
         self.by_type[entry.type].add(entry.id)
         for tag in entry.tags:
@@ -124,8 +122,8 @@ class MemoryIndex:
         if agent_id:
             self.by_agent[agent_id].add(entry.id)
         self.temporal.append((entry.created_at, entry.id))
-    
-    def remove(self, entry: MemoryEntry, agent_id: Optional[str] = None) -> None:
+
+    def remove(self, entry: MemoryEntry, agent_id: str | None = None) -> None:
         """Remove entry from indices."""
         self.by_type[entry.type].discard(entry.id)
         for tag in entry.tags:
@@ -146,7 +144,7 @@ class MemoryStore:
     - Tag-based and temporal indexing
     - Automatic consolidation (short-term to long-term)
     """
-    
+
     def __init__(
         self,
         max_entries: int = 10000,
@@ -154,7 +152,7 @@ class MemoryStore:
         decay_interval: float = 3600.0,  # 1 hour
         strength_threshold: float = 0.2,  # Below this, memory is forgotten
     ) -> None:
-        self._memories: Dict[str, MemoryEntry] = {}
+        self._memories: dict[str, MemoryEntry] = {}
         self._index = MemoryIndex()
         self._max_entries = max_entries
         self._consolidation_interval = consolidation_interval
@@ -162,14 +160,14 @@ class MemoryStore:
         self._strength_threshold = strength_threshold
         self._lock = asyncio.Lock()
         self._running = False
-        self._tasks: List[asyncio.Task] = []
-        
+        self._tasks: list[asyncio.Task] = []
+
         # Metrics
         self._total_stored = 0
         self._total_forgotten = 0
         self._total_retrieved = 0
         self._consolidation_runs = 0
-    
+
     async def start(self) -> None:
         """Start background maintenance tasks."""
         if self._running:
@@ -180,7 +178,7 @@ class MemoryStore:
             asyncio.create_task(self._consolidation_loop()),
         ]
         logger.info("MemoryStore started with background maintenance")
-    
+
     async def stop(self) -> None:
         """Stop background tasks."""
         self._running = False
@@ -192,15 +190,15 @@ class MemoryStore:
                 pass
         self._tasks = []
         logger.info("MemoryStore stopped")
-    
+
     async def store(
         self,
         memory_type: MemoryType,
-        content: Dict[str, Any],
-        tags: Optional[Set[str]] = None,
+        content: dict[str, Any],
+        tags: set[str] | None = None,
         priority: MemoryPriority = MemoryPriority.NORMAL,
-        agent_id: Optional[str] = None,
-        associations: Optional[Set[str]] = None,
+        agent_id: str | None = None,
+        associations: set[str] | None = None,
     ) -> str:
         """
         Store a new memory entry.
@@ -212,7 +210,7 @@ class MemoryStore:
             json.dumps(content, sort_keys=True).encode()
         ).hexdigest()[:16]
         memory_id = f"{memory_type.value[:3]}_{content_hash}_{int(time.time() * 1000) % 100000}"
-        
+
         now = datetime.now()
         entry = MemoryEntry(
             id=memory_id,
@@ -224,20 +222,20 @@ class MemoryStore:
             tags=tags or set(),
             associations=associations or set(),
         )
-        
+
         async with self._lock:
             # Check capacity
             if len(self._memories) >= self._max_entries:
                 await self._evict_weakest()
-            
+
             self._memories[memory_id] = entry
             self._index.add(entry, agent_id)
             self._total_stored += 1
-        
+
         logger.debug(f"Stored {memory_type.value} memory: {memory_id}")
         return memory_id
-    
-    async def retrieve(self, memory_id: str) -> Optional[MemoryEntry]:
+
+    async def retrieve(self, memory_id: str) -> MemoryEntry | None:
         """Retrieve a memory by ID, strengthening it on access."""
         async with self._lock:
             entry = self._memories.get(memory_id)
@@ -245,16 +243,16 @@ class MemoryStore:
                 entry.access()
                 self._total_retrieved += 1
             return entry
-    
+
     async def search(
         self,
-        memory_type: Optional[MemoryType] = None,
-        tags: Optional[Set[str]] = None,
-        agent_id: Optional[str] = None,
+        memory_type: MemoryType | None = None,
+        tags: set[str] | None = None,
+        agent_id: str | None = None,
         min_strength: float = 0.0,
         limit: int = 100,
-        since: Optional[datetime] = None,
-    ) -> List[MemoryEntry]:
+        since: datetime | None = None,
+    ) -> list[MemoryEntry]:
         """
         Search memories by various criteria.
         
@@ -266,18 +264,18 @@ class MemoryStore:
                 candidate_ids = self._index.by_type.get(memory_type, set())
             else:
                 candidate_ids = set(self._memories.keys())
-            
+
             # Filter by tags (intersection)
             if tags:
                 for tag in tags:
                     tag_ids = self._index.by_tag.get(tag, set())
                     candidate_ids = candidate_ids.intersection(tag_ids)
-            
+
             # Filter by agent
             if agent_id:
                 agent_ids = self._index.by_agent.get(agent_id, set())
                 candidate_ids = candidate_ids.intersection(agent_ids)
-            
+
             # Get entries and filter by strength/time
             results = []
             for mid in candidate_ids:
@@ -290,12 +288,12 @@ class MemoryStore:
                     continue
                 entry.access()  # Strengthen on search hit
                 results.append(entry)
-            
+
             # Sort by strength (descending)
             results.sort(key=lambda e: e.strength, reverse=True)
             self._total_retrieved += len(results[:limit])
             return results[:limit]
-    
+
     async def associate(self, memory_id1: str, memory_id2: str) -> bool:
         """Create bidirectional association between memories."""
         async with self._lock:
@@ -306,20 +304,20 @@ class MemoryStore:
                 m2.associations.add(memory_id1)
                 return True
             return False
-    
-    async def get_associated(self, memory_id: str, depth: int = 1) -> List[MemoryEntry]:
+
+    async def get_associated(self, memory_id: str, depth: int = 1) -> list[MemoryEntry]:
         """Get memories associated with a given memory (up to depth levels)."""
         async with self._lock:
             entry = self._memories.get(memory_id)
             if not entry:
                 return []
-            
-            visited: Set[str] = {memory_id}
+
+            visited: set[str] = {memory_id}
             current_level = entry.associations.copy()
-            results: List[MemoryEntry] = []
-            
+            results: list[MemoryEntry] = []
+
             for _ in range(depth):
-                next_level: Set[str] = set()
+                next_level: set[str] = set()
                 for mid in current_level:
                     if mid in visited:
                         continue
@@ -330,9 +328,9 @@ class MemoryStore:
                         results.append(mem)
                         next_level.update(mem.associations)
                 current_level = next_level
-            
+
             return results
-    
+
     async def forget(self, memory_id: str) -> bool:
         """Explicitly forget a memory."""
         async with self._lock:
@@ -343,7 +341,7 @@ class MemoryStore:
                 logger.debug(f"Forgot memory: {memory_id}")
                 return True
             return False
-    
+
     async def _evict_weakest(self) -> None:
         """Evict weakest memories when at capacity."""
         # Find memories below threshold or lowest strength non-critical
@@ -351,7 +349,7 @@ class MemoryStore:
             (mid, m) for mid, m in self._memories.items()
             if m.priority != MemoryPriority.CRITICAL and m.strength < self._strength_threshold
         ]
-        
+
         if not weak_memories:
             # No weak memories, evict lowest strength non-critical
             candidates = [
@@ -361,12 +359,12 @@ class MemoryStore:
             if candidates:
                 candidates.sort(key=lambda x: x[1].strength)
                 weak_memories = candidates[:max(1, len(candidates) // 10)]
-        
+
         for mid, entry in weak_memories:
             del self._memories[mid]
             self._index.remove(entry)
             self._total_forgotten += 1
-    
+
     async def _decay_loop(self) -> None:
         """Background loop to apply decay to all memories."""
         last_decay = datetime.now()
@@ -375,7 +373,7 @@ class MemoryStore:
             now = datetime.now()
             elapsed = (now - last_decay).total_seconds() / 3600.0
             last_decay = now
-            
+
             async with self._lock:
                 to_forget = []
                 for mid, entry in self._memories.items():
@@ -383,30 +381,30 @@ class MemoryStore:
                     if entry.strength < self._strength_threshold:
                         if entry.priority != MemoryPriority.CRITICAL:
                             to_forget.append(mid)
-                
+
                 for mid in to_forget:
                     entry = self._memories.pop(mid, None)
                     if entry:
                         self._index.remove(entry)
                         self._total_forgotten += 1
-            
+
             if to_forget:
                 logger.debug(f"Decay cycle forgot {len(to_forget)} weak memories")
-    
+
     async def _consolidation_loop(self) -> None:
         """Background loop to consolidate related memories."""
         while self._running:
             await asyncio.sleep(self._consolidation_interval)
             self._consolidation_runs += 1
-            
+
             async with self._lock:
                 # Find patterns: memories with same tags that aren't associated
-                tag_groups: Dict[frozenset, List[str]] = defaultdict(list)
+                tag_groups: dict[frozenset, list[str]] = defaultdict(list)
                 for mid, entry in self._memories.items():
                     if entry.tags:
                         key = frozenset(entry.tags)
                         tag_groups[key].append(mid)
-                
+
                 # Auto-associate memories with identical tags
                 associations_made = 0
                 for tag_set, memory_ids in tag_groups.items():
@@ -419,11 +417,11 @@ class MemoryStore:
                                     m1.associations.add(mid2)
                                     m2.associations.add(mid1)
                                     associations_made += 1
-                
+
                 if associations_made:
                     logger.debug(f"Consolidation created {associations_made} associations")
-    
-    def get_metrics(self) -> Dict[str, Any]:
+
+    def get_metrics(self) -> dict[str, Any]:
         """Get memory store metrics."""
         return {
             "total_memories": len(self._memories),
@@ -444,11 +442,11 @@ class AgentMemory:
     
     Provides agent-scoped operations and learning from experiences.
     """
-    
+
     def __init__(self, agent_id: str, store: MemoryStore) -> None:
         self.agent_id = agent_id
         self._store = store
-    
+
     async def remember_task(
         self,
         task_id: str,
@@ -456,7 +454,7 @@ class AgentMemory:
         result: str,
         duration_ms: float,
         success: bool,
-        metadata: Optional[Dict[str, Any]] = None,
+        metadata: dict[str, Any] | None = None,
     ) -> str:
         """Store episodic memory of a task execution."""
         priority = MemoryPriority.HIGH if not success else MemoryPriority.NORMAL
@@ -471,7 +469,7 @@ class AgentMemory:
         tags = {"task", task_type}
         if not success:
             tags.add("failure")
-        
+
         return await self._store.store(
             memory_type=MemoryType.EPISODIC,
             content=content,
@@ -479,11 +477,11 @@ class AgentMemory:
             priority=priority,
             agent_id=self.agent_id,
         )
-    
+
     async def remember_pattern(
         self,
         pattern_name: str,
-        pattern_data: Dict[str, Any],
+        pattern_data: dict[str, Any],
         confidence: float = 0.5,
     ) -> str:
         """Store semantic memory of a discovered pattern."""
@@ -500,11 +498,11 @@ class AgentMemory:
             priority=priority,
             agent_id=self.agent_id,
         )
-    
+
     async def remember_procedure(
         self,
         procedure_name: str,
-        steps: List[str],
+        steps: list[str],
         success_rate: float,
         avg_duration_ms: float,
     ) -> str:
@@ -523,12 +521,12 @@ class AgentMemory:
             priority=priority,
             agent_id=self.agent_id,
         )
-    
+
     async def recall_similar_tasks(
         self,
         task_type: str,
         limit: int = 10,
-    ) -> List[MemoryEntry]:
+    ) -> list[MemoryEntry]:
         """Recall past task executions of similar type."""
         return await self._store.search(
             memory_type=MemoryType.EPISODIC,
@@ -536,8 +534,8 @@ class AgentMemory:
             agent_id=self.agent_id,
             limit=limit,
         )
-    
-    async def recall_failures(self, limit: int = 10) -> List[MemoryEntry]:
+
+    async def recall_failures(self, limit: int = 10) -> list[MemoryEntry]:
         """Recall past failures to avoid repeating them."""
         return await self._store.search(
             memory_type=MemoryType.EPISODIC,
@@ -546,8 +544,8 @@ class AgentMemory:
             min_strength=0.5,  # Only strong failure memories
             limit=limit,
         )
-    
-    async def recall_procedure(self, procedure_name: str) -> Optional[MemoryEntry]:
+
+    async def recall_procedure(self, procedure_name: str) -> MemoryEntry | None:
         """Recall a learned procedure."""
         results = await self._store.search(
             memory_type=MemoryType.PROCEDURAL,
@@ -556,19 +554,19 @@ class AgentMemory:
             limit=1,
         )
         return results[0] if results else None
-    
-    async def get_agent_metrics(self) -> Dict[str, Any]:
+
+    async def get_agent_metrics(self) -> dict[str, Any]:
         """Get memory metrics for this agent."""
         async with self._store._lock:
             agent_memories = self._store._index.by_agent.get(self.agent_id, set())
-            by_type: Dict[str, int] = defaultdict(int)
+            by_type: dict[str, int] = defaultdict(int)
             total_strength = 0.0
             for mid in agent_memories:
                 mem = self._store._memories.get(mid)
                 if mem:
                     by_type[mem.type.value] += 1
                     total_strength += mem.strength
-            
+
             return {
                 "agent_id": self.agent_id,
                 "total_memories": len(agent_memories),
@@ -578,8 +576,8 @@ class AgentMemory:
 
 
 # Global memory store instance
-_memory_store: Optional[MemoryStore] = None
-_agent_memories: Dict[str, AgentMemory] = {}
+_memory_store: MemoryStore | None = None
+_agent_memories: dict[str, AgentMemory] = {}
 
 
 async def init_memory_system(
@@ -610,18 +608,18 @@ async def shutdown_memory_system() -> None:
         logger.info("MNEMONIC memory system shutdown")
 
 
-def get_memory_store() -> Optional[MemoryStore]:
+def get_memory_store() -> MemoryStore | None:
     """Get the global memory store."""
     return _memory_store
 
 
-def get_agent_memory(agent_id: str) -> Optional[AgentMemory]:
+def get_agent_memory(agent_id: str) -> AgentMemory | None:
     """Get or create an AgentMemory instance for an agent."""
     global _agent_memories
     if _memory_store is None:
         return None
-    
+
     if agent_id not in _agent_memories:
         _agent_memories[agent_id] = AgentMemory(agent_id, _memory_store)
-    
+
     return _agent_memories[agent_id]

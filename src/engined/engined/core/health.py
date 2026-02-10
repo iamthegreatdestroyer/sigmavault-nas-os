@@ -22,10 +22,11 @@ Author: @SENTRY (Observability) + @VELOCITY (Performance)
 import asyncio
 import logging
 import time
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Awaitable
+from typing import Any
+
 import psutil
 
 logger = logging.getLogger(__name__)
@@ -59,10 +60,10 @@ class HealthCheckResult:
     component_type: ComponentType
     status: HealthStatus
     message: str = ""
-    details: Dict[str, Any] = field(default_factory=dict)
+    details: dict[str, Any] = field(default_factory=dict)
     timestamp: float = field(default_factory=time.time)
     duration_ms: float = 0.0
-    error: Optional[str] = None
+    error: str | None = None
 
 
 @dataclass
@@ -76,7 +77,7 @@ class HealthCheckConfig:
     timeout: float = 5.0  # Timeout for check
     enabled: bool = True
     auto_heal: bool = False  # Enable automatic remediation
-    heal_fn: Optional[Callable[[], Awaitable[bool]]] = None
+    heal_fn: Callable[[], Awaitable[bool]] | None = None
 
 
 @dataclass
@@ -85,9 +86,9 @@ class SystemHealth:
 
     overall_status: HealthStatus
     health_score: float  # 0.0 to 100.0
-    components: Dict[str, HealthCheckResult]
-    degraded_components: List[str]
-    unhealthy_components: List[str]
+    components: dict[str, HealthCheckResult]
+    degraded_components: list[str]
+    unhealthy_components: list[str]
     timestamp: float
     uptime_seconds: float
 
@@ -116,11 +117,11 @@ class HealthCheckManager:
             check_interval: Global interval between health check runs (seconds)
         """
         self.check_interval = check_interval
-        self.checks: Dict[str, HealthCheckConfig] = {}
-        self.last_results: Dict[str, HealthCheckResult] = {}
+        self.checks: dict[str, HealthCheckConfig] = {}
+        self.last_results: dict[str, HealthCheckResult] = {}
         self.start_time = time.time()
         self.running = False
-        self._task: Optional[asyncio.Task] = None
+        self._task: asyncio.Task | None = None
         self._lock = asyncio.Lock()
 
         logger.info(f"Health check manager initialized (interval={check_interval}s)")
@@ -199,11 +200,11 @@ class HealthCheckManager:
                         f"Error during auto-heal of '{config.name}': {e}",
                         exc_info=True,
                     )
-                    result.error = f"Healing error: {str(e)}"
+                    result.error = f"Healing error: {e!s}"
 
             return result
 
-        except asyncio.TimeoutError:
+        except TimeoutError:
             duration_ms = (time.time() - start_time) * 1000
             logger.error(
                 f"Health check '{config.name}' timed out after {config.timeout}s"
@@ -226,12 +227,12 @@ class HealthCheckManager:
                 component=config.name,
                 component_type=config.component_type,
                 status=HealthStatus.UNHEALTHY,
-                message=f"Check failed: {str(e)}",
+                message=f"Check failed: {e!s}",
                 duration_ms=duration_ms,
                 error=str(e),
             )
 
-    async def run_all_checks(self) -> Dict[str, HealthCheckResult]:
+    async def run_all_checks(self) -> dict[str, HealthCheckResult]:
         """
         Run all registered health checks in parallel.
 
@@ -256,7 +257,7 @@ class HealthCheckManager:
 
         # Store results
         async with self._lock:
-            for name, result in zip(tasks.keys(), results):
+            for name, result in zip(tasks.keys(), results, strict=False):
                 if isinstance(result, Exception):
                     logger.error(
                         f"Health check '{name}' raised exception: {result}"
@@ -265,7 +266,7 @@ class HealthCheckManager:
                         component=name,
                         component_type=self.checks[name].component_type,
                         status=HealthStatus.UNHEALTHY,
-                        message=f"Exception: {str(result)}",
+                        message=f"Exception: {result!s}",
                         error=str(result),
                     )
                 else:
@@ -274,7 +275,7 @@ class HealthCheckManager:
         return self.last_results.copy()
 
     def calculate_health_score(
-        self, results: Dict[str, HealthCheckResult]
+        self, results: dict[str, HealthCheckResult]
     ) -> float:
         """
         Calculate overall health score (0.0 to 100.0).
@@ -305,7 +306,7 @@ class HealthCheckManager:
         return total_score / len(results)
 
     def get_overall_status(
-        self, results: Dict[str, HealthCheckResult]
+        self, results: dict[str, HealthCheckResult]
     ) -> HealthStatus:
         """
         Determine overall system health status.

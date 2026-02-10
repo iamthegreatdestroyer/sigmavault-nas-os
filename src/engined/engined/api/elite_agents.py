@@ -8,13 +8,13 @@ Provides endpoints for agent discovery, status monitoring, and task submission.
 from __future__ import annotations
 
 import uuid
-from typing import Dict, List, Optional, Any
+from typing import Any
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException
 from fastapi import status as http_status
 from pydantic import BaseModel, Field
 
-from engined.agents.base import AgentState, TaskPriority, AgentTask
+from engined.agents.base import AgentTask, TaskPriority
 from engined.agents.registry import AgentRegistry
 from engined.agents.tier1 import TIER_1_AGENTS
 from engined.agents.tier2 import TIER_2_AGENTS
@@ -22,7 +22,7 @@ from engined.agents.tier2 import TIER_2_AGENTS
 router = APIRouter(prefix="/elite-agents", tags=["elite-agents"])
 
 # Global registry (initialized during app startup)
-_registry: Optional[AgentRegistry] = None
+_registry: AgentRegistry | None = None
 
 
 async def get_registry() -> AgentRegistry:
@@ -42,20 +42,20 @@ async def initialize_registry() -> AgentRegistry:
     """
     global _registry
     _registry = AgentRegistry()
-    
+
     # Register Tier 1 agents
     for agent_class in TIER_1_AGENTS:
         agent = agent_class()
         await _registry.register_agent(agent)
-    
+
     # Register Tier 2 agents
     for agent_class in TIER_2_AGENTS:
         agent = agent_class()
         await _registry.register_agent(agent)
-    
+
     # Initialize all agents
     await _registry.initialize_all()
-    
+
     return _registry
 
 
@@ -74,49 +74,49 @@ async def shutdown_registry() -> None:
 
 class AgentStatusResponse(BaseModel):
     """Agent status information."""
-    
+
     agent_id: str
     state: str
     tier: int
-    domains: List[str]
-    skills: List[str]
+    domains: list[str]
+    skills: list[str]
     task_count: int
     success_count: int
     error_count: int
     success_rate: float
     avg_execution_time: float
-    current_task_id: Optional[str] = None
+    current_task_id: str | None = None
 
 
 class AgentListResponse(BaseModel):
     """Response for listing agents."""
-    
+
     total: int
-    agents: List[Dict[str, Any]]
+    agents: list[dict[str, Any]]
 
 
 class RegistryStatusResponse(BaseModel):
     """Overall registry status."""
-    
+
     total_agents: int
     initialized: bool
-    agents_by_state: Dict[str, int]
-    agents_by_tier: Dict[int, int]  # tier as int key
-    aggregate_metrics: Dict[str, Any]  # nested metrics
+    agents_by_state: dict[str, int]
+    agents_by_tier: dict[int, int]  # tier as int key
+    aggregate_metrics: dict[str, Any]  # nested metrics
 
 
 class TaskSubmitRequest(BaseModel):
     """Request to submit a task to an agent."""
-    
+
     task_type: str = Field(..., description="Type of task to execute")
-    payload: Dict[str, Any] = Field(..., description="Task payload data")
+    payload: dict[str, Any] = Field(..., description="Task payload data")
     priority: str = Field(default="MEDIUM", description="Task priority (CRITICAL, HIGH, MEDIUM, LOW)")
     timeout: int = Field(default=300, description="Task timeout in seconds")
 
 
 class TaskSubmitResponse(BaseModel):
     """Response from task submission."""
-    
+
     task_id: str
     agent_id: str
     status: str
@@ -126,9 +126,9 @@ class TaskSubmitResponse(BaseModel):
 
 @router.get("/", response_model=AgentListResponse)
 async def list_agents(
-    tier: Optional[int] = None,
-    state: Optional[str] = None,
-    domain: Optional[str] = None
+    tier: int | None = None,
+    state: str | None = None,
+    domain: str | None = None
 ) -> AgentListResponse:
     """
     List all agents in the Elite Agent Collective.
@@ -139,9 +139,9 @@ async def list_agents(
     - domain: Filter by domain expertise
     """
     registry = await get_registry()
-    
+
     agents = registry.list_agents(tier=tier, state=state, domain=domain)
-    
+
     return AgentListResponse(
         total=len(agents),
         agents=agents
@@ -152,9 +152,9 @@ async def list_agents(
 async def get_registry_status() -> RegistryStatusResponse:
     """Get overall registry status and aggregate metrics."""
     registry = await get_registry()
-    
+
     status_data = registry.get_registry_status()
-    
+
     return RegistryStatusResponse(**status_data)
 
 
@@ -167,17 +167,17 @@ async def get_agent_status(agent_id: str) -> AgentStatusResponse:
     - agent_id: Agent identifier (e.g., "APEX-01", "CIPHER-02")
     """
     registry = await get_registry()
-    
+
     agent = registry.get_agent(agent_id)
     if not agent:
         raise HTTPException(
             status_code=http_status.HTTP_404_NOT_FOUND,
             detail=f"Agent {agent_id} not found"
         )
-    
+
     status_data = agent.get_status()
     capability = agent.capability
-    
+
     return AgentStatusResponse(
         agent_id=status_data["agent_id"],
         state=status_data["state"],
@@ -208,14 +208,14 @@ async def submit_task(agent_id: str, request: TaskSubmitRequest) -> TaskSubmitRe
     - timeout: Timeout in seconds
     """
     registry = await get_registry()
-    
+
     agent = registry.get_agent(agent_id)
     if not agent:
         raise HTTPException(
             status_code=http_status.HTTP_404_NOT_FOUND,
             detail=f"Agent {agent_id} not found"
         )
-    
+
     # Check agent state
     status_data = agent.get_status()
     if status_data["state"] not in ["idle", "busy"]:
@@ -223,7 +223,7 @@ async def submit_task(agent_id: str, request: TaskSubmitRequest) -> TaskSubmitRe
             status_code=http_status.HTTP_503_SERVICE_UNAVAILABLE,
             detail=f"Agent {agent_id} is not available (state: {status_data['state']})"
         )
-    
+
     # Convert priority string to enum
     try:
         priority_enum = TaskPriority[request.priority.upper()]
@@ -232,7 +232,7 @@ async def submit_task(agent_id: str, request: TaskSubmitRequest) -> TaskSubmitRe
             status_code=http_status.HTTP_400_BAD_REQUEST,
             detail=f"Invalid priority: {request.priority}. Must be CRITICAL, HIGH, MEDIUM, or LOW"
         )
-    
+
     # Create task
     task_id = str(uuid.uuid4())
     task = AgentTask(
@@ -242,16 +242,16 @@ async def submit_task(agent_id: str, request: TaskSubmitRequest) -> TaskSubmitRe
         priority=priority_enum,
         timeout=request.timeout
     )
-    
+
     # Submit task
     success = await registry.dispatch_task(agent_id, task)
-    
+
     if not success:
         raise HTTPException(
             status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to submit task to agent {agent_id}"
         )
-    
+
     return TaskSubmitResponse(
         task_id=task_id,
         agent_id=agent_id,
@@ -272,10 +272,10 @@ async def list_agents_by_tier(tier_number: int) -> AgentListResponse:
             status_code=http_status.HTTP_400_BAD_REQUEST,
             detail="Tier must be 1, 2, 3, or 4"
         )
-    
+
     registry = await get_registry()
     agents = registry.get_agents_by_tier(tier_number)
-    
+
     agents_data = []
     for agent in agents:
         status = agent.get_status()
@@ -286,7 +286,7 @@ async def list_agents_by_tier(tier_number: int) -> AgentListResponse:
             "domains": agent.capability.domains,
             "success_rate": status["metrics"]["success_rate"]
         })
-    
+
     return AgentListResponse(
         total=len(agents_data),
         agents=agents_data
@@ -303,7 +303,7 @@ async def list_agents_by_domain(domain_name: str) -> AgentListResponse:
     """
     registry = await get_registry()
     agents = registry.get_agents_by_domain(domain_name)
-    
+
     agents_data = []
     for agent in agents:
         status = agent.get_status()
@@ -314,7 +314,7 @@ async def list_agents_by_domain(domain_name: str) -> AgentListResponse:
             "domains": agent.capability.domains,
             "success_rate": status["metrics"]["success_rate"]
         })
-    
+
     return AgentListResponse(
         total=len(agents_data),
         agents=agents_data
@@ -331,7 +331,7 @@ async def list_agents_by_skill(skill_name: str) -> AgentListResponse:
     """
     registry = await get_registry()
     agents = registry.find_agents_by_skill(skill_name)
-    
+
     agents_data = []
     for agent in agents:
         status = agent.get_status()
@@ -342,7 +342,7 @@ async def list_agents_by_skill(skill_name: str) -> AgentListResponse:
             "skills": agent.capability.skills,
             "success_rate": status["metrics"]["success_rate"]
         })
-    
+
     return AgentListResponse(
         total=len(agents_data),
         agents=agents_data

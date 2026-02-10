@@ -13,9 +13,9 @@ import logging
 import time
 import uuid
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -45,11 +45,11 @@ class Agent:
     status: AgentStatus = AgentStatus.OFFLINE
     tasks_completed: int = 0
     tasks_failed: int = 0
-    current_task_id: Optional[str] = None
+    current_task_id: str | None = None
     avg_response_time_ms: float = 0.0
     memory_usage_mb: float = 128.0
-    last_active: Optional[datetime] = None
-    _response_times: List[float] = field(default_factory=list)
+    last_active: datetime | None = None
+    _response_times: list[float] = field(default_factory=list)
 
     @property
     def success_rate(self) -> float:
@@ -67,7 +67,7 @@ class Agent:
             self._response_times = self._response_times[-100:]
         self.avg_response_time_ms = sum(self._response_times) / len(self._response_times)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert agent to dictionary for API responses."""
         return {
             "agent_id": self.agent_id,
@@ -88,15 +88,15 @@ class Task:
     """Represents a task submitted to the swarm."""
     task_id: str
     task_type: str
-    payload: Dict[str, Any]
+    payload: dict[str, Any]
     priority: int
     status: str = "queued"
-    assigned_agent: Optional[str] = None
-    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
-    started_at: Optional[datetime] = None
-    completed_at: Optional[datetime] = None
-    result: Optional[Any] = None
-    error: Optional[str] = None
+    assigned_agent: str | None = None
+    created_at: datetime = field(default_factory=lambda: datetime.now(UTC))
+    started_at: datetime | None = None
+    completed_at: datetime | None = None
+    result: Any | None = None
+    error: str | None = None
 
 
 # 40-Agent Collective Definition
@@ -112,7 +112,7 @@ AGENT_DEFINITIONS = [
     {"name": "WAVE", "tier": AgentTier.CORE, "specialty": "Signal processing compression"},
     {"name": "NEXUS", "tier": AgentTier.CORE, "specialty": "Cross-domain optimization"},
     {"name": "PULSE", "tier": AgentTier.CORE, "specialty": "Real-time compression"},
-    
+
     # Tier 2: Security & Encryption Agents (11-20)
     {"name": "CIPHER", "tier": AgentTier.SPECIALIST, "specialty": "Cryptographic operations"},
     {"name": "FORTRESS", "tier": AgentTier.SPECIALIST, "specialty": "Security hardening"},
@@ -124,7 +124,7 @@ AGENT_DEFINITIONS = [
     {"name": "PHANTOM", "tier": AgentTier.SPECIALIST, "specialty": "Secure erasure"},
     {"name": "AEGIS", "tier": AgentTier.SPECIALIST, "specialty": "Defense coordination"},
     {"name": "ORACLE", "tier": AgentTier.SPECIALIST, "specialty": "Security prediction"},
-    
+
     # Tier 3: Storage & Analytics Agents (21-30)
     {"name": "ARCHITECT", "tier": AgentTier.SPECIALIST, "specialty": "Storage architecture"},
     {"name": "LATTICE", "tier": AgentTier.SPECIALIST, "specialty": "ZFS optimization"},
@@ -136,7 +136,7 @@ AGENT_DEFINITIONS = [
     {"name": "ATLAS", "tier": AgentTier.SPECIALIST, "specialty": "Storage mapping"},
     {"name": "CHRONICLE", "tier": AgentTier.SPECIALIST, "specialty": "Audit logging"},
     {"name": "BEACON", "tier": AgentTier.SPECIALIST, "specialty": "Discovery services"},
-    
+
     # Tier 4: Network & Integration Agents (31-40)
     {"name": "SYNAPSE", "tier": AgentTier.SUPPORT, "specialty": "API orchestration"},
     {"name": "CRYPTO", "tier": AgentTier.SUPPORT, "specialty": "Network encryption"},
@@ -164,12 +164,12 @@ class AgentSwarm:
 
     def __init__(self, settings=None):
         self.settings = settings
-        self.agents: Dict[str, Agent] = {}
-        self.tasks: Dict[str, Task] = {}
+        self.agents: dict[str, Agent] = {}
+        self.tasks: dict[str, Task] = {}
         self.task_queue: asyncio.Queue[str] = asyncio.Queue()
-        self._active_workers: List[asyncio.Task] = []
+        self._active_workers: list[asyncio.Task] = []
         self._is_initialized: bool = False
-        self._start_time: Optional[float] = None
+        self._start_time: float | None = None
         self._completed_tasks: int = 0
         self._lock = asyncio.Lock()
         logger.info("AgentSwarm instance created")
@@ -209,9 +209,9 @@ class AgentSwarm:
     async def initialize(self) -> None:
         """Initialize the agent swarm with all 40 agents."""
         logger.info("Initializing Elite Agent Collective (40-agent swarm)...")
-        
+
         # Create all 40 agents
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         for i, agent_def in enumerate(AGENT_DEFINITIONS):
             agent_id = f"agent-{i+1:03d}"
             agent = Agent(
@@ -227,23 +227,23 @@ class AgentSwarm:
 
         self._start_time = time.time()
         self._is_initialized = True
-        
+
         logger.info(f"Elite Agent Collective initialized: {len(self.agents)} agents active")
         logger.info(f"  - Core agents: {sum(1 for a in self.agents.values() if a.tier == AgentTier.CORE)}")
         logger.info(f"  - Specialist agents: {sum(1 for a in self.agents.values() if a.tier == AgentTier.SPECIALIST)}")
         logger.info(f"  - Support agents: {sum(1 for a in self.agents.values() if a.tier == AgentTier.SUPPORT)}")
-        
+
         await self.start()
 
     async def start(self) -> None:
         """Start the agent swarm task processors."""
         logger.info("Starting agent swarm workers...")
-        
+
         # Start worker tasks (one per 10 agents for load distribution)
         for i in range(4):
             worker = asyncio.create_task(self._task_worker(f"worker-{i+1}"))
             self._active_workers.append(worker)
-        
+
         logger.info(f"Agent swarm started with {len(self._active_workers)} workers")
 
     async def stop(self) -> None:
@@ -258,7 +258,7 @@ class AgentSwarm:
         # Wait for workers to complete
         if self._active_workers:
             await asyncio.gather(*self._active_workers, return_exceptions=True)
-        
+
         # Set all agents to offline
         for agent in self.agents.values():
             agent.status = AgentStatus.OFFLINE
@@ -275,11 +275,11 @@ class AgentSwarm:
         """Get the number of registered agents."""
         return len(self.agents)
 
-    def get_agent(self, agent_id: str) -> Optional[Agent]:
+    def get_agent(self, agent_id: str) -> Agent | None:
         """Get agent by ID."""
         return self.agents.get(agent_id)
 
-    def get_agent_by_name(self, name: str) -> Optional[Agent]:
+    def get_agent_by_name(self, name: str) -> Agent | None:
         """Get agent by name."""
         for agent in self.agents.values():
             if agent.name.upper() == name.upper():
@@ -288,20 +288,20 @@ class AgentSwarm:
 
     def list_agents(
         self,
-        tier: Optional[AgentTier] = None,
-        status: Optional[AgentStatus] = None,
-    ) -> List[Agent]:
+        tier: AgentTier | None = None,
+        status: AgentStatus | None = None,
+    ) -> list[Agent]:
         """List agents with optional filtering."""
         agents = list(self.agents.values())
-        
+
         if tier is not None:
             agents = [a for a in agents if a.tier == tier]
         if status is not None:
             agents = [a for a in agents if a.status == status]
-        
+
         return agents
 
-    def get_swarm_status(self) -> Dict[str, Any]:
+    def get_swarm_status(self) -> dict[str, Any]:
         """Get comprehensive swarm status."""
         return {
             "total_agents": len(self.agents),
@@ -320,9 +320,9 @@ class AgentSwarm:
         self,
         task_id: str,
         task_type: str,
-        payload: Dict[str, Any],
+        payload: dict[str, Any],
         priority: int = 5,
-    ) -> Optional[str]:
+    ) -> str | None:
         """
         Assign a task to the most suitable agent.
         
@@ -338,20 +338,20 @@ class AgentSwarm:
             payload=payload,
             priority=priority,
         )
-        
+
         # Select best agent based on task type
         agent = self._select_agent_for_task(task_type)
         if agent:
             task.assigned_agent = agent.name
-            
+
         async with self._lock:
             self.tasks[task_id] = task
             await self.task_queue.put(task_id)
-        
+
         logger.info(f"Task {task_id} queued (type={task_type}, priority={priority}, agent={task.assigned_agent})")
         return task.assigned_agent
 
-    def _select_agent_for_task(self, task_type: str) -> Optional[Agent]:
+    def _select_agent_for_task(self, task_type: str) -> Agent | None:
         """Select the most suitable idle agent for a task type."""
         # Map task types to preferred agents
         task_agent_map = {
@@ -362,52 +362,52 @@ class AgentSwarm:
             "network": ["SYNAPSE", "BRIDGE", "RELAY", "MESH"],
             "security": ["FORTRESS", "SENTINEL", "GUARDIAN", "AEGIS"],
         }
-        
+
         preferred_agents = task_agent_map.get(task_type, [])
-        
+
         # Try preferred agents first
         for agent_name in preferred_agents:
             agent = self.get_agent_by_name(agent_name)
             if agent and agent.status == AgentStatus.IDLE:
                 return agent
-        
+
         # Fall back to any idle agent
         idle_agents = [a for a in self.agents.values() if a.status == AgentStatus.IDLE]
         if idle_agents:
             # Prefer agents with fewer completed tasks (load balancing)
             return min(idle_agents, key=lambda a: a.tasks_completed)
-        
+
         return None
 
     async def _task_worker(self, worker_name: str) -> None:
         """Worker coroutine that processes tasks from the queue."""
         logger.debug(f"Task worker {worker_name} started")
-        
+
         while True:
             try:
                 # Get next task from queue
                 task_id = await self.task_queue.get()
                 task = self.tasks.get(task_id)
-                
+
                 if not task:
                     continue
-                
+
                 # Find available agent
                 agent = (
                     self.get_agent_by_name(task.assigned_agent)
                     if task.assigned_agent
                     else self._select_agent_for_task(task.task_type)
                 )
-                
+
                 if not agent or agent.status != AgentStatus.IDLE:
                     # Re-queue if no agent available
                     await self.task_queue.put(task_id)
                     await asyncio.sleep(0.1)
                     continue
-                
+
                 # Execute task
                 await self._execute_task(task, agent)
-                
+
             except asyncio.CancelledError:
                 logger.debug(f"Task worker {worker_name} cancelled")
                 break
@@ -418,46 +418,46 @@ class AgentSwarm:
     async def _execute_task(self, task: Task, agent: Agent) -> None:
         """Execute a task with the assigned agent."""
         start_time = time.time()
-        
+
         try:
             # Mark agent as busy
             agent.status = AgentStatus.BUSY
             agent.current_task_id = task.task_id
             task.status = "running"
-            task.started_at = datetime.now(timezone.utc)
+            task.started_at = datetime.now(UTC)
             task.assigned_agent = agent.name
-            
+
             logger.info(f"Agent {agent.name} executing task {task.task_id}")
-            
+
             # Simulate task execution (in real implementation, this would call actual AI models)
             await asyncio.sleep(0.1)  # Minimal delay for simulation
-            
+
             # Mark task complete
             task.status = "completed"
-            task.completed_at = datetime.now(timezone.utc)
+            task.completed_at = datetime.now(UTC)
             task.result = {"status": "success", "agent": agent.name}
-            
+
             # Update agent stats
             agent.tasks_completed += 1
             agent.update_response_time((time.time() - start_time) * 1000)
-            agent.last_active = datetime.now(timezone.utc)
-            
+            agent.last_active = datetime.now(UTC)
+
             async with self._lock:
                 self._completed_tasks += 1
-            
+
             logger.info(f"Task {task.task_id} completed by {agent.name}")
-            
+
         except Exception as e:
             task.status = "failed"
             task.error = str(e)
             agent.tasks_failed += 1
             logger.error(f"Task {task.task_id} failed: {e}")
-        
+
         finally:
             agent.status = AgentStatus.IDLE
             agent.current_task_id = None
 
-    async def execute_task(self, agent_type: str, task: Dict[str, Any]) -> Dict[str, Any]:
+    async def execute_task(self, agent_type: str, task: dict[str, Any]) -> dict[str, Any]:
         """
         Execute a task using the specified agent type.
         
@@ -469,8 +469,8 @@ class AgentSwarm:
             task_type=agent_type,
             payload=task,
         )
-        
+
         if not assigned:
             return {"status": "queued", "task_id": task_id, "message": "No agent immediately available"}
-        
+
         return {"status": "assigned", "task_id": task_id, "agent": assigned}

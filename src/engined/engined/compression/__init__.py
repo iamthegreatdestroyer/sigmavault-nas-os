@@ -18,20 +18,20 @@ from .bridge import (
     CompressionResult,
     StubCompressionEngine,
 )
-from .job_queue import (
-    CompressionJob,
-    CompressionJobQueue,
-    JobStatus,
-    JobPriority,
-    JobType,
-)
 from .events import (
-    CompressionEventEmitter,
     CompressionEvent,
+    CompressionEventEmitter,
     CompressionEventType,
     WebSocketEventBridge,
     get_compression_emitter,
     set_compression_emitter,
+)
+from .job_queue import (
+    CompressionJob,
+    CompressionJobQueue,
+    JobPriority,
+    JobStatus,
+    JobType,
 )
 
 __all__ = [

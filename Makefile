@@ -19,7 +19,7 @@ BLUE := \033[0;34m
 YELLOW := \033[1;33m
 NC := \033[0m
 
-.PHONY: all build test clean install release docker iso help
+.PHONY: all build test clean install release docker iso help setup-hooks
 
 # Default target
 all: test build
@@ -109,15 +109,34 @@ test-coverage:
 	@echo "$(GREEN)✓ Coverage reports generated$(NC)"
 
 # =============================================================================
+# Setup & Configuration
+# =============================================================================
+
+## setup-hooks: Install git pre-push hooks
+setup-hooks:
+	@echo "$(BLUE)Configuring git hooks...$(NC)"
+	git config core.hooksPath .githooks
+	@echo "$(GREEN)✓ Git hooks installed (.githooks/pre-push)$(NC)"
+	@echo "  Skip with: git push --no-verify"
+
+# =============================================================================
 # Development Targets
 # =============================================================================
 
-## dev: Start development servers
+# Load development env vars (sourced by run targets)
+DEV_ENV := configs/development.env
+define load-dev-env
+	$(if $(wildcard $(DEV_ENV)),set -a && . ./$(DEV_ENV) && set +a &&,)
+endef
+
+## dev: Start development servers (PowerShell — recommended on Windows)
 dev:
 	@echo "$(BLUE)Starting development environment...$(NC)"
-	@echo "$(YELLOW)Start these in separate terminals:$(NC)"
-	@echo "  1. make run-engine      # Python RPC engine (:8000 + :50051)"
-	@echo "  2. make run-api         # Go API server     (:3000)"
+	@echo "$(YELLOW)Recommended: pwsh -File scripts/dev-start.ps1$(NC)"
+	@echo ""
+	@echo "Or start manually in separate terminals:"
+	@echo "  1. make run-engine      # Python RPC engine (:5000)"
+	@echo "  2. make run-api         # Go API server     (:12080)"
 	@echo "  3. make run-desktop     # GTK4 Settings app"
 	@echo "  4. make test-watch      # Continuous testing"
 
@@ -131,13 +150,13 @@ dev-all:
 		select-layout tiled \; \
 		attach-session
 
-## run-api: Run API server
+## run-api: Run API server (with dev env)
 run-api:
-	cd $(GO_DIR) && go run .
+	cd $(GO_DIR) && $(call load-dev-env) go run .
 
-## run-engine: Run Python engine
+## run-engine: Run Python engine (with dev env)
 run-engine:
-	cd $(PYTHON_DIR) && python -m engined.main
+	cd $(PYTHON_DIR) && $(call load-dev-env) python -m engined.main
 
 ## run-desktop: Run GTK4 desktop application
 run-desktop:

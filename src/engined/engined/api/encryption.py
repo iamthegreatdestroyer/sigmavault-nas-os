@@ -9,7 +9,7 @@ Supports traditional (AES-256-GCM, ChaCha20-Poly1305) and post-quantum
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum
 from typing import TYPE_CHECKING
 
@@ -148,16 +148,16 @@ async def start_encryption(
     AES-256-GCM with post-quantum Kyber-1024 for key encapsulation.
     """
     swarm: AgentSwarm | None = getattr(request.app.state, "swarm", None)
-    
+
     if not swarm or not swarm.is_initialized:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Agent swarm not ready",
         )
-    
+
     job_id = str(uuid.uuid4())
-    now = datetime.now(timezone.utc)
-    
+    now = datetime.now(UTC)
+
     result = EncryptionResult(
         job_id=job_id,
         status=JobStatus.PENDING,
@@ -172,16 +172,16 @@ async def start_encryption(
         completed_at=None,
         error=None,
     )
-    
+
     _encryption_jobs[job_id] = result
-    
+
     background_tasks.add_task(
         process_encryption_job,
         job_id,
         encryption_request,
         swarm,
     )
-    
+
     return result
 
 
@@ -192,16 +192,16 @@ async def process_encryption_job(
 ) -> None:
     """Background task to process encryption job."""
     import time
-    
+
     job = _encryption_jobs.get(job_id)
     if not job:
         return
-    
+
     start_time = time.monotonic()
-    
+
     try:
         job.status = JobStatus.PROCESSING
-        
+
         # Submit to agent swarm
         agent_result = await swarm.submit_encryption_task(
             source_path=request.source_path,
@@ -210,18 +210,18 @@ async def process_encryption_job(
             key_id=request.key_id,
             compress_first=request.compress_first,
         )
-        
+
         job.status = JobStatus.COMPLETED
         job.destination_path = agent_result.get("destination_path")
         job.key_id = agent_result.get("key_id")
         job.file_size = agent_result.get("file_size", 0)
         job.time_elapsed_ms = int((time.monotonic() - start_time) * 1000)
-        job.completed_at = datetime.now(timezone.utc).isoformat()
-        
+        job.completed_at = datetime.now(UTC).isoformat()
+
     except Exception as e:
         job.status = JobStatus.FAILED
         job.error = str(e)
-        job.completed_at = datetime.now(timezone.utc).isoformat()
+        job.completed_at = datetime.now(UTC).isoformat()
 
 
 @router.get("/jobs", response_model=list[EncryptionResult])
@@ -232,12 +232,12 @@ async def list_encryption_jobs(
 ) -> list[EncryptionResult]:
     """List encryption jobs with optional filtering."""
     jobs = list(_encryption_jobs.values())
-    
+
     if status_filter:
         jobs = [j for j in jobs if j.status == status_filter]
-    
+
     jobs.sort(key=lambda j: j.created_at, reverse=True)
-    
+
     return jobs[offset : offset + limit]
 
 
@@ -245,13 +245,13 @@ async def list_encryption_jobs(
 async def get_encryption_job(job_id: str) -> EncryptionResult:
     """Get details of a specific encryption job."""
     job = _encryption_jobs.get(job_id)
-    
+
     if not job:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Job {job_id} not found",
         )
-    
+
     return job
 
 
@@ -267,33 +267,33 @@ async def generate_key(
     The key is stored in the secure vault and only the key_id is returned.
     """
     swarm: AgentSwarm | None = getattr(request.app.state, "swarm", None)
-    
+
     if not swarm or not swarm.is_initialized:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Agent swarm not ready",
         )
-    
+
     key_id = str(uuid.uuid4())
-    now = datetime.now(timezone.utc)
-    
+    now = datetime.now(UTC)
+
     # Generate key via crypto agent
     key_result = await swarm.generate_encryption_key(
         algorithm=key_request.algorithm.value,
         key_type=key_request.key_type.value,
     )
-    
+
     from datetime import timedelta
-    
+
     expires_at = None
     if key_request.expires_days:
         expires_at = (now + timedelta(days=key_request.expires_days)).isoformat()
-    
+
     is_quantum_safe = key_request.algorithm in (
         EncryptionAlgorithm.KYBER_1024,
         EncryptionAlgorithm.HYBRID_KYBER_AES,
     )
-    
+
     key_info = KeyInfo(
         key_id=key_id,
         algorithm=key_request.algorithm.value,
@@ -303,9 +303,9 @@ async def generate_key(
         is_quantum_safe=is_quantum_safe,
         fingerprint=key_result.get("fingerprint", "unknown"),
     )
-    
+
     _keys[key_id] = key_info
-    
+
     return key_info
 
 
@@ -316,13 +316,13 @@ async def list_keys(
 ) -> list[KeyInfo]:
     """List all encryption keys."""
     keys = list(_keys.values())
-    
+
     if algorithm_filter:
         keys = [k for k in keys if k.algorithm == algorithm_filter.value]
-    
+
     if quantum_safe_only:
         keys = [k for k in keys if k.is_quantum_safe]
-    
+
     return keys
 
 
@@ -330,13 +330,13 @@ async def list_keys(
 async def get_key(key_id: str) -> KeyInfo:
     """Get key information (not the key material itself)."""
     key = _keys.get(key_id)
-    
+
     if not key:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Key {key_id} not found",
         )
-    
+
     return key
 
 
@@ -352,7 +352,7 @@ async def revoke_key(key_id: str) -> None:
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Key {key_id} not found",
         )
-    
+
     del _keys[key_id]
 
 

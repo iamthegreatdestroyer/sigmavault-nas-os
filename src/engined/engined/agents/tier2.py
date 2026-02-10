@@ -6,7 +6,8 @@ These are minimal working implementations for domain specialists.
 
 import asyncio
 import logging
-from .base import BaseAgent, AgentCapability, AgentTask, TaskResult
+
+from .base import AgentCapability, AgentTask, BaseAgent, TaskResult
 
 logger = logging.getLogger(__name__)
 
@@ -35,9 +36,9 @@ class TENSORAgent(BaseAgent):
     async def execute_task(self, task: AgentTask) -> TaskResult:
         """Execute ML/DL task."""
         logger.info(f"{self.agent_id}: Processing {task.task_type}")
-        
+
         await asyncio.sleep(0.1)
-        
+
         return TaskResult(
             task_id=task.task_id,
             success=True,
@@ -75,9 +76,9 @@ class FORTRESSAgent(BaseAgent):
     async def execute_task(self, task: AgentTask) -> TaskResult:
         """Execute security testing task."""
         logger.info(f"{self.agent_id}: Processing {task.task_type}")
-        
+
         await asyncio.sleep(0.1)
-        
+
         return TaskResult(
             task_id=task.task_id,
             success=True,
@@ -115,9 +116,9 @@ class FLUXAgent(BaseAgent):
     async def execute_task(self, task: AgentTask) -> TaskResult:
         """Execute DevOps task."""
         logger.info(f"{self.agent_id}: Processing {task.task_type}")
-        
+
         await asyncio.sleep(0.1)
-        
+
         return TaskResult(
             task_id=task.task_id,
             success=True,
@@ -155,9 +156,9 @@ class PRISMAgent(BaseAgent):
     async def execute_task(self, task: AgentTask) -> TaskResult:
         """Execute data science task."""
         logger.info(f"{self.agent_id}: Processing {task.task_type}")
-        
+
         await asyncio.sleep(0.1)
-        
+
         return TaskResult(
             task_id=task.task_id,
             success=True,
@@ -195,9 +196,9 @@ class SYNAPSEAgent(BaseAgent):
     async def execute_task(self, task: AgentTask) -> TaskResult:
         """Execute integration task."""
         logger.info(f"{self.agent_id}: Processing {task.task_type}")
-        
+
         await asyncio.sleep(0.1)
-        
+
         return TaskResult(
             task_id=task.task_id,
             success=True,

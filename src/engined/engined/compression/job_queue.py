@@ -9,13 +9,19 @@ progress tracking, and cancellation support.
 import asyncio
 import logging
 import uuid
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Dict, Any, Optional, Callable, Awaitable, Union
 from pathlib import Path
+from typing import Any
 
-from .bridge import CompressionBridge, CompressionConfig, CompressionResult, CompressionProgress
+from .bridge import (
+    CompressionBridge,
+    CompressionConfig,
+    CompressionProgress,
+    CompressionResult,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -60,29 +66,29 @@ class CompressionJob:
     priority: JobPriority
     status: JobStatus
     created_at: datetime
-    started_at: Optional[datetime] = None
-    completed_at: Optional[datetime] = None
+    started_at: datetime | None = None
+    completed_at: datetime | None = None
     progress: float = 0.0  # 0-100 percentage
     bytes_processed: int = 0
     bytes_total: int = 0
     current_ratio: float = 1.0
     phase: str = "pending"
-    result: Optional[CompressionResult] = None
-    error: Optional[str] = None
-    
+    result: CompressionResult | None = None
+    error: str | None = None
+
     # Job parameters
-    input_path: Optional[str] = None
-    output_path: Optional[str] = None
-    input_data: Optional[bytes] = None
+    input_path: str | None = None
+    output_path: str | None = None
+    input_data: bytes | None = None
     config: CompressionConfig = field(default_factory=CompressionConfig)
-    
+
     # Metadata
-    user_id: Optional[str] = None
-    tags: Dict[str, str] = field(default_factory=dict)
-    
+    user_id: str | None = None
+    tags: dict[str, str] = field(default_factory=dict)
+
     # Internal
     _cancelled: bool = field(default=False, repr=False)
-    _task: Optional[asyncio.Task] = field(default=None, repr=False)
+    _task: asyncio.Task | None = field(default=None, repr=False)
 
     def cancel(self) -> bool:
         """
@@ -93,7 +99,7 @@ class CompressionJob:
         """
         if self.status in (JobStatus.COMPLETED, JobStatus.FAILED, JobStatus.CANCELLED):
             return False
-        
+
         self._cancelled = True
         if self._task and not self._task.done():
             self._task.cancel()
@@ -126,7 +132,7 @@ class CompressionJob:
         remaining_progress = 100 - self.progress
         return (elapsed / self.progress) * remaining_progress
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert job to dictionary for serialization."""
         return {
             "id": self.id,
@@ -174,7 +180,7 @@ class CompressionJobQueue:
 
     def __init__(
         self,
-        bridge: Optional[CompressionBridge] = None,
+        bridge: CompressionBridge | None = None,
         max_concurrent: int = 4,
         max_retries: int = 2,
     ):
@@ -189,14 +195,14 @@ class CompressionJobQueue:
         self.bridge = bridge or CompressionBridge()
         self.max_concurrent = max_concurrent
         self.max_retries = max_retries
-        
-        self._jobs: Dict[str, CompressionJob] = {}
+
+        self._jobs: dict[str, CompressionJob] = {}
         self._queue: asyncio.PriorityQueue = asyncio.PriorityQueue()
         self._running: int = 0
         self._workers: list[asyncio.Task] = []
         self._started: bool = False
         self._stopping: bool = False
-        
+
         # Callbacks
         self._on_progress: list[Callable[[CompressionJob], Awaitable[None]]] = []
         self._on_complete: list[Callable[[CompressionJob], Awaitable[None]]] = []
@@ -205,21 +211,21 @@ class CompressionJobQueue:
         """Start the job queue workers."""
         if self._started:
             return
-        
+
         self._started = True
         self._stopping = False
-        
+
         # Initialize bridge
         await self.bridge.initialize()
-        
+
         # Register for progress updates from bridge
         self.bridge.add_progress_callback(self._handle_bridge_progress)
-        
+
         # Start worker tasks
         for i in range(self.max_concurrent):
             worker = asyncio.create_task(self._worker(i))
             self._workers.append(worker)
-        
+
         logger.info(f"CompressionJobQueue started with {self.max_concurrent} workers")
 
     async def stop(self, wait: bool = True) -> None:
@@ -230,15 +236,15 @@ class CompressionJobQueue:
             wait: If True, wait for running jobs to complete.
         """
         self._stopping = True
-        
+
         if not wait:
             # Cancel all workers
             for worker in self._workers:
                 worker.cancel()
-        
+
         # Wait for workers to finish
         await asyncio.gather(*self._workers, return_exceptions=True)
-        
+
         self._workers.clear()
         self._started = False
         logger.info("CompressionJobQueue stopped")
@@ -260,12 +266,12 @@ class CompressionJobQueue:
     async def submit_file(
         self,
         input_path: str,
-        output_path: Optional[str] = None,
+        output_path: str | None = None,
         compress: bool = True,
         priority: JobPriority = JobPriority.NORMAL,
-        config: Optional[CompressionConfig] = None,
-        user_id: Optional[str] = None,
-        tags: Optional[Dict[str, str]] = None,
+        config: CompressionConfig | None = None,
+        user_id: str | None = None,
+        tags: dict[str, str] | None = None,
     ) -> CompressionJob:
         """
         Submit a file compression/decompression job.
@@ -284,7 +290,7 @@ class CompressionJobQueue:
         """
         job_id = str(uuid.uuid4())
         job_type = JobType.COMPRESS_FILE if compress else JobType.DECOMPRESS_FILE
-        
+
         # Auto-generate output path if needed
         if output_path is None:
             input_file = Path(input_path)
@@ -296,13 +302,13 @@ class CompressionJobQueue:
                     output_path = str(input_file.with_suffix(""))
                 else:
                     output_path = str(input_file.with_suffix(".decompressed"))
-        
+
         # Get file size for progress tracking
         try:
             bytes_total = Path(input_path).stat().st_size
         except OSError:
             bytes_total = 0
-        
+
         job = CompressionJob(
             id=job_id,
             job_type=job_type,
@@ -316,12 +322,12 @@ class CompressionJobQueue:
             user_id=user_id,
             tags=tags or {},
         )
-        
+
         self._jobs[job_id] = job
-        
+
         # Add to priority queue (negative priority for max-heap behavior)
         await self._queue.put((-priority.value, datetime.now(), job_id))
-        
+
         logger.info(f"Job {job_id} submitted: {job_type.value} {input_path}")
         return job
 
@@ -330,9 +336,9 @@ class CompressionJobQueue:
         data: bytes,
         compress: bool = True,
         priority: JobPriority = JobPriority.NORMAL,
-        config: Optional[CompressionConfig] = None,
-        user_id: Optional[str] = None,
-        tags: Optional[Dict[str, str]] = None,
+        config: CompressionConfig | None = None,
+        user_id: str | None = None,
+        tags: dict[str, str] | None = None,
     ) -> CompressionJob:
         """
         Submit a data compression/decompression job.
@@ -350,7 +356,7 @@ class CompressionJobQueue:
         """
         job_id = str(uuid.uuid4())
         job_type = JobType.COMPRESS_DATA if compress else JobType.DECOMPRESS_DATA
-        
+
         job = CompressionJob(
             id=job_id,
             job_type=job_type,
@@ -363,21 +369,21 @@ class CompressionJobQueue:
             user_id=user_id,
             tags=tags or {},
         )
-        
+
         self._jobs[job_id] = job
         await self._queue.put((-priority.value, datetime.now(), job_id))
-        
+
         logger.info(f"Job {job_id} submitted: {job_type.value} ({len(data)} bytes)")
         return job
 
-    def get_job(self, job_id: str) -> Optional[CompressionJob]:
+    def get_job(self, job_id: str) -> CompressionJob | None:
         """Get job by ID."""
         return self._jobs.get(job_id)
 
     def get_jobs(
         self,
-        status: Optional[JobStatus] = None,
-        user_id: Optional[str] = None,
+        status: JobStatus | None = None,
+        user_id: str | None = None,
         limit: int = 100,
     ) -> list[CompressionJob]:
         """
@@ -392,12 +398,12 @@ class CompressionJobQueue:
             List of matching jobs.
         """
         jobs = list(self._jobs.values())
-        
+
         if status:
             jobs = [j for j in jobs if j.status == status]
         if user_id:
             jobs = [j for j in jobs if j.user_id == user_id]
-        
+
         # Sort by created_at descending
         jobs.sort(key=lambda j: j.created_at, reverse=True)
         return jobs[:limit]
@@ -417,7 +423,7 @@ class CompressionJobQueue:
             return False
         return job.cancel()
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """Get queue statistics."""
         jobs = list(self._jobs.values())
         return {
@@ -434,7 +440,7 @@ class CompressionJobQueue:
     async def _worker(self, worker_id: int) -> None:
         """Background worker for processing jobs."""
         logger.debug(f"Worker {worker_id} started")
-        
+
         while not self._stopping:
             try:
                 # Get next job from queue (with timeout)
@@ -443,33 +449,33 @@ class CompressionJobQueue:
                         self._queue.get(),
                         timeout=1.0,
                     )
-                except asyncio.TimeoutError:
+                except TimeoutError:
                     continue
-                
+
                 job = self._jobs.get(job_id)
                 if job is None:
                     continue
-                
+
                 # Skip if cancelled
                 if job.is_cancelled:
                     job.status = JobStatus.CANCELLED
                     job.completed_at = datetime.now()
                     await self._emit_complete(job)
                     continue
-                
+
                 # Process job
                 self._running += 1
                 try:
                     await self._process_job(job)
                 finally:
                     self._running -= 1
-                
+
             except asyncio.CancelledError:
                 logger.debug(f"Worker {worker_id} cancelled")
                 break
             except Exception as e:
                 logger.error(f"Worker {worker_id} error: {e}")
-        
+
         logger.debug(f"Worker {worker_id} stopped")
 
     async def _process_job(self, job: CompressionJob) -> None:
@@ -477,11 +483,11 @@ class CompressionJobQueue:
         job.status = JobStatus.RUNNING
         job.started_at = datetime.now()
         job.phase = "starting"
-        
+
         try:
             # Create task for processing
             job._task = asyncio.current_task()
-            
+
             # Execute based on job type
             if job.job_type == JobType.COMPRESS_FILE:
                 result = await self.bridge.compress_file(
@@ -507,18 +513,18 @@ class CompressionJobQueue:
                 )
             else:
                 raise ValueError(f"Unknown job type: {job.job_type}")
-            
+
             # Update job with result
             job.result = result
             job.progress = 100.0
             job.phase = "complete"
-            
+
             if result.success:
                 job.status = JobStatus.COMPLETED
             else:
                 job.status = JobStatus.FAILED
                 job.error = result.error
-            
+
         except asyncio.CancelledError:
             job.status = JobStatus.CANCELLED
             job.phase = "cancelled"
@@ -537,7 +543,7 @@ class CompressionJobQueue:
         job = self._jobs.get(progress.job_id)
         if job is None:
             return
-        
+
         # Update job progress
         if progress.bytes_total > 0:
             job.progress = (progress.bytes_processed / progress.bytes_total) * 100
@@ -545,7 +551,7 @@ class CompressionJobQueue:
         job.bytes_total = progress.bytes_total
         job.current_ratio = progress.current_ratio
         job.phase = progress.phase
-        
+
         # Emit progress callbacks
         await self._emit_progress(job)
 

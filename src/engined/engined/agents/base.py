@@ -5,20 +5,20 @@ This module provides the foundational infrastructure for the 40-agent swarm,
 including state management, capability descriptors, and task execution framework.
 """
 
-from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
-from enum import Enum
-from typing import Any, Dict, List, Optional
 import asyncio
 import logging
-from datetime import datetime, timezone
+from abc import ABC, abstractmethod
+from dataclasses import dataclass, field
+from datetime import UTC, datetime
+from enum import Enum
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
 
 class AgentState(Enum):
     """Agent lifecycle states."""
-    
+
     STUB = "stub"           # Not initialized
     IDLE = "idle"           # Ready for tasks
     BUSY = "busy"           # Executing task
@@ -28,7 +28,7 @@ class AgentState(Enum):
 
 class TaskPriority(Enum):
     """Task priority levels."""
-    
+
     CRITICAL = 4
     HIGH = 3
     MEDIUM = 2
@@ -43,11 +43,11 @@ class AgentCapability:
     Defines what an agent can do, its tier classification,
     and domain expertise.
     """
-    
+
     name: str
     tier: int  # 1=Foundational, 2=Specialist, 3=Innovator, 4=Meta
-    domains: List[str]
-    skills: List[str]
+    domains: list[str]
+    skills: list[str]
     description: str
     max_concurrent_tasks: int = 1
 
@@ -60,14 +60,14 @@ class AgentTask:
     Contains all information needed for task execution including
     payload, priority, and timeout constraints.
     """
-    
+
     task_id: str
     task_type: str
-    payload: Dict[str, Any]
+    payload: dict[str, Any]
     priority: TaskPriority = TaskPriority.MEDIUM
     timeout: int = 300  # seconds
-    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    created_at: datetime = field(default_factory=lambda: datetime.now(UTC))
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -77,13 +77,13 @@ class TaskResult:
     
     Contains output, metrics, and any errors encountered.
     """
-    
+
     task_id: str
     success: bool
     output: Any
-    error: Optional[str] = None
+    error: str | None = None
     execution_time: float = 0.0
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 class BaseAgent(ABC):
@@ -111,14 +111,14 @@ class BaseAgent(ABC):
         self.agent_id = agent_id
         self.capability = capability
         self.state = AgentState.STUB
-        self.current_task: Optional[AgentTask] = None
-        
+        self.current_task: AgentTask | None = None
+
         # Metrics
         self.task_count = 0
         self.success_count = 0
         self.error_count = 0
         self.total_execution_time = 0.0
-        
+
         # State management
         self._state_lock = asyncio.Lock()
         self._task_queue: asyncio.Queue[AgentTask] = asyncio.Queue()
@@ -138,15 +138,15 @@ class BaseAgent(ABC):
                 if self.state != AgentState.STUB:
                     logger.warning(f"{self.agent_id}: Already initialized (state={self.state})")
                     return False
-                
+
                 # Perform initialization
                 await self._custom_initialize()
-                
+
                 # Transition to IDLE
                 self.state = AgentState.IDLE
                 logger.info(f"{self.agent_id}: Initialized successfully")
                 return True
-                
+
         except Exception as e:
             logger.error(f"{self.agent_id}: Initialization failed - {e}")
             self.state = AgentState.ERROR
@@ -191,7 +191,7 @@ class BaseAgent(ABC):
         if self.state not in (AgentState.IDLE, AgentState.BUSY):
             logger.warning(f"{self.agent_id}: Cannot accept task in state {self.state}")
             return False
-        
+
         await self._task_queue.put(task)
         logger.debug(f"{self.agent_id}: Task {task.task_id} queued")
         return True
@@ -202,38 +202,38 @@ class BaseAgent(ABC):
         
         Handles state transitions, timing, error handling, and metrics.
         """
-        start_time = datetime.now(timezone.utc)
-        
+        start_time = datetime.now(UTC)
+
         try:
             # Transition to BUSY
             async with self._state_lock:
                 self.state = AgentState.BUSY
                 self.current_task = task
                 self.task_count += 1
-            
+
             logger.info(f"{self.agent_id}: Executing task {task.task_id}")
-            
+
             # Execute with timeout
             result = await asyncio.wait_for(
                 self.execute_task(task),
                 timeout=task.timeout
             )
-            
+
             # Update metrics
-            execution_time = (datetime.now(timezone.utc) - start_time).total_seconds()
+            execution_time = (datetime.now(UTC) - start_time).total_seconds()
             result.execution_time = execution_time
             self.total_execution_time += execution_time
-            
+
             if result.success:
                 self.success_count += 1
                 logger.info(f"{self.agent_id}: Task {task.task_id} completed successfully")
             else:
                 self.error_count += 1
                 logger.warning(f"{self.agent_id}: Task {task.task_id} failed - {result.error}")
-            
+
             return result
-            
-        except asyncio.TimeoutError:
+
+        except TimeoutError:
             self.error_count += 1
             logger.error(f"{self.agent_id}: Task {task.task_id} timed out after {task.timeout}s")
             return TaskResult(
@@ -242,7 +242,7 @@ class BaseAgent(ABC):
                 output=None,
                 error=f"Task timed out after {task.timeout} seconds"
             )
-            
+
         except Exception as e:
             self.error_count += 1
             logger.error(f"{self.agent_id}: Task {task.task_id} failed with exception - {e}", exc_info=True)
@@ -252,7 +252,7 @@ class BaseAgent(ABC):
                 output=None,
                 error=str(e)
             )
-            
+
         finally:
             # Transition back to IDLE
             async with self._state_lock:
@@ -266,7 +266,7 @@ class BaseAgent(ABC):
         This is typically run as a background task via asyncio.create_task().
         """
         logger.info(f"{self.agent_id}: Agent loop started")
-        
+
         while not self._shutdown_event.is_set():
             try:
                 # Wait for task with timeout to check shutdown periodically
@@ -274,20 +274,20 @@ class BaseAgent(ABC):
                     self._task_queue.get(),
                     timeout=1.0
                 )
-                
+
                 # Execute task
                 result = await self._execute_with_lifecycle(task)
-                
+
                 # Mark task done
                 self._task_queue.task_done()
-                
-            except asyncio.TimeoutError:
+
+            except TimeoutError:
                 # No task available, continue loop
                 continue
             except Exception as e:
                 logger.error(f"{self.agent_id}: Error in agent loop - {e}", exc_info=True)
                 await asyncio.sleep(1.0)
-        
+
         logger.info(f"{self.agent_id}: Agent loop stopped")
 
     async def shutdown(self):
@@ -297,26 +297,26 @@ class BaseAgent(ABC):
         Waits for current task to complete, then stops the agent loop.
         """
         logger.info(f"{self.agent_id}: Shutdown initiated")
-        
+
         # Signal shutdown
         self._shutdown_event.set()
-        
+
         # Wait for current task to complete
         if self.current_task:
             logger.info(f"{self.agent_id}: Waiting for current task to complete")
             while self.state == AgentState.BUSY:
                 await asyncio.sleep(0.1)
-        
+
         # Wait for queue to empty
         await self._task_queue.join()
-        
+
         # Transition to SHUTDOWN
         async with self._state_lock:
             self.state = AgentState.SHUTDOWN
-        
+
         logger.info(f"{self.agent_id}: Shutdown complete")
 
-    def get_status(self) -> Dict[str, Any]:
+    def get_status(self) -> dict[str, Any]:
         """
         Get agent status.
         

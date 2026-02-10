@@ -9,19 +9,18 @@ Tests cover:
 """
 
 import asyncio
+from datetime import UTC, datetime
+
 import pytest
-from datetime import datetime, timezone
-from unittest.mock import AsyncMock, patch
 
 from engined.agents.swarm import (
+    AGENT_DEFINITIONS,
     Agent,
     AgentStatus,
-    AgentTier,
     AgentSwarm,
+    AgentTier,
     Task,
-    AGENT_DEFINITIONS,
 )
-
 
 # ==============================================================================
 # Agent Tests
@@ -39,7 +38,7 @@ class TestAgent:
             tier=AgentTier.CORE,
             specialty="Testing",
         )
-        
+
         assert agent.agent_id == "test-001"
         assert agent.name == "TENSOR"
         assert agent.tier == AgentTier.CORE
@@ -91,13 +90,13 @@ class TestAgent:
             tier=AgentTier.CORE,
             specialty="Testing",
         )
-        
+
         agent.update_response_time(100.0)
         assert agent.avg_response_time_ms == 100.0
-        
+
         agent.update_response_time(200.0)
         assert agent.avg_response_time_ms == 150.0
-        
+
         agent.update_response_time(300.0)
         assert agent.avg_response_time_ms == 200.0
 
@@ -109,11 +108,11 @@ class TestAgent:
             tier=AgentTier.CORE,
             specialty="Testing",
         )
-        
+
         # Add 110 measurements of 10ms
         for _ in range(110):
             agent.update_response_time(10.0)
-        
+
         # Should only keep last 100
         assert len(agent._response_times) == 100
         assert agent.avg_response_time_ms == 10.0
@@ -130,9 +129,9 @@ class TestAgent:
             tasks_failed=5,
             avg_response_time_ms=50.0,
         )
-        
+
         data = agent.to_dict()
-        
+
         assert data["agent_id"] == "test-001"
         assert data["name"] == "TENSOR"
         assert data["tier"] == "core"
@@ -144,7 +143,7 @@ class TestAgent:
 
     def test_agent_to_dict_with_last_active(self):
         """Test agent serialization with last_active timestamp."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         agent = Agent(
             agent_id="test-001",
             name="TEST",
@@ -152,7 +151,7 @@ class TestAgent:
             specialty="Testing",
             last_active=now,
         )
-        
+
         data = agent.to_dict()
         assert data["last_active"] == now.isoformat()
 
@@ -173,7 +172,7 @@ class TestTask:
             payload={"file": "test.txt"},
             priority=1,
         )
-        
+
         assert task.task_id == "task-001"
         assert task.task_type == "compression"
         assert task.payload == {"file": "test.txt"}
@@ -191,7 +190,7 @@ class TestTask:
             payload={},
             priority=5,
         )
-        
+
         assert task.created_at is not None
         assert task.started_at is None
         assert task.completed_at is None
@@ -234,10 +233,10 @@ class TestAgentDefinitions:
     def test_agent_tiers_distribution(self):
         """Test tier distribution across agents."""
         tier_counts = {"core": 0, "specialist": 0, "support": 0}
-        
+
         for agent_def in AGENT_DEFINITIONS:
             tier_counts[agent_def["tier"].value] += 1
-        
+
         assert tier_counts["core"] == 10
         assert tier_counts["specialist"] == 20
         assert tier_counts["support"] == 10
@@ -259,8 +258,8 @@ class TestAgentDefinitions:
         """Test core tier agents are defined correctly."""
         core_agents = [a for a in AGENT_DEFINITIONS if a["tier"] == AgentTier.CORE]
         core_names = {a["name"] for a in core_agents}
-        
-        expected_core = {"TENSOR", "VELOCITY", "AXIOM", "PRISM", "FLUX", 
+
+        expected_core = {"TENSOR", "VELOCITY", "AXIOM", "PRISM", "FLUX",
                         "DELTA", "SPARK", "WAVE", "NEXUS", "PULSE"}
         assert core_names == expected_core
 
@@ -276,7 +275,7 @@ class TestAgentSwarm:
     def test_swarm_creation(self):
         """Test swarm is created with correct defaults."""
         swarm = AgentSwarm()
-        
+
         assert swarm.agents == {}
         assert swarm.tasks == {}
         assert not swarm.is_initialized
@@ -287,7 +286,7 @@ class TestAgentSwarm:
         """Test swarm initialization creates all agents."""
         swarm = AgentSwarm()
         await swarm.initialize()
-        
+
         assert swarm.is_initialized
         assert len(swarm.agents) == 40
         assert swarm.uptime_seconds > 0
@@ -297,7 +296,7 @@ class TestAgentSwarm:
         """Test all agents are idle after initialization."""
         swarm = AgentSwarm()
         await swarm.initialize()
-        
+
         for agent in swarm.agents.values():
             assert agent.status == AgentStatus.IDLE
 
@@ -306,7 +305,7 @@ class TestAgentSwarm:
         """Test available_agents property."""
         swarm = AgentSwarm()
         await swarm.initialize()
-        
+
         assert swarm.available_agents == 40
         assert swarm.busy_agents == 0
 
@@ -315,11 +314,11 @@ class TestAgentSwarm:
         """Test swarm shutdown."""
         swarm = AgentSwarm()
         await swarm.initialize()
-        
+
         assert swarm.is_initialized
-        
+
         await swarm.shutdown()
-        
+
         assert not swarm.is_initialized
 
     @pytest.mark.asyncio
@@ -327,14 +326,14 @@ class TestAgentSwarm:
         """Test get_swarm_status returns correct information."""
         swarm = AgentSwarm()
         await swarm.initialize()
-        
+
         status = swarm.get_swarm_status()
-        
+
         assert status["total_agents"] == 40
         assert status["idle_agents"] == 40
         assert status["busy_agents"] == 0
         assert "uptime_seconds" in status
-        
+
         await swarm.shutdown()
 
     @pytest.mark.asyncio
@@ -342,11 +341,11 @@ class TestAgentSwarm:
         """Test get_agent returns correct agent."""
         swarm = AgentSwarm()
         await swarm.initialize()
-        
+
         # Get any agent
         agent_id = list(swarm.agents.keys())[0]
         agent = swarm.get_agent(agent_id)
-        
+
         assert agent is not None
         assert agent.agent_id == agent_id
 
@@ -355,9 +354,9 @@ class TestAgentSwarm:
         """Test get_agent returns None for unknown agent."""
         swarm = AgentSwarm()
         await swarm.initialize()
-        
+
         agent = swarm.get_agent("nonexistent-agent")
-        
+
         assert agent is None
 
     @pytest.mark.asyncio
@@ -365,12 +364,12 @@ class TestAgentSwarm:
         """Test list_agents returns all agents."""
         swarm = AgentSwarm()
         await swarm.initialize()
-        
+
         agents = swarm.list_agents()
-        
+
         assert len(agents) == 40
         assert all(isinstance(a, Agent) for a in agents)
-        
+
         await swarm.shutdown()
 
     @pytest.mark.asyncio
@@ -378,12 +377,12 @@ class TestAgentSwarm:
         """Test list_agents filters by tier."""
         swarm = AgentSwarm()
         await swarm.initialize()
-        
+
         core_agents = swarm.list_agents(tier=AgentTier.CORE)
-        
+
         assert len(core_agents) == 10
         assert all(a.tier == AgentTier.CORE for a in core_agents)
-        
+
         await swarm.shutdown()
 
     @pytest.mark.asyncio
@@ -391,17 +390,17 @@ class TestAgentSwarm:
         """Test task assignment."""
         swarm = AgentSwarm()
         await swarm.initialize()
-        
+
         agent_name = await swarm.assign_task(
             task_id="task-001",
             task_type="compression",
             payload={"file": "test.txt"},
             priority=5,
         )
-        
+
         # Task should be created and potentially assigned
         assert "task-001" in swarm.tasks
-        
+
         await swarm.shutdown()
 
     @pytest.mark.asyncio
@@ -409,19 +408,19 @@ class TestAgentSwarm:
         """Test task is stored in tasks dict after assignment."""
         swarm = AgentSwarm()
         await swarm.initialize()
-        
+
         await swarm.assign_task(
             task_id="task-002",
             task_type="test",
             payload={},
             priority=1,
         )
-        
+
         task = swarm.tasks.get("task-002")
-        
+
         assert task is not None
         assert task.task_id == "task-002"
-        
+
         await swarm.shutdown()
 
     @pytest.mark.asyncio
@@ -429,11 +428,11 @@ class TestAgentSwarm:
         """Test tasks dict returns None for unknown task."""
         swarm = AgentSwarm()
         await swarm.initialize()
-        
+
         task = swarm.tasks.get("nonexistent-task")
-        
+
         assert task is None
-        
+
         await swarm.shutdown()
 
     @pytest.mark.asyncio
@@ -441,14 +440,14 @@ class TestAgentSwarm:
         """Test swarm status contains health information."""
         swarm = AgentSwarm()
         await swarm.initialize()
-        
+
         status = swarm.get_swarm_status()
-        
+
         # All agents idle = healthy
         assert status["idle_agents"] == 40
         assert status["busy_agents"] == 0
         assert status["error_agents"] == 0
-        
+
         await swarm.shutdown()
 
 
@@ -465,7 +464,7 @@ class TestSwarmIntegration:
         """Test complete task assignment and processing."""
         swarm = AgentSwarm()
         await swarm.initialize()
-        
+
         # Assign task
         await swarm.assign_task(
             task_id="lifecycle-001",
@@ -473,12 +472,12 @@ class TestSwarmIntegration:
             payload={"data": "test"},
             priority=10,
         )
-        
+
         # Task should exist
         task = swarm.tasks.get("lifecycle-001")
         assert task is not None
         assert task.status in ["queued", "running", "completed"]
-        
+
         await swarm.shutdown()
 
     @pytest.mark.asyncio
@@ -486,7 +485,7 @@ class TestSwarmIntegration:
         """Test assigning multiple tasks concurrently."""
         swarm = AgentSwarm()
         await swarm.initialize()
-        
+
         # Assign 10 tasks concurrently
         await asyncio.gather(*[
             swarm.assign_task(
@@ -497,10 +496,10 @@ class TestSwarmIntegration:
             )
             for i in range(10)
         ])
-        
+
         # All tasks should be created
         assert len([k for k in swarm.tasks.keys() if k.startswith("concurrent-")]) == 10
-        
+
         await swarm.shutdown()
 
 

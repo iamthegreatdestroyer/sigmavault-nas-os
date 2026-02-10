@@ -15,12 +15,13 @@ Author: @FORTRESS (Defensive Security) + @VELOCITY (Performance)
 """
 
 import asyncio
+import logging
 import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Callable, Optional, TypeVar, Generic
 from functools import wraps
-import logging
+from typing import Any, Generic, TypeVar
 
 logger = logging.getLogger(__name__)
 
@@ -53,7 +54,7 @@ class CircuitBreakerConfig:
     timeout: float = 10.0
     timeout_max: float = 300.0
     timeout_multiplier: float = 2.0
-    expected_exception: Optional[type] = None
+    expected_exception: type | None = None
 
 
 @dataclass
@@ -65,8 +66,8 @@ class CircuitBreakerMetrics:
     successful_calls: int = 0
     rejected_calls: int = 0
     state_transitions: dict[str, int] = field(default_factory=dict)
-    last_failure_time: Optional[float] = None
-    last_success_time: Optional[float] = None
+    last_failure_time: float | None = None
+    last_success_time: float | None = None
 
 
 class CircuitBreaker(Generic[T]):
@@ -83,7 +84,7 @@ class CircuitBreaker(Generic[T]):
         ...         return await db.execute("SELECT 1")
     """
 
-    def __init__(self, name: str, config: Optional[CircuitBreakerConfig] = None):
+    def __init__(self, name: str, config: CircuitBreakerConfig | None = None):
         """
         Initialize circuit breaker.
 
@@ -96,8 +97,8 @@ class CircuitBreaker(Generic[T]):
         self.state = CircuitBreakerState.CLOSED
         self.failure_count = 0
         self.success_count = 0
-        self.last_failure_time: Optional[float] = None
-        self.next_attempt_time: Optional[float] = None
+        self.last_failure_time: float | None = None
+        self.next_attempt_time: float | None = None
         self.current_timeout = self.config.timeout
         self.metrics = CircuitBreakerMetrics()
         self._lock = asyncio.Lock()
@@ -307,7 +308,7 @@ class CircuitBreakerOpenError(Exception):
 
 
 def circuit_breaker(
-    name: str, config: Optional[CircuitBreakerConfig] = None
+    name: str, config: CircuitBreakerConfig | None = None
 ) -> Callable:
     """
     Decorator for applying circuit breaker to async functions.

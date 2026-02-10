@@ -17,14 +17,14 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import math
 import random
 import statistics
 from collections import deque
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Set, Tuple
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -51,12 +51,12 @@ class TunableParameter:
     param_type: ParameterType
     current_value: Any
     default_value: Any
-    min_value: Optional[float] = None
-    max_value: Optional[float] = None
-    choices: Optional[List[Any]] = None  # For categorical
+    min_value: float | None = None
+    max_value: float | None = None
+    choices: list[Any] | None = None  # For categorical
     step_size: float = 0.1  # For gradient-free optimization
     description: str = ""
-    
+
     def get_neighbor(self) -> Any:
         """Get a neighboring value for exploration."""
         if self.param_type == ParameterType.CONTINUOUS:
@@ -73,7 +73,7 @@ class TunableParameter:
             if self.choices:
                 return random.choice(self.choices)
         return self.current_value
-    
+
     def validate(self, value: Any) -> bool:
         """Validate a value is within bounds."""
         if self.param_type == ParameterType.CONTINUOUS:
@@ -93,8 +93,8 @@ class TunableParameter:
         elif self.param_type == ParameterType.CATEGORICAL:
             return value in (self.choices or [])
         return True
-    
-    def to_dict(self) -> Dict[str, Any]:
+
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
         return {
             "name": self.name,
@@ -112,8 +112,8 @@ class TunableParameter:
 class PerformanceSnapshot:
     """Snapshot of performance metrics at a point in time."""
     timestamp: datetime
-    parameters: Dict[str, Any]
-    metrics: Dict[str, float]
+    parameters: dict[str, Any]
+    metrics: dict[str, float]
     score: float  # Composite performance score
 
 
@@ -122,10 +122,10 @@ class TuningSession:
     """A tuning session with exploration results."""
     session_id: str
     started_at: datetime
-    ended_at: Optional[datetime] = None
+    ended_at: datetime | None = None
     baseline_score: float = 0.0
     best_score: float = 0.0
-    best_params: Dict[str, Any] = field(default_factory=dict)
+    best_params: dict[str, Any] = field(default_factory=dict)
     iterations: int = 0
     improvements: int = 0
 
@@ -137,22 +137,22 @@ class PerformanceTracker:
     Uses sliding windows and statistical analysis to determine
     if parameter changes improved or degraded performance.
     """
-    
+
     def __init__(self, window_size: int = 100) -> None:
         self._window_size = window_size
-        self._metrics: Dict[str, deque] = {}
+        self._metrics: dict[str, deque] = {}
         self._snapshots: deque = deque(maxlen=1000)
-    
+
     def record_metric(self, name: str, value: float) -> None:
         """Record a metric value."""
         if name not in self._metrics:
             self._metrics[name] = deque(maxlen=self._window_size)
         self._metrics[name].append(value)
-    
+
     def record_snapshot(
         self,
-        parameters: Dict[str, Any],
-        metrics: Dict[str, float],
+        parameters: dict[str, Any],
+        metrics: dict[str, float],
         score: float,
     ) -> None:
         """Record a performance snapshot."""
@@ -162,15 +162,15 @@ class PerformanceTracker:
             metrics=metrics.copy(),
             score=score,
         ))
-    
-    def get_recent_average(self, metric_name: str) -> Optional[float]:
+
+    def get_recent_average(self, metric_name: str) -> float | None:
         """Get recent average for a metric."""
         values = self._metrics.get(metric_name)
         if not values or len(values) < 2:
             return None
         return statistics.mean(values)
-    
-    def get_trend(self, metric_name: str) -> Optional[float]:
+
+    def get_trend(self, metric_name: str) -> float | None:
         """
         Get trend direction for a metric.
         
@@ -179,23 +179,23 @@ class PerformanceTracker:
         values = self._metrics.get(metric_name)
         if not values or len(values) < 10:
             return None
-        
+
         # Compare recent half to older half
         midpoint = len(values) // 2
         older = list(values)[:midpoint]
         recent = list(values)[midpoint:]
-        
+
         if not older or not recent:
             return None
-        
+
         older_avg = statistics.mean(older)
         recent_avg = statistics.mean(recent)
-        
+
         if older_avg == 0:
             return 0.0
-        
+
         return (recent_avg - older_avg) / abs(older_avg)
-    
+
     def is_improving(self, metric_name: str, higher_is_better: bool = True) -> bool:
         """Check if a metric is trending in the desired direction."""
         trend = self.get_trend(metric_name)
@@ -205,11 +205,11 @@ class PerformanceTracker:
             return trend > 0.05  # 5% improvement threshold
         else:
             return trend < -0.05  # 5% reduction threshold
-    
+
     def compute_score(
         self,
-        weights: Optional[Dict[str, float]] = None,
-        higher_is_better: Optional[Dict[str, bool]] = None,
+        weights: dict[str, float] | None = None,
+        higher_is_better: dict[str, bool] | None = None,
     ) -> float:
         """
         Compute composite performance score.
@@ -223,7 +223,7 @@ class PerformanceTracker:
                 "throughput": 0.8,
                 "error_rate": -1.0,  # Lower is better
             }
-        
+
         if not higher_is_better:
             higher_is_better = {
                 "success_rate": True,
@@ -231,10 +231,10 @@ class PerformanceTracker:
                 "throughput": True,
                 "error_rate": False,
             }
-        
+
         score = 0.0
         total_weight = 0.0
-        
+
         for metric, weight in weights.items():
             avg = self.get_recent_average(metric)
             if avg is not None:
@@ -242,7 +242,7 @@ class PerformanceTracker:
                 contribution = avg if higher_is_better.get(metric, True) else (1 / (1 + avg))
                 score += abs(weight) * contribution
                 total_weight += abs(weight)
-        
+
         return score / total_weight if total_weight > 0 else 0.0
 
 
@@ -253,7 +253,7 @@ class SelfTuner:
     Uses evolutionary strategies and memory insights to automatically
     tune system parameters for optimal performance.
     """
-    
+
     def __init__(
         self,
         strategy: TuningStrategy = TuningStrategy.GRADIENT_FREE,
@@ -267,24 +267,24 @@ class SelfTuner:
         self._min_samples = min_samples_before_tuning
         self._tuning_interval = tuning_interval
         self._rollback_threshold = rollback_threshold
-        
-        self._parameters: Dict[str, TunableParameter] = {}
+
+        self._parameters: dict[str, TunableParameter] = {}
         self._tracker = PerformanceTracker()
-        self._current_session: Optional[TuningSession] = None
-        self._sessions: List[TuningSession] = []
-        self._best_known: Dict[str, Any] = {}
+        self._current_session: TuningSession | None = None
+        self._sessions: list[TuningSession] = []
+        self._best_known: dict[str, Any] = {}
         self._best_score: float = 0.0
-        
+
         self._running = False
-        self._task: Optional[asyncio.Task] = None
+        self._task: asyncio.Task | None = None
         self._lock = asyncio.Lock()
-        
+
         # Callbacks for applying parameter changes
-        self._apply_callbacks: Dict[str, Callable[[str, Any], None]] = {}
-        
+        self._apply_callbacks: dict[str, Callable[[str, Any], None]] = {}
+
         # Initialize default tunable parameters
         self._init_default_parameters()
-    
+
     def _init_default_parameters(self) -> None:
         """Initialize default tunable parameters for the autonomy system."""
         # Scheduler parameters
@@ -316,7 +316,7 @@ class SelfTuner:
             max_value=10000,
             description="Maximum task queue size",
         ))
-        
+
         # Recovery parameters
         self.register_parameter(TunableParameter(
             name="recovery.health_check_interval",
@@ -347,7 +347,7 @@ class SelfTuner:
             max_value=10,
             description="Maximum restart attempts before circuit breaker",
         ))
-        
+
         # Memory parameters
         self.register_parameter(TunableParameter(
             name="memory.consolidation_interval",
@@ -369,13 +369,13 @@ class SelfTuner:
             step_size=0.1,
             description="Memory decay interval in seconds",
         ))
-    
+
     def register_parameter(self, param: TunableParameter) -> None:
         """Register a tunable parameter."""
         self._parameters[param.name] = param
         if param.name not in self._best_known:
             self._best_known[param.name] = param.current_value
-    
+
     def register_apply_callback(
         self,
         param_name: str,
@@ -383,7 +383,7 @@ class SelfTuner:
     ) -> None:
         """Register callback to apply parameter changes."""
         self._apply_callbacks[param_name] = callback
-    
+
     def record_task_completion(
         self,
         success: bool,
@@ -398,11 +398,11 @@ class SelfTuner:
             self._tracker.record_metric("error_rate", 1.0)
         else:
             self._tracker.record_metric("error_rate", 0.0)
-    
+
     def record_metric(self, name: str, value: float) -> None:
         """Record arbitrary metric for tuning decisions."""
         self._tracker.record_metric(name, value)
-    
+
     async def start(self) -> None:
         """Start the self-tuning background loop."""
         if self._running:
@@ -410,7 +410,7 @@ class SelfTuner:
         self._running = True
         self._task = asyncio.create_task(self._tuning_loop())
         logger.info("SelfTuner started with %s strategy", self._strategy.value)
-    
+
     async def stop(self) -> None:
         """Stop the self-tuning background loop."""
         self._running = False
@@ -422,21 +422,21 @@ class SelfTuner:
                 pass
             self._task = None
         logger.info("SelfTuner stopped")
-    
+
     async def _tuning_loop(self) -> None:
         """Background loop for periodic tuning."""
         while self._running:
             await asyncio.sleep(self._tuning_interval)
-            
+
             async with self._lock:
                 # Check if we have enough samples
                 success_values = self._tracker._metrics.get("success_rate")
                 if not success_values or len(success_values) < self._min_samples:
                     continue
-                
+
                 # Compute current score
                 current_score = self._tracker.compute_score()
-                
+
                 # Record snapshot
                 current_params = self._get_current_params()
                 self._tracker.record_snapshot(
@@ -444,12 +444,12 @@ class SelfTuner:
                     metrics=self._get_current_metrics(),
                     score=current_score,
                 )
-                
+
                 # Check if we need to rollback
                 if self._best_score > 0 and current_score < self._rollback_threshold * self._best_score:
                     await self._rollback_to_best()
                     continue
-                
+
                 # Update best if improved
                 if current_score > self._best_score:
                     self._best_score = current_score
@@ -458,18 +458,18 @@ class SelfTuner:
                         self._current_session.best_score = current_score
                         self._current_session.best_params = current_params.copy()
                         self._current_session.improvements += 1
-                
+
                 # Explore new parameters
                 if self._strategy == TuningStrategy.GRADIENT_FREE:
                     await self._gradient_free_step()
                 elif self._strategy == TuningStrategy.ADAPTIVE:
                     await self._adaptive_step()
-    
-    def _get_current_params(self) -> Dict[str, Any]:
+
+    def _get_current_params(self) -> dict[str, Any]:
         """Get current parameter values."""
         return {name: p.current_value for name, p in self._parameters.items()}
-    
-    def _get_current_metrics(self) -> Dict[str, float]:
+
+    def _get_current_metrics(self) -> dict[str, float]:
         """Get current average metrics."""
         result = {}
         for name in ["success_rate", "avg_latency_ms", "throughput", "error_rate"]:
@@ -477,22 +477,22 @@ class SelfTuner:
             if avg is not None:
                 result[name] = avg
         return result
-    
+
     async def _gradient_free_step(self) -> None:
         """Perform one step of gradient-free optimization."""
         if random.random() > self._exploration_rate:
             return  # Exploit current best
-        
+
         # Pick random parameter to explore
         param_name = random.choice(list(self._parameters.keys()))
         param = self._parameters[param_name]
-        
+
         # Generate neighbor
         new_value = param.get_neighbor()
         if param.validate(new_value) and new_value != param.current_value:
             old_value = param.current_value
             param.current_value = new_value
-            
+
             # Apply change via callback if registered
             if param_name in self._apply_callbacks:
                 try:
@@ -501,12 +501,12 @@ class SelfTuner:
                     logger.error(f"Failed to apply parameter {param_name}: {e}")
                     param.current_value = old_value
                     return
-            
+
             logger.debug(f"Tuned {param_name}: {old_value} -> {new_value}")
-            
+
             if self._current_session:
                 self._current_session.iterations += 1
-    
+
     async def _adaptive_step(self) -> None:
         """Perform rule-based adaptive tuning."""
         # Example: If error rate is high, reduce rate limit
@@ -517,7 +517,7 @@ class SelfTuner:
                 new_rate = max(rate_param.min_value, rate_param.current_value * 0.9)
                 rate_param.current_value = new_rate
                 logger.info(f"Adaptive: Reduced rate_limit to {new_rate} due to high error rate")
-        
+
         # If latency is high, increase workers
         latency_trend = self._tracker.get_trend("avg_latency_ms")
         if latency_trend is not None and latency_trend > 0.2:
@@ -526,7 +526,7 @@ class SelfTuner:
                 new_workers = min(workers_param.max_value, workers_param.current_value + 1)
                 workers_param.current_value = int(new_workers)
                 logger.info(f"Adaptive: Increased max_workers to {new_workers} due to high latency")
-    
+
     async def _rollback_to_best(self) -> None:
         """Rollback all parameters to best known values."""
         logger.warning("Performance degraded, rolling back to best known parameters")
@@ -538,7 +538,7 @@ class SelfTuner:
                         self._apply_callbacks[name](name, value)
                     except Exception as e:
                         logger.error(f"Failed to rollback {name}: {e}")
-    
+
     async def start_session(self) -> str:
         """Start a new tuning session."""
         async with self._lock:
@@ -550,8 +550,8 @@ class SelfTuner:
             )
             logger.info(f"Started tuning session: {session_id}")
             return session_id
-    
-    async def end_session(self) -> Optional[TuningSession]:
+
+    async def end_session(self) -> TuningSession | None:
         """End current tuning session."""
         async with self._lock:
             if not self._current_session:
@@ -567,11 +567,11 @@ class SelfTuner:
                 f"iterations={session.iterations}, improvements={session.improvements}"
             )
             return session
-    
-    def get_parameter(self, name: str) -> Optional[TunableParameter]:
+
+    def get_parameter(self, name: str) -> TunableParameter | None:
         """Get a tunable parameter by name."""
         return self._parameters.get(name)
-    
+
     def set_parameter(self, name: str, value: Any) -> bool:
         """Manually set a parameter value."""
         param = self._parameters.get(name)
@@ -586,8 +586,8 @@ class SelfTuner:
             except Exception as e:
                 logger.error(f"Failed to apply {name}: {e}")
         return True
-    
-    def get_metrics(self) -> Dict[str, Any]:
+
+    def get_metrics(self) -> dict[str, Any]:
         """Get tuning system metrics."""
         return {
             "strategy": self._strategy.value,
@@ -599,14 +599,14 @@ class SelfTuner:
             "current_session": self._current_session.session_id if self._current_session else None,
             "exploration_rate": self._exploration_rate,
         }
-    
-    def get_all_parameters(self) -> Dict[str, Dict[str, Any]]:
+
+    def get_all_parameters(self) -> dict[str, dict[str, Any]]:
         """Get all tunable parameters with their current values."""
         return {name: p.to_dict() for name, p in self._parameters.items()}
 
 
 # Global tuner instance
-_tuner: Optional[SelfTuner] = None
+_tuner: SelfTuner | None = None
 
 
 async def init_tuning_system(
@@ -636,6 +636,6 @@ async def shutdown_tuning_system() -> None:
         logger.info("Self-tuning system shutdown")
 
 
-def get_tuner() -> Optional[SelfTuner]:
+def get_tuner() -> SelfTuner | None:
     """Get the global tuner instance."""
     return _tuner

@@ -13,8 +13,6 @@ Run from: src/engined/ directory
 """
 
 import json
-import base64
-import asyncio
 import sys
 from pathlib import Path
 
@@ -23,8 +21,8 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 from engined.api.rpc import (
     _compression_jobs,
-    handle_compression_jobs_list,
     handle_compression_job_get,
+    handle_compression_jobs_list,
 )
 
 
@@ -44,22 +42,22 @@ def print_test(name: str, status: str):
 def test_empty_jobs_list():
     """Test 1: Empty job registry should return empty list."""
     print_header("TEST 1: Empty Jobs List")
-    
+
     # Clear jobs for clean test
     _compression_jobs.clear()
-    
+
     result = handle_compression_jobs_list({})
-    
+
     # Verify response structure
     assert "jobs" in result, "Response missing 'jobs' key"
     assert "total" in result, "Response missing 'total' key"
     assert isinstance(result["jobs"], list), "jobs should be a list"
     assert isinstance(result["total"], int), "total should be an int"
-    
+
     # Verify empty case
     assert len(result["jobs"]) == 0, "Expected empty jobs list"
     assert result["total"] == 0, "Expected total=0"
-    
+
     print_test("Empty jobs list returns correct structure", "PASS")
     print(f"  Response: {json.dumps(result, indent=4)}")
 
@@ -67,7 +65,7 @@ def test_empty_jobs_list():
 def test_get_nonexistent_job():
     """Test 2: Getting non-existent job should raise error."""
     print_header("TEST 2: Get Non-Existent Job")
-    
+
     try:
         handle_compression_job_get({"job_id": "nonexistent"})
         print_test("Should raise error for missing job", "FAIL")
@@ -82,10 +80,10 @@ def test_get_nonexistent_job():
 def test_add_and_retrieve_job():
     """Test 3: Add job to registry and retrieve it."""
     print_header("TEST 3: Add and Retrieve Job")
-    
+
     # Clear and add test job
     _compression_jobs.clear()
-    
+
     test_job_id = "test-job-001"
     test_job = {
         "job_id": test_job_id,
@@ -99,18 +97,18 @@ def test_add_and_retrieve_job():
         "created_at": "2025-01-13T10:30:00Z",
         "error": "",
     }
-    
+
     _compression_jobs[test_job_id] = test_job
     print_test("Added test job to registry", "PASS")
     print(f"  Job ID: {test_job_id}")
-    
+
     # Test list retrieval
     list_result = handle_compression_jobs_list({})
     assert len(list_result["jobs"]) == 1, "Expected 1 job in list"
     assert list_result["total"] == 1, "Expected total=1"
     assert list_result["jobs"][0]["job_id"] == test_job_id
     print_test("Job appears in list", "PASS")
-    
+
     # Test get retrieval
     get_result = handle_compression_job_get({"job_id": test_job_id})
     assert get_result["job_id"] == test_job_id
@@ -124,10 +122,10 @@ def test_add_and_retrieve_job():
 def test_multiple_jobs_sorting():
     """Test 4: Multiple jobs are sorted by created_at descending."""
     print_header("TEST 4: Multiple Jobs Sorting")
-    
+
     # Clear and add multiple jobs with different timestamps
     _compression_jobs.clear()
-    
+
     jobs_data = [
         {
             "job_id": "job-001",
@@ -166,23 +164,23 @@ def test_multiple_jobs_sorting():
             "error": "",
         },
     ]
-    
+
     for job in jobs_data:
         _compression_jobs[job["job_id"]] = job
-    
+
     print_test("Added 3 test jobs with different timestamps", "PASS")
-    
+
     # Get list which should sort them
     result = handle_compression_jobs_list({})
-    
+
     # Verify sorting: newest first (job-002, job-003, job-001)
     expected_order = ["job-002", "job-003", "job-001"]
     actual_order = [j["job_id"] for j in result["jobs"]]
-    
+
     assert actual_order == expected_order, (
         f"Expected order {expected_order}, got {actual_order}"
     )
-    
+
     print_test("Jobs sorted by created_at descending", "PASS")
     print(f"  Order: {' → '.join(actual_order)}")
 
@@ -190,10 +188,10 @@ def test_multiple_jobs_sorting():
 def test_status_filter():
     """Test 5: Status filter works correctly."""
     print_header("TEST 5: Status Filter")
-    
+
     # Clear and add jobs with different statuses
     _compression_jobs.clear()
-    
+
     _compression_jobs["job-completed-1"] = {
         "job_id": "job-completed-1",
         "status": "completed",
@@ -206,7 +204,7 @@ def test_status_filter():
         "data_type": "text",
         "error": "",
     }
-    
+
     _compression_jobs["job-completed-2"] = {
         "job_id": "job-completed-2",
         "status": "completed",
@@ -219,7 +217,7 @@ def test_status_filter():
         "data_type": "text",
         "error": "",
     }
-    
+
     _compression_jobs["job-failed"] = {
         "job_id": "job-failed",
         "status": "failed",
@@ -232,21 +230,21 @@ def test_status_filter():
         "data_type": "text",
         "error": "Test error message",
     }
-    
+
     print_test("Added 2 completed and 1 failed job", "PASS")
-    
+
     # Test filter by completed
     result = handle_compression_jobs_list({"status": "completed"})
     assert len(result["jobs"]) == 2, f"Expected 2 completed, got {len(result['jobs'])}"
     assert all(j["status"] == "completed" for j in result["jobs"])
     print_test("Status filter for 'completed' works", "PASS")
-    
+
     # Test filter by failed
     result = handle_compression_jobs_list({"status": "failed"})
     assert len(result["jobs"]) == 1, f"Expected 1 failed, got {len(result['jobs'])}"
     assert result["jobs"][0]["status"] == "failed"
     print_test("Status filter for 'failed' works", "PASS")
-    
+
     # Test no filter returns all
     result = handle_compression_jobs_list({})
     assert len(result["jobs"]) == 3, f"Expected 3 total, got {len(result['jobs'])}"
@@ -256,10 +254,10 @@ def test_status_filter():
 def test_limit_parameter():
     """Test 6: Limit parameter works correctly."""
     print_header("TEST 6: Limit Parameter")
-    
+
     # Clear and add 5 jobs
     _compression_jobs.clear()
-    
+
     for i in range(5):
         _compression_jobs[f"job-{i:03d}"] = {
             "job_id": f"job-{i:03d}",
@@ -273,20 +271,20 @@ def test_limit_parameter():
             "data_type": "text",
             "error": "",
         }
-    
+
     print_test("Added 5 test jobs", "PASS")
-    
+
     # Test limit=2
     result = handle_compression_jobs_list({"limit": 2})
     assert len(result["jobs"]) == 2, f"Expected 2 with limit=2, got {len(result['jobs'])}"
     assert result["total"] == 5, f"Total should still be 5, got {result['total']}"
     print_test("Limit=2 returns 2 jobs but total=5", "PASS")
-    
+
     # Test limit=10 (more than available)
     result = handle_compression_jobs_list({"limit": 10})
     assert len(result["jobs"]) == 5, f"Expected 5, got {len(result['jobs'])}"
     print_test("Limit=10 returns all 5 available jobs", "PASS")
-    
+
     # Test default limit
     result = handle_compression_jobs_list({})
     assert len(result["jobs"]) == 5, "Default should return all"
@@ -296,7 +294,7 @@ def test_limit_parameter():
 def test_response_structure():
     """Test 7: Response structure matches Go expectations."""
     print_header("TEST 7: Response Structure")
-    
+
     # Clear and add a job
     _compression_jobs.clear()
     job_data = {
@@ -312,20 +310,20 @@ def test_response_structure():
         "error": "",
     }
     _compression_jobs["structure-test"] = job_data
-    
+
     result = handle_compression_jobs_list({})
     jobs = result["jobs"]
-    
+
     # Verify each job has required fields that Go expects
     required_fields = [
         "job_id", "status", "original_size", "compressed_size",
         "compression_ratio", "elapsed_seconds", "method", "data_type",
         "created_at", "error"
     ]
-    
+
     for field in required_fields:
         assert field in jobs[0], f"Missing required field: {field}"
-    
+
     # Verify field types
     job = jobs[0]
     assert isinstance(job["job_id"], str), "job_id should be string"
@@ -338,7 +336,7 @@ def test_response_structure():
     assert isinstance(job["data_type"], str), "data_type should be string"
     assert isinstance(job["created_at"], str), "created_at should be string (ISO8601)"
     assert isinstance(job["error"], str), "error should be string"
-    
+
     print_test("All required fields present", "PASS")
     print_test("All field types correct for Go unmarshaling", "PASS")
     print(f"  Job: {json.dumps(job, indent=4)}")
@@ -352,7 +350,7 @@ def main():
 ║                   Python RPC Handler Verification                         ║
 ╚════════════════════════════════════════════════════════════════════════════╝
     """)
-    
+
     tests = [
         test_empty_jobs_list,
         test_get_nonexistent_job,
@@ -362,10 +360,10 @@ def main():
         test_limit_parameter,
         test_response_structure,
     ]
-    
+
     passed = 0
     failed = 0
-    
+
     for test_func in tests:
         try:
             test_func()
@@ -378,14 +376,14 @@ def main():
             print_test(test_func.__name__, "ERROR")
             print(f"  Error: {e}")
             failed += 1
-    
+
     # Summary
-    print_header(f"Test Summary")
+    print_header("Test Summary")
     print(f"  ✅ Passed: {passed}")
     print(f"  ❌ Failed: {failed}")
     total = passed + failed
     print(f"  📊 Success Rate: {passed}/{total} ({100*passed//total}%)")
-    
+
     if failed == 0:
         print("""
 ╔════════════════════════════════════════════════════════════════════════════╗

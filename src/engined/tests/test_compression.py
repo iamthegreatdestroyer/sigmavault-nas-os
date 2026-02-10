@@ -6,11 +6,10 @@ Comprehensive tests for the compression bridge, job queue, and event emitter.
 """
 
 import asyncio
-import tempfile
 import os
+import tempfile
 from datetime import datetime
 from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -18,23 +17,21 @@ import pytest
 from engined.compression import (
     CompressionBridge,
     CompressionConfig,
-    CompressionLevel,
-    CompressionResult,
-    CompressionProgress,
-    StubCompressionEngine,
+    CompressionEvent,
+    CompressionEventEmitter,
+    CompressionEventType,
     CompressionJob,
     CompressionJobQueue,
-    JobStatus,
+    CompressionLevel,
+    CompressionProgress,
     JobPriority,
+    JobStatus,
     JobType,
-    CompressionEventEmitter,
-    CompressionEvent,
-    CompressionEventType,
+    StubCompressionEngine,
     WebSocketEventBridge,
     get_compression_emitter,
     set_compression_emitter,
 )
-
 
 # =============================================================================
 # Fixtures
@@ -121,7 +118,7 @@ class TestCompressionBridge:
     async def test_compress_data_success(self, bridge, sample_json_data):
         """Test data compression."""
         result = await bridge.compress_data(sample_json_data)
-        
+
         assert result.success is True
         assert result.original_size == len(sample_json_data)
         assert result.compressed_size > 0
@@ -142,10 +139,10 @@ class TestCompressionBridge:
     async def test_compress_file_success(self, bridge, temp_file):
         """Test file compression."""
         output_path = temp_file + ".compressed"
-        
+
         try:
             result = await bridge.compress_file(temp_file, output_path)
-            
+
             assert result.success is True
             assert result.original_size > 0
             assert result.compressed_size > 0
@@ -159,7 +156,7 @@ class TestCompressionBridge:
     async def test_compress_file_not_found(self, bridge):
         """Test compression of non-existent file."""
         result = await bridge.compress_file("/nonexistent/file.txt")
-        
+
         assert result.success is False
         assert result.error is not None
         assert "not found" in result.error.lower()
@@ -168,13 +165,13 @@ class TestCompressionBridge:
     async def test_progress_callback(self, bridge, sample_json_data):
         """Test progress callbacks are called."""
         progress_updates = []
-        
+
         async def capture_progress(progress: CompressionProgress):
             progress_updates.append(progress)
-        
+
         bridge.add_progress_callback(capture_progress)
         await bridge.compress_data(sample_json_data)
-        
+
         assert len(progress_updates) > 0
         # Should have progress phases
         phases = {p.phase for p in progress_updates}
@@ -185,10 +182,10 @@ class TestCompressionBridge:
         """Test removing progress callback."""
         async def callback(p):
             pass
-        
+
         bridge.add_progress_callback(callback)
         assert callback in bridge._progress_callbacks
-        
+
         bridge.remove_progress_callback(callback)
         assert callback not in bridge._progress_callbacks
 
@@ -198,7 +195,7 @@ class TestCompressionBridge:
         # Compress
         compress_result = await bridge.compress_data(sample_json_data)
         assert compress_result.success is True
-        
+
         # Decompress
         decompress_result = await bridge.decompress_data(
             compress_result.compressed_data
@@ -210,7 +207,7 @@ class TestCompressionBridge:
     def test_get_stats(self, bridge):
         """Test getting bridge statistics."""
         stats = bridge.get_stats()
-        
+
         assert "initialized" in stats
         assert "config" in stats
         assert stats["config"]["level"] == CompressionLevel.BALANCED.value
@@ -228,20 +225,20 @@ class TestStubCompressionEngine:
         """Test zlib compression roundtrip."""
         engine = StubCompressionEngine()
         original = b"Test data for compression" * 100
-        
+
         compressed = engine.compress(original)
         decompressed = engine.decompress(compressed)
-        
+
         assert decompressed == original
         assert len(compressed) < len(original)  # Should compress
 
     def test_compress_binary_data(self, sample_binary_data):
         """Test compression of binary data."""
         engine = StubCompressionEngine()
-        
+
         compressed = engine.compress(sample_binary_data)
         decompressed = engine.decompress(compressed)
-        
+
         assert decompressed == sample_binary_data
 
 
@@ -264,7 +261,7 @@ class TestCompressionJobQueue:
         await job_queue.start()
         assert job_queue._started is True
         assert len(job_queue._workers) == 2
-        
+
         await job_queue.stop()
         assert job_queue._started is False
         assert len(job_queue._workers) == 0
@@ -273,25 +270,25 @@ class TestCompressionJobQueue:
     async def test_submit_data_job(self, job_queue, sample_json_data):
         """Test submitting a data compression job."""
         await job_queue.start()
-        
+
         try:
             job = await job_queue.submit_data(
                 data=sample_json_data,
                 compress=True,
                 priority=JobPriority.NORMAL,
             )
-            
+
             assert job.id is not None
             assert job.job_type == JobType.COMPRESS_DATA
             assert job.status == JobStatus.PENDING
             assert job.bytes_total == len(sample_json_data)
-            
+
             # Wait for completion
             timeout = 5.0
             while not job.is_complete and timeout > 0:
                 await asyncio.sleep(0.1)
                 timeout -= 0.1
-            
+
             assert job.status == JobStatus.COMPLETED
             assert job.result is not None
             assert job.result.success is True
@@ -303,23 +300,23 @@ class TestCompressionJobQueue:
         """Test submitting a file compression job."""
         await job_queue.start()
         output_path = temp_file + ".sigma"
-        
+
         try:
             job = await job_queue.submit_file(
                 input_path=temp_file,
                 output_path=output_path,
                 compress=True,
             )
-            
+
             assert job.input_path == temp_file
             assert job.output_path == output_path
-            
+
             # Wait for completion
             timeout = 5.0
             while not job.is_complete and timeout > 0:
                 await asyncio.sleep(0.1)
                 timeout -= 0.1
-            
+
             assert job.status == JobStatus.COMPLETED
             assert Path(output_path).exists()
         finally:
@@ -332,31 +329,31 @@ class TestCompressionJobQueue:
         """Test that high priority jobs are processed first."""
         # Don't start queue yet - submit jobs first
         jobs = []
-        
+
         # Submit low priority first
         low_job = await job_queue.submit_data(
             data=sample_json_data,
             priority=JobPriority.LOW,
         )
         jobs.append(low_job)
-        
+
         # Then high priority
         high_job = await job_queue.submit_data(
             data=sample_json_data,
             priority=JobPriority.HIGH,
         )
         jobs.append(high_job)
-        
+
         # Start queue
         await job_queue.start()
-        
+
         try:
             # Wait for both to complete
             timeout = 5.0
             while not all(j.is_complete for j in jobs) and timeout > 0:
                 await asyncio.sleep(0.1)
                 timeout -= 0.1
-            
+
             # High priority should start before low priority
             assert high_job.started_at is not None
             assert low_job.started_at is not None
@@ -371,16 +368,16 @@ class TestCompressionJobQueue:
             data=sample_json_data * 100,  # Larger data
             priority=JobPriority.LOW,
         )
-        
+
         # Cancel before starting
         assert job_queue.cancel_job(job.id) is True
-        
+
         await job_queue.start()
-        
+
         try:
             # Wait briefly
             await asyncio.sleep(0.5)
-            
+
             assert job.status == JobStatus.CANCELLED
         finally:
             await job_queue.stop()
@@ -389,17 +386,17 @@ class TestCompressionJobQueue:
     async def test_get_jobs(self, job_queue, sample_json_data):
         """Test getting jobs by status."""
         await job_queue.start()
-        
+
         try:
             job1 = await job_queue.submit_data(sample_json_data)
             job2 = await job_queue.submit_data(sample_json_data)
-            
+
             # Wait for completion
             timeout = 5.0
             while not all(j.is_complete for j in [job1, job2]) and timeout > 0:
                 await asyncio.sleep(0.1)
                 timeout -= 0.1
-            
+
             completed = job_queue.get_jobs(status=JobStatus.COMPLETED)
             assert len(completed) == 2
         finally:
@@ -408,7 +405,7 @@ class TestCompressionJobQueue:
     def test_get_stats(self, job_queue):
         """Test queue statistics."""
         stats = job_queue.get_stats()
-        
+
         assert "total_jobs" in stats
         assert "pending" in stats
         assert "running" in stats
@@ -418,21 +415,21 @@ class TestCompressionJobQueue:
     async def test_progress_callback(self, job_queue, sample_json_data):
         """Test job progress callbacks."""
         progress_updates = []
-        
+
         async def capture_progress(job):
             progress_updates.append(job.progress)
-        
+
         job_queue.add_progress_callback(capture_progress)
         await job_queue.start()
-        
+
         try:
             job = await job_queue.submit_data(sample_json_data * 10)
-            
+
             timeout = 5.0
             while not job.is_complete and timeout > 0:
                 await asyncio.sleep(0.1)
                 timeout -= 0.1
-            
+
             # Should have progress updates
             assert len(progress_updates) > 0
         finally:
@@ -442,21 +439,21 @@ class TestCompressionJobQueue:
     async def test_complete_callback(self, job_queue, sample_json_data):
         """Test job completion callbacks."""
         completed_jobs = []
-        
+
         async def capture_complete(job):
             completed_jobs.append(job)
-        
+
         job_queue.add_complete_callback(capture_complete)
         await job_queue.start()
-        
+
         try:
             job = await job_queue.submit_data(sample_json_data)
-            
+
             timeout = 5.0
             while not job.is_complete and timeout > 0:
                 await asyncio.sleep(0.1)
                 timeout -= 0.1
-            
+
             assert len(completed_jobs) == 1
             assert completed_jobs[0].id == job.id
         finally:
@@ -480,7 +477,7 @@ class TestCompressionJob:
             status=JobStatus.PENDING,
             created_at=datetime.now(),
         )
-        
+
         assert job.id == "test-123"
         assert job.progress == 0.0
         assert job.is_complete is False
@@ -495,10 +492,10 @@ class TestCompressionJob:
             status=JobStatus.PENDING,
             created_at=datetime.now(),
         )
-        
+
         assert job.cancel() is True
         assert job.is_cancelled is True
-        
+
         # Can't cancel twice
         assert job.cancel() is True  # Still returns True (already cancelled)
 
@@ -511,7 +508,7 @@ class TestCompressionJob:
             status=JobStatus.COMPLETED,
             created_at=datetime.now(),
         )
-        
+
         assert job.cancel() is False
 
     def test_job_to_dict(self):
@@ -525,9 +522,9 @@ class TestCompressionJob:
             input_path="/path/to/file.txt",
             progress=50.0,
         )
-        
+
         data = job.to_dict()
-        
+
         assert data["id"] == "test-123"
         assert data["job_type"] == "compress_file"
         assert data["priority"] == 2  # HIGH = 2
@@ -547,7 +544,7 @@ class TestCompressionJob:
             started_at=started,
             progress=50.0,
         )
-        
+
         # Elapsed should be near 0
         assert job.elapsed_seconds >= 0
         # ETA should be calculable
@@ -566,18 +563,18 @@ class TestCompressionEventEmitter:
     async def test_emit_event(self, event_emitter):
         """Test basic event emission."""
         received_events = []
-        
+
         async def handler(event):
             received_events.append(event)
-        
+
         event_emitter.on(CompressionEventType.JOB_STARTED, handler)
-        
+
         await event_emitter.emit(
             CompressionEventType.JOB_STARTED,
             job_id="test-123",
             data={"input_size": 1000},
         )
-        
+
         assert len(received_events) == 1
         assert received_events[0].job_id == "test-123"
         assert received_events[0].data["input_size"] == 1000
@@ -586,27 +583,27 @@ class TestCompressionEventEmitter:
     async def test_global_handler(self, event_emitter):
         """Test global event handler receives all events."""
         received_events = []
-        
+
         async def handler(event):
             received_events.append(event)
-        
+
         event_emitter.on_all(handler)
-        
+
         await event_emitter.emit(CompressionEventType.JOB_STARTED, "job-1")
         await event_emitter.emit(CompressionEventType.JOB_COMPLETED, "job-2")
-        
+
         assert len(received_events) == 2
 
     @pytest.mark.asyncio
     async def test_emit_job_progress(self, event_emitter):
         """Test job progress event emission."""
         received_events = []
-        
+
         async def handler(event):
             received_events.append(event)
-        
+
         event_emitter.on(CompressionEventType.JOB_PROGRESS, handler)
-        
+
         await event_emitter.emit_job_progress(
             job_id="test-123",
             progress=50.0,
@@ -616,7 +613,7 @@ class TestCompressionEventEmitter:
             phase="compressing",
             eta_seconds=5.0,
         )
-        
+
         assert len(received_events) == 1
         assert received_events[0].data["progress"] == 50.0
         assert received_events[0].data["current_ratio"] == 2.5
@@ -627,14 +624,14 @@ class TestCompressionEventEmitter:
         await event_emitter.emit(CompressionEventType.JOB_STARTED, "job-1")
         await event_emitter.emit(CompressionEventType.JOB_PROGRESS, "job-1")
         await event_emitter.emit(CompressionEventType.JOB_COMPLETED, "job-1")
-        
+
         history = event_emitter.get_history()
         assert len(history) == 3
-        
+
         # Filter by type
         started = event_emitter.get_history(event_type=CompressionEventType.JOB_STARTED)
         assert len(started) == 1
-        
+
         # Filter by job
         job_events = event_emitter.get_job_events("job-1")
         assert len(job_events) == 3
@@ -643,10 +640,10 @@ class TestCompressionEventEmitter:
     async def test_history_limit(self):
         """Test history size limit."""
         emitter = CompressionEventEmitter(history_size=5)
-        
+
         for i in range(10):
             await emitter.emit(CompressionEventType.JOB_PROGRESS, f"job-{i}")
-        
+
         history = emitter.get_history(limit=100)
         assert len(history) == 5
 
@@ -654,15 +651,15 @@ class TestCompressionEventEmitter:
     async def test_remove_handler(self, event_emitter):
         """Test handler removal."""
         call_count = 0
-        
+
         async def handler(event):
             nonlocal call_count
             call_count += 1
-        
+
         event_emitter.on(CompressionEventType.JOB_STARTED, handler)
         await event_emitter.emit(CompressionEventType.JOB_STARTED, "job-1")
         assert call_count == 1
-        
+
         event_emitter.off(CompressionEventType.JOB_STARTED, handler)
         await event_emitter.emit(CompressionEventType.JOB_STARTED, "job-2")
         assert call_count == 1  # Handler removed, shouldn't increment
@@ -671,7 +668,7 @@ class TestCompressionEventEmitter:
         """Test clearing history."""
         asyncio.run(event_emitter.emit(CompressionEventType.JOB_STARTED, "job-1"))
         assert len(event_emitter.get_history()) > 0
-        
+
         event_emitter.clear_history()
         assert len(event_emitter.get_history()) == 0
 
@@ -692,9 +689,9 @@ class TestCompressionEvent:
             timestamp=datetime.now(),
             data={"progress": 50.0},
         )
-        
+
         data = event.to_dict()
-        
+
         assert data["type"] == "compression.job.progress"
         assert data["job_id"] == "test-123"
         assert data["data"]["progress"] == 50.0
@@ -707,9 +704,9 @@ class TestCompressionEvent:
             timestamp=datetime.now(),
             data={"compression_ratio": 5.0},
         )
-        
+
         message = event.to_websocket_message()
-        
+
         assert message["type"] == "compression_event"
         assert message["event"] == "compression.job.completed"
         assert message["payload"]["compression_ratio"] == 5.0
@@ -727,16 +724,16 @@ class TestWebSocketEventBridge:
     async def test_forward_events(self, event_emitter):
         """Test event forwarding to WebSocket."""
         forwarded_messages = []
-        
+
         async def mock_send(message):
             forwarded_messages.append(message)
-        
+
         bridge = WebSocketEventBridge(event_emitter, mock_send)
         await bridge.connect()
-        
+
         try:
             await event_emitter.emit(CompressionEventType.JOB_STARTED, "job-1")
-            
+
             assert len(forwarded_messages) == 1
             assert forwarded_messages[0]["type"] == "compression_event"
         finally:
@@ -746,16 +743,16 @@ class TestWebSocketEventBridge:
     async def test_disconnect_stops_forwarding(self, event_emitter):
         """Test disconnecting stops event forwarding."""
         forwarded_messages = []
-        
+
         async def mock_send(message):
             forwarded_messages.append(message)
-        
+
         bridge = WebSocketEventBridge(event_emitter, mock_send)
         await bridge.connect()
         await bridge.disconnect()
-        
+
         await event_emitter.emit(CompressionEventType.JOB_STARTED, "job-1")
-        
+
         assert len(forwarded_messages) == 0
 
 
@@ -771,7 +768,7 @@ class TestGlobalEmitter:
         """Test getting global emitter."""
         emitter = get_compression_emitter()
         assert emitter is not None
-        
+
         # Should return same instance
         emitter2 = get_compression_emitter()
         assert emitter is emitter2
@@ -780,7 +777,7 @@ class TestGlobalEmitter:
         """Test setting global emitter."""
         custom_emitter = CompressionEventEmitter()
         set_compression_emitter(custom_emitter)
-        
+
         assert get_compression_emitter() is custom_emitter
 
 
@@ -799,15 +796,15 @@ class TestCompressionIntegration:
         bridge = CompressionBridge()
         queue = CompressionJobQueue(bridge=bridge, max_concurrent=2)
         emitter = CompressionEventEmitter()
-        
+
         # Track events
         events = []
-        
+
         async def track_event(event):
             events.append(event)
-        
+
         emitter.on_all(track_event)
-        
+
         # Wire up queue to emitter
         async def on_job_progress(job):
             await emitter.emit_job_progress(
@@ -818,7 +815,7 @@ class TestCompressionIntegration:
                 current_ratio=job.current_ratio,
                 phase=job.phase,
             )
-        
+
         async def on_job_complete(job):
             if job.status == JobStatus.COMPLETED:
                 await emitter.emit_job_completed(
@@ -833,13 +830,13 @@ class TestCompressionIntegration:
                     job_id=job.id,
                     error=job.error or "Unknown error",
                 )
-        
+
         queue.add_progress_callback(on_job_progress)
         queue.add_complete_callback(on_job_complete)
-        
+
         await queue.start()
         output_path = temp_file + ".sigma"
-        
+
         try:
             # Submit and emit queued event
             job = await queue.submit_file(temp_file, output_path)
@@ -850,23 +847,23 @@ class TestCompressionIntegration:
                 input_path=job.input_path,
                 input_size=job.bytes_total,
             )
-            
+
             # Wait for completion
             timeout = 10.0
             while not job.is_complete and timeout > 0:
                 await asyncio.sleep(0.1)
                 timeout -= 0.1
-            
+
             # Verify results
             assert job.status == JobStatus.COMPLETED
             assert job.result.success is True
             assert job.result.compression_ratio > 1.0
-            
+
             # Verify events were emitted
             event_types = [e.event_type for e in events]
             assert CompressionEventType.JOB_QUEUED in event_types
             assert CompressionEventType.JOB_COMPLETED in event_types
-            
+
         finally:
             await queue.stop()
             if Path(output_path).exists():
@@ -877,9 +874,9 @@ class TestCompressionIntegration:
         """Test concurrent job processing."""
         bridge = CompressionBridge()
         queue = CompressionJobQueue(bridge=bridge, max_concurrent=4)
-        
+
         await queue.start()
-        
+
         try:
             # Submit multiple jobs
             jobs = []
@@ -887,18 +884,18 @@ class TestCompressionIntegration:
                 data = f"Job {i} data: " * 100
                 job = await queue.submit_data(data.encode())
                 jobs.append(job)
-            
+
             # Wait for all to complete
             timeout = 15.0
             while not all(j.is_complete for j in jobs) and timeout > 0:
                 await asyncio.sleep(0.1)
                 timeout -= 0.1
-            
+
             # All should complete successfully
             for job in jobs:
                 assert job.status == JobStatus.COMPLETED
                 assert job.result.success is True
-            
+
         finally:
             await queue.stop()
 

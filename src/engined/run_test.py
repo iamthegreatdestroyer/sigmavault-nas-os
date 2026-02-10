@@ -1,6 +1,7 @@
-from fastapi import FastAPI
-import uvicorn
 import traceback
+
+import uvicorn
+from fastapi import FastAPI
 
 app = FastAPI()
 

@@ -11,41 +11,42 @@ from __future__ import annotations
 import asyncio
 import json
 import time
+from collections.abc import Callable, Coroutine
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum
-from typing import TYPE_CHECKING, Any, Callable, Coroutine
+from typing import TYPE_CHECKING, Any
 
 import structlog
 
 if TYPE_CHECKING:
-    from engined.agents.swarm import AgentSwarm
-    from engined.agents.scheduler import TaskScheduler
     from engined.agents.recovery import AgentRecovery
+    from engined.agents.scheduler import TaskScheduler
+    from engined.agents.swarm import AgentSwarm
 
 logger = structlog.get_logger(__name__)
 
 
 class EventType(str, Enum):
     """Event types matching Go WebSocket hub types."""
-    
+
     # Agent lifecycle events
     AGENT_STARTED = "agent.started"
     AGENT_STOPPED = "agent.stopped"
     AGENT_RESTARTED = "agent.restarted"
     AGENT_HEALTH_CHECK = "agent.health_check"
     AGENT_STATUS = "agent.status"
-    
+
     # Task events
     AGENT_TASK_ASSIGNED = "agent.task_assigned"
     AGENT_TASK_COMPLETED = "agent.task_completed"
     AGENT_TASK_FAILED = "agent.task_failed"
     TASK_QUEUED = "task.queued"
     TASK_DISPATCHED = "task.dispatched"
-    
+
     # Scheduler events
     SCHEDULER_METRICS = "scheduler.metrics"
-    
+
     # Recovery events
     CIRCUIT_BREAKER_OPEN = "circuit_breaker.open"
     CIRCUIT_BREAKER_CLOSED = "circuit_breaker.closed"
@@ -53,7 +54,7 @@ class EventType(str, Enum):
     AGENT_RECOVERY_SUCCESS = "agent.recovery_success"
     AGENT_RECOVERY_FAILED = "agent.recovery_failed"
     DEAD_LETTER_QUEUED = "dead_letter.queued"
-    
+
     # System events
     SYSTEM_STATUS = "system.status"
     COMPRESSION_UPDATE = "compression.update"
@@ -62,12 +63,12 @@ class EventType(str, Enum):
 @dataclass
 class Event:
     """Represents an event to be emitted."""
-    
+
     event_type: EventType
     data: dict[str, Any]
-    timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    timestamp: datetime = field(default_factory=lambda: datetime.now(UTC))
     event_id: str = field(default_factory=lambda: f"evt-{int(time.time() * 1000)}")
-    
+
     def to_dict(self) -> dict[str, Any]:
         """Convert event to dictionary for JSON serialization."""
         return {
@@ -76,7 +77,7 @@ class Event:
             "timestamp": self.timestamp.isoformat(),
             "data": self.data,
         }
-    
+
     def to_json(self) -> str:
         """Serialize event to JSON string."""
         return json.dumps(self.to_dict())
@@ -93,7 +94,7 @@ class EventEmitter:
     Manages event subscriptions and broadcasts events to registered handlers.
     Designed to integrate with WebSocket broadcasting via Go API.
     """
-    
+
     def __init__(self, buffer_size: int = 1000) -> None:
         self._handlers: dict[EventType, list[EventHandler]] = {}
         self._global_handlers: list[EventHandler] = []
@@ -107,36 +108,36 @@ class EventEmitter:
             "handlers_called": 0,
             "handler_errors": 0,
         }
-        
+
     async def start(self) -> None:
         """Start the event processor."""
         if self._running:
             return
-            
+
         self._running = True
         self._processor_task = asyncio.create_task(self._process_events())
         logger.info("Event emitter started")
-    
+
     async def stop(self) -> None:
         """Stop the event processor."""
         self._running = False
-        
+
         if self._processor_task:
             self._processor_task.cancel()
             try:
                 await self._processor_task
             except asyncio.CancelledError:
                 pass
-                
+
         logger.info(
             "Event emitter stopped",
             events_emitted=self._metrics["events_emitted"],
             events_processed=self._metrics["events_processed"],
         )
-    
+
     def subscribe(
-        self, 
-        event_type: EventType | None, 
+        self,
+        event_type: EventType | None,
         handler: EventHandler
     ) -> Callable[[], None]:
         """
@@ -152,13 +153,13 @@ class EventEmitter:
         if event_type is None:
             self._global_handlers.append(handler)
             return lambda: self._global_handlers.remove(handler)
-        
+
         if event_type not in self._handlers:
             self._handlers[event_type] = []
-            
+
         self._handlers[event_type].append(handler)
         return lambda: self._handlers[event_type].remove(handler)
-    
+
     async def emit(self, event: Event) -> bool:
         """
         Emit an event to be processed.
@@ -170,7 +171,7 @@ class EventEmitter:
             True if event was queued, False if dropped.
         """
         self._metrics["events_emitted"] += 1
-        
+
         try:
             self._event_buffer.put_nowait(event)
             return True
@@ -181,10 +182,10 @@ class EventEmitter:
                 event_type=event.event_type.value,
             )
             return False
-    
+
     async def emit_now(
-        self, 
-        event_type: EventType, 
+        self,
+        event_type: EventType,
         data: dict[str, Any]
     ) -> None:
         """
@@ -194,7 +195,7 @@ class EventEmitter:
         """
         event = Event(event_type=event_type, data=data)
         await self._dispatch_event(event)
-    
+
     async def _process_events(self) -> None:
         """Process events from the buffer."""
         while self._running:
@@ -205,19 +206,19 @@ class EventEmitter:
                 )
                 await self._dispatch_event(event)
                 self._metrics["events_processed"] += 1
-                
-            except asyncio.TimeoutError:
+
+            except TimeoutError:
                 continue
             except Exception as e:
                 logger.error("Error processing event", error=str(e))
-    
+
     async def _dispatch_event(self, event: Event) -> None:
         """Dispatch event to all subscribed handlers."""
         handlers = list(self._global_handlers)
-        
+
         if event.event_type in self._handlers:
             handlers.extend(self._handlers[event.event_type])
-        
+
         for handler in handlers:
             try:
                 await handler(event)
@@ -229,7 +230,7 @@ class EventEmitter:
                     event_type=event.event_type.value,
                     error=str(e),
                 )
-    
+
     def get_metrics(self) -> dict[str, int]:
         """Get event emitter metrics."""
         return dict(self._metrics)
@@ -242,7 +243,7 @@ class AgentEventBridge:
     Integrates with AgentSwarm, TaskScheduler, and AgentRecovery
     to capture and emit relevant events.
     """
-    
+
     def __init__(
         self,
         emitter: EventEmitter,
@@ -257,31 +258,31 @@ class AgentEventBridge:
         self._health_check_task: asyncio.Task | None = None
         self._metrics_task: asyncio.Task | None = None
         self._running = False
-    
+
     async def start(
-        self, 
+        self,
         health_interval: float = 30.0,
         metrics_interval: float = 10.0,
     ) -> None:
         """Start the event bridge with periodic emitters."""
         if self._running:
             return
-            
+
         self._running = True
-        
+
         self._health_check_task = asyncio.create_task(
             self._emit_health_checks(health_interval)
         )
         self._metrics_task = asyncio.create_task(
             self._emit_scheduler_metrics(metrics_interval)
         )
-        
+
         logger.info("Agent event bridge started")
-    
+
     async def stop(self) -> None:
         """Stop the event bridge."""
         self._running = False
-        
+
         for task in [self._health_check_task, self._metrics_task]:
             if task:
                 task.cancel()
@@ -289,18 +290,18 @@ class AgentEventBridge:
                     await task
                 except asyncio.CancelledError:
                     pass
-        
+
         logger.info("Agent event bridge stopped")
-    
+
     async def _emit_health_checks(self, interval: float) -> None:
         """Periodically emit agent health check events."""
         while self._running:
             try:
                 await asyncio.sleep(interval)
-                
+
                 if not self.swarm:
                     continue
-                
+
                 # Get agent health status
                 for agent in self.swarm.agents.values():
                     health_data = {
@@ -309,46 +310,46 @@ class AgentEventBridge:
                         "status": agent.status.value if hasattr(agent.status, 'value') else str(agent.status),
                         "health_score": getattr(agent, 'health_score', 100),
                         "success_rate": agent.success_rate,
-                        "avg_response_time_ms": agent.avg_response_time * 1000,
+                        "avg_response_time_ms": agent.avg_response_time_ms,
                         "tasks_completed": agent.tasks_completed,
                         "uptime_seconds": (
-                            datetime.now(timezone.utc) - agent.started_at
-                        ).total_seconds() if agent.started_at else 0,
+                            datetime.now(UTC) - agent.last_active
+                        ).total_seconds() if agent.last_active else 0,
                     }
-                    
+
                     await self.emitter.emit(Event(
                         event_type=EventType.AGENT_HEALTH_CHECK,
                         data=health_data,
                     ))
-                    
+
             except asyncio.CancelledError:
                 break
             except Exception as e:
                 logger.error("Error emitting health checks", error=str(e))
-    
+
     async def _emit_scheduler_metrics(self, interval: float) -> None:
         """Periodically emit scheduler metrics."""
         while self._running:
             try:
                 await asyncio.sleep(interval)
-                
+
                 if not self.scheduler:
                     continue
-                
+
                 metrics = self.scheduler.get_metrics()
-                
+
                 await self.emitter.emit(Event(
                     event_type=EventType.SCHEDULER_METRICS,
                     data=metrics,
                 ))
-                
+
             except asyncio.CancelledError:
                 break
             except Exception as e:
                 logger.error("Error emitting scheduler metrics", error=str(e))
-    
+
     # Event emission methods for external callers
-    
+
     async def on_agent_started(self, agent_name: str, agent_id: str) -> None:
         """Emit agent started event."""
         await self.emitter.emit(Event(
@@ -356,14 +357,14 @@ class AgentEventBridge:
             data={
                 "agent_id": agent_id,
                 "agent_name": agent_name,
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
             },
         ))
-    
+
     async def on_agent_stopped(
-        self, 
-        agent_name: str, 
-        agent_id: str, 
+        self,
+        agent_name: str,
+        agent_id: str,
         reason: str = "normal"
     ) -> None:
         """Emit agent stopped event."""
@@ -373,13 +374,13 @@ class AgentEventBridge:
                 "agent_id": agent_id,
                 "agent_name": agent_name,
                 "reason": reason,
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
             },
         ))
-    
+
     async def on_agent_restarted(
-        self, 
-        agent_name: str, 
+        self,
+        agent_name: str,
         agent_id: str,
         restart_count: int,
     ) -> None:
@@ -390,12 +391,12 @@ class AgentEventBridge:
                 "agent_id": agent_id,
                 "agent_name": agent_name,
                 "restart_count": restart_count,
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
             },
         ))
-    
+
     async def on_task_assigned(
-        self, 
+        self,
         task_id: str,
         task_type: str,
         agent_name: str,
@@ -409,10 +410,10 @@ class AgentEventBridge:
                 "task_type": task_type,
                 "agent_name": agent_name,
                 "priority": priority,
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
             },
         ))
-    
+
     async def on_task_completed(
         self,
         task_id: str,
@@ -428,10 +429,10 @@ class AgentEventBridge:
                 "agent_name": agent_name,
                 "duration_ms": duration_ms,
                 "result": result or {},
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
             },
         ))
-    
+
     async def on_task_failed(
         self,
         task_id: str,
@@ -447,13 +448,13 @@ class AgentEventBridge:
                 "agent_name": agent_name,
                 "error": error,
                 "will_retry": will_retry,
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
             },
         ))
-    
+
     async def on_circuit_breaker_open(
-        self, 
-        agent_name: str, 
+        self,
+        agent_name: str,
         failure_count: int
     ) -> None:
         """Emit circuit breaker open event."""
@@ -462,23 +463,23 @@ class AgentEventBridge:
             {
                 "agent_name": agent_name,
                 "failure_count": failure_count,
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
             },
         )
-    
+
     async def on_circuit_breaker_closed(self, agent_name: str) -> None:
         """Emit circuit breaker closed event."""
         await self.emitter.emit(Event(
             event_type=EventType.CIRCUIT_BREAKER_CLOSED,
             data={
                 "agent_name": agent_name,
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
             },
         ))
-    
+
     async def on_recovery_started(
-        self, 
-        agent_name: str, 
+        self,
+        agent_name: str,
         attempt: int
     ) -> None:
         """Emit recovery started event."""
@@ -487,23 +488,23 @@ class AgentEventBridge:
             {
                 "agent_name": agent_name,
                 "attempt": attempt,
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
             },
         )
-    
+
     async def on_recovery_success(self, agent_name: str) -> None:
         """Emit recovery success event."""
         await self.emitter.emit(Event(
             event_type=EventType.AGENT_RECOVERY_SUCCESS,
             data={
                 "agent_name": agent_name,
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
             },
         ))
-    
+
     async def on_recovery_failed(
-        self, 
-        agent_name: str, 
+        self,
+        agent_name: str,
         error: str
     ) -> None:
         """Emit recovery failed event."""
@@ -512,10 +513,10 @@ class AgentEventBridge:
             {
                 "agent_name": agent_name,
                 "error": error,
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
             },
         )
-    
+
     async def on_dead_letter_queued(
         self,
         task_id: str,
@@ -531,7 +532,7 @@ class AgentEventBridge:
                 "task_type": task_type,
                 "error": error,
                 "attempts": attempts,
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
             },
         ))
 
@@ -571,10 +572,10 @@ async def configure_event_system(
         Tuple of (EventEmitter, AgentEventBridge).
     """
     global _global_emitter, _global_bridge
-    
+
     emitter = get_event_emitter()
     await emitter.start()
-    
+
     bridge = AgentEventBridge(
         emitter=emitter,
         swarm=swarm,
@@ -582,24 +583,24 @@ async def configure_event_system(
         recovery=recovery,
     )
     await bridge.start()
-    
+
     _global_bridge = bridge
-    
+
     logger.info("Event system configured and started")
-    
+
     return emitter, bridge
 
 
 async def shutdown_event_system() -> None:
     """Shutdown the event system."""
     global _global_emitter, _global_bridge
-    
+
     if _global_bridge:
         await _global_bridge.stop()
         _global_bridge = None
-    
+
     if _global_emitter:
         await _global_emitter.stop()
         _global_emitter = None
-    
+
     logger.info("Event system shutdown complete")

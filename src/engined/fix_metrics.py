@@ -1,6 +1,6 @@
 import re
 
-with open('tests/test_integration.py', 'r', encoding='utf-8') as f:
+with open('tests/test_integration.py', encoding='utf-8') as f:
     content = f.read()
 
 # Replace metrics['key'] with metrics.key

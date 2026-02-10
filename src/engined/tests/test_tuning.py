@@ -14,19 +14,17 @@ ACTUAL API (discovered via introspection):
 - SelfTuner: start/stop async, register_parameter, get_parameter, record_metric, record_task_completion
 """
 
-import asyncio
 import pytest
-from unittest.mock import MagicMock
 
 from engined.agents.tuning import (
-    TuningStrategy,
     ParameterType,
-    TunableParameter,
     PerformanceTracker,
     SelfTuner,
+    TunableParameter,
+    TuningStrategy,
+    get_tuner,
     init_tuning_system,
     shutdown_tuning_system,
-    get_tuner,
 )
 
 

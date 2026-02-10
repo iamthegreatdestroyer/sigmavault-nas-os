@@ -12,13 +12,13 @@ ACTUAL API (discovered via introspection):
 - Methods: schedule, start, stop, mark_completed, mark_failed, get_metrics
 """
 
-import asyncio
+from unittest.mock import AsyncMock, MagicMock
+
 import pytest
-from unittest.mock import MagicMock, AsyncMock
 
 from engined.agents.scheduler import (
-    TaskPriority,
     PriorityTask,
+    TaskPriority,
     TaskScheduler,
 )
 

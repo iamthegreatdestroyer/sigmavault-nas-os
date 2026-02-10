@@ -11,13 +11,14 @@ ACTUAL API (discovered via introspection):
 - CircuitBreaker: to_dict, can_execute, record_success, record_failure (no reset method)
 """
 
-import pytest
 from unittest.mock import MagicMock
 
+import pytest
+
 from engined.agents.recovery import (
-    CircuitState,
-    CircuitBreaker,
     AgentRecovery,
+    CircuitBreaker,
+    CircuitState,
 )
 
 

@@ -1,0 +1,98 @@
+#!/bin/bash
+# =============================================================================
+# SigmaVault NAS OS — Pre-Push Hook
+# @FORGE Build Gate — Prevents CI thrashing by running checks locally
+# =============================================================================
+#
+# This hook runs before `git push` and blocks if lint/tests fail.
+# Install: git config core.hooksPath .githooks
+#
+# To bypass in emergencies: git push --no-verify
+# =============================================================================
+
+set -e
+
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m'
+
+echo ""
+echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
+echo -e "${BLUE}  SigmaVault Pre-Push Gate — Local CI Check${NC}"
+echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
+echo ""
+
+FAILED=0
+
+# ─── Go API Lint ─────────────────────────────────────────────────
+echo -e "${BLUE}[1/4] Linting Go API...${NC}"
+if command -v golangci-lint &>/dev/null; then
+    if cd src/api && golangci-lint run ./... 2>&1; then
+        echo -e "${GREEN}  ✓ Go lint passed${NC}"
+    else
+        echo -e "${RED}  ✗ Go lint FAILED${NC}"
+        FAILED=1
+    fi
+    cd - >/dev/null
+else
+    echo -e "${YELLOW}  ⚠ golangci-lint not found, skipping Go lint${NC}"
+fi
+
+# ─── Go API Tests ────────────────────────────────────────────────
+echo -e "${BLUE}[2/4] Running Go tests...${NC}"
+if cd src/api && go test -short -count=1 ./... 2>&1; then
+    echo -e "${GREEN}  ✓ Go tests passed${NC}"
+else
+    echo -e "${RED}  ✗ Go tests FAILED${NC}"
+    FAILED=1
+fi
+cd - >/dev/null
+
+# ─── Python Engine Lint + Tests ──────────────────────────────────
+echo -e "${BLUE}[3/4] Checking Python engine...${NC}"
+if command -v ruff &>/dev/null; then
+    if cd src/engined && ruff check . 2>&1; then
+        echo -e "${GREEN}  ✓ Python lint passed${NC}"
+    else
+        echo -e "${RED}  ✗ Python lint FAILED${NC}"
+        FAILED=1
+    fi
+    cd - >/dev/null
+else
+    echo -e "${YELLOW}  ⚠ ruff not found, skipping Python lint${NC}"
+fi
+
+if cd src/engined && python -m pytest -x -q --tb=short 2>&1; then
+    echo -e "${GREEN}  ✓ Python tests passed${NC}"
+else
+    echo -e "${RED}  ✗ Python tests FAILED${NC}"
+    FAILED=1
+fi
+cd - >/dev/null
+
+# ─── Desktop UI Tests ───────────────────────────────────────────
+echo -e "${BLUE}[4/4] Checking Desktop UI...${NC}"
+if cd src/desktop-ui && python -m pytest -x -q --tb=short tests/ 2>&1; then
+    echo -e "${GREEN}  ✓ Desktop tests passed${NC}"
+else
+    echo -e "${YELLOW}  ⚠ Desktop tests failed or unavailable${NC}"
+    # Non-blocking for now — enable when stable
+fi
+cd - >/dev/null
+
+# ─── Final Verdict ──────────────────────────────────────────────
+echo ""
+if [ $FAILED -ne 0 ]; then
+    echo -e "${RED}═══════════════════════════════════════════════════════════════${NC}"
+    echo -e "${RED}  ✗ PRE-PUSH BLOCKED — Fix errors above before pushing${NC}"
+    echo -e "${RED}  Bypass with: git push --no-verify${NC}"
+    echo -e "${RED}═══════════════════════════════════════════════════════════════${NC}"
+    exit 1
+else
+    echo -e "${GREEN}═══════════════════════════════════════════════════════════════${NC}"
+    echo -e "${GREEN}  ✓ All pre-push checks passed — Pushing!${NC}"
+    echo -e "${GREEN}═══════════════════════════════════════════════════════════════${NC}"
+    exit 0
+fi

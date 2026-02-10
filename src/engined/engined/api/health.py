@@ -7,10 +7,10 @@ plus detailed status information for monitoring.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Request
 from pydantic import BaseModel, Field
 
 if TYPE_CHECKING:
@@ -57,7 +57,7 @@ def get_startup_time() -> datetime:
     """Get or set startup time."""
     global _startup_time
     if _startup_time is None:
-        _startup_time = datetime.now(timezone.utc)
+        _startup_time = datetime.now(UTC)
     return _startup_time
 
 
@@ -70,8 +70,8 @@ async def liveness_probe() -> HealthStatus:
     to determine if the container should be restarted.
     """
     startup = get_startup_time()
-    now = datetime.now(timezone.utc)
-    
+    now = datetime.now(UTC)
+
     return HealthStatus(
         status="alive",
         timestamp=now.isoformat(),
@@ -89,14 +89,14 @@ async def readiness_probe(request: Request) -> ReadinessStatus:
     Checks all critical dependencies before returning ready.
     """
     swarm: AgentSwarm | None = getattr(request.app.state, "swarm", None)
-    
+
     checks = {
         "swarm_initialized": swarm is not None and swarm.is_initialized,
         "agents_available": swarm is not None and swarm.available_agents > 0,
     }
-    
+
     all_ready = all(checks.values())
-    
+
     return ReadinessStatus(
         ready=all_ready,
         checks=checks,
@@ -112,10 +112,10 @@ async def detailed_status(request: Request) -> DetailedStatus:
     including agent swarm, compression, encryption, and resource usage.
     """
     startup = get_startup_time()
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     swarm: AgentSwarm | None = getattr(request.app.state, "swarm", None)
     settings = getattr(request.app.state, "settings", None)
-    
+
     # Agent status
     agent_info = {
         "total": 40,
@@ -123,30 +123,30 @@ async def detailed_status(request: Request) -> DetailedStatus:
         "busy": swarm.busy_agents if swarm else 0,
         "status": "operational" if swarm and swarm.is_initialized else "initializing",
     }
-    
+
     # Compression status
     compression_info = {
         "default_algorithm": settings.compression_default_algorithm if settings else "zstd",
         "level": settings.compression_level if settings else 3,
         "threads": settings.compression_threads if settings else 4,
     }
-    
+
     # Encryption status
     encryption_info = {
         "algorithm": settings.encryption_algorithm if settings else "aes-256-gcm",
         "quantum_safe": settings.quantum_safe_encryption if settings else True,
     }
-    
+
     # Resource usage (placeholder - would be actual metrics in production)
     import psutil
     process = psutil.Process()
-    
+
     resource_info = {
         "cpu_percent": process.cpu_percent(),
         "memory_mb": process.memory_info().rss / (1024 * 1024),
         "open_files": len(process.open_files()),
     }
-    
+
     return DetailedStatus(
         status="operational" if swarm and swarm.is_initialized else "initializing",
         version="0.1.0",

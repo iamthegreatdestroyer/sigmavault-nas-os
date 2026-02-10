@@ -8,10 +8,11 @@ WebSocket event system for real-time progress streaming.
 
 import asyncio
 import logging
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Dict, Any, Optional, Callable, Awaitable, Set
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -25,14 +26,14 @@ class CompressionEventType(Enum):
     JOB_COMPLETED = "compression.job.completed"
     JOB_FAILED = "compression.job.failed"
     JOB_CANCELLED = "compression.job.cancelled"
-    
+
     # Engine events
     ENGINE_INITIALIZED = "compression.engine.initialized"
     ENGINE_ERROR = "compression.engine.error"
-    
+
     # Stats events
     STATS_UPDATED = "compression.stats.updated"
-    
+
     # Codebook events
     CODEBOOK_UPDATED = "compression.codebook.updated"
     CODEBOOK_OPTIMIZED = "compression.codebook.optimized"
@@ -46,11 +47,11 @@ class CompressionEvent:
     Events are emitted for real-time monitoring and WebSocket streaming.
     """
     event_type: CompressionEventType
-    job_id: Optional[str]
+    job_id: str | None
     timestamp: datetime
-    data: Dict[str, Any] = field(default_factory=dict)
-    
-    def to_dict(self) -> Dict[str, Any]:
+    data: dict[str, Any] = field(default_factory=dict)
+
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for JSON serialization."""
         return {
             "type": self.event_type.value,
@@ -58,8 +59,8 @@ class CompressionEvent:
             "timestamp": self.timestamp.isoformat(),
             "data": self.data,
         }
-    
-    def to_websocket_message(self) -> Dict[str, Any]:
+
+    def to_websocket_message(self) -> dict[str, Any]:
         """
         Format event for WebSocket transmission.
         
@@ -96,11 +97,11 @@ class CompressionEventEmitter:
         Args:
             history_size: Maximum number of events to retain in history.
         """
-        self._handlers: Dict[CompressionEventType, list[EventHandler]] = {}
+        self._handlers: dict[CompressionEventType, list[EventHandler]] = {}
         self._global_handlers: list[EventHandler] = []
         self._history: list[CompressionEvent] = []
         self._history_size = history_size
-        self._subscribed_jobs: Set[str] = set()
+        self._subscribed_jobs: set[str] = set()
         self._lock = asyncio.Lock()
 
     def on(
@@ -159,8 +160,8 @@ class CompressionEventEmitter:
     async def emit(
         self,
         event_type: CompressionEventType,
-        job_id: Optional[str] = None,
-        data: Optional[Dict[str, Any]] = None,
+        job_id: str | None = None,
+        data: dict[str, Any] | None = None,
     ) -> None:
         """
         Emit an event.
@@ -176,13 +177,13 @@ class CompressionEventEmitter:
             timestamp=datetime.now(),
             data=data or {},
         )
-        
+
         # Add to history
         async with self._lock:
             self._history.append(event)
             if len(self._history) > self._history_size:
                 self._history = self._history[-self._history_size:]
-        
+
         # Call type-specific handlers
         handlers = self._handlers.get(event_type, [])
         for handler in handlers:
@@ -190,14 +191,14 @@ class CompressionEventEmitter:
                 await handler(event)
             except Exception as e:
                 logger.error(f"Event handler error for {event_type}: {e}")
-        
+
         # Call global handlers
         for handler in self._global_handlers:
             try:
                 await handler(event)
             except Exception as e:
                 logger.error(f"Global event handler error: {e}")
-        
+
         logger.debug(f"Event emitted: {event_type.value} (job={job_id})")
 
     async def emit_job_queued(
@@ -205,7 +206,7 @@ class CompressionEventEmitter:
         job_id: str,
         job_type: str,
         priority: str,
-        input_path: Optional[str] = None,
+        input_path: str | None = None,
         input_size: int = 0,
     ) -> None:
         """Emit job queued event."""
@@ -267,7 +268,7 @@ class CompressionEventEmitter:
         compressed_size: int,
         compression_ratio: float,
         elapsed_seconds: float,
-        output_path: Optional[str] = None,
+        output_path: str | None = None,
     ) -> None:
         """Emit job completed event."""
         await self.emit(
@@ -330,7 +331,7 @@ class CompressionEventEmitter:
     async def emit_engine_error(
         self,
         error: str,
-        details: Optional[Dict[str, Any]] = None,
+        details: dict[str, Any] | None = None,
     ) -> None:
         """Emit engine error event."""
         await self.emit(
@@ -369,8 +370,8 @@ class CompressionEventEmitter:
 
     def get_history(
         self,
-        event_type: Optional[CompressionEventType] = None,
-        job_id: Optional[str] = None,
+        event_type: CompressionEventType | None = None,
+        job_id: str | None = None,
         limit: int = 100,
     ) -> list[CompressionEvent]:
         """
@@ -385,12 +386,12 @@ class CompressionEventEmitter:
             List of matching events (most recent first).
         """
         events = list(self._history)
-        
+
         if event_type:
             events = [e for e in events if e.event_type == event_type]
         if job_id:
             events = [e for e in events if e.job_id == job_id]
-        
+
         # Return most recent first
         events.reverse()
         return events[:limit]
@@ -405,7 +406,7 @@ class CompressionEventEmitter:
 
 
 # Global event emitter instance
-_global_emitter: Optional[CompressionEventEmitter] = None
+_global_emitter: CompressionEventEmitter | None = None
 
 
 def get_compression_emitter() -> CompressionEventEmitter:
@@ -433,7 +434,7 @@ class WebSocketEventBridge:
     def __init__(
         self,
         emitter: CompressionEventEmitter,
-        websocket_send: Optional[Callable[[Dict[str, Any]], Awaitable[None]]] = None,
+        websocket_send: Callable[[dict[str, Any]], Awaitable[None]] | None = None,
     ):
         """
         Initialize WebSocket bridge.
@@ -450,7 +451,7 @@ class WebSocketEventBridge:
         """Connect to event emitter and start forwarding."""
         if self._connected:
             return
-        
+
         self.emitter.on_all(self._forward_event)
         self._connected = True
         logger.info("WebSocketEventBridge connected")
@@ -459,7 +460,7 @@ class WebSocketEventBridge:
         """Disconnect from event emitter."""
         if not self._connected:
             return
-        
+
         self.emitter.off_all(self._forward_event)
         self._connected = False
         logger.info("WebSocketEventBridge disconnected")
@@ -468,7 +469,7 @@ class WebSocketEventBridge:
         """Forward event to WebSocket."""
         if self.websocket_send is None:
             return
-        
+
         try:
             message = event.to_websocket_message()
             await self.websocket_send(message)
@@ -477,7 +478,7 @@ class WebSocketEventBridge:
 
     def set_websocket_send(
         self,
-        send_fn: Callable[[Dict[str, Any]], Awaitable[None]],
+        send_fn: Callable[[dict[str, Any]], Awaitable[None]],
     ) -> None:
         """Set the WebSocket send function."""
         self.websocket_send = send_fn
