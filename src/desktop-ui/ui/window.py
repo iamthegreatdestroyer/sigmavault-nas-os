@@ -78,6 +78,8 @@ class SigmaVaultWindow(Adw.ApplicationWindow):
 
         # Navigation split view: sidebar + content
         self._split_view = Adw.NavigationSplitView()
+        self._split_view.set_vexpand(True)  # Expand to fill vertical space
+        self._split_view.set_hexpand(True)  # Expand to fill horizontal space
         main_box.append(self._split_view)
 
         # ── Sidebar ──────────────────────────────────────────────

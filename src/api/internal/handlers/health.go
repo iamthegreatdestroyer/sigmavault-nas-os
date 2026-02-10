@@ -2,17 +2,23 @@
 package handlers
 
 import (
+	"context"
+	"log"
 	"runtime"
 	"time"
+
+	"sigmavault-nas-os/api/internal/rpc"
 
 	"github.com/gofiber/fiber/v2"
 )
 
 // HealthResponse represents the health check response.
 type HealthResponse struct {
-	Status    string    `json:"status"`
-	Timestamp time.Time `json:"timestamp"`
-	Version   string    `json:"version"`
+	Status    string                 `json:"status"`
+	Timestamp time.Time              `json:"timestamp"`
+	Version   string                 `json:"version"`
+	Engine    string                 `json:"engine,omitempty"`
+	Agents    map[string]interface{} `json:"agents,omitempty"`
 }
 
 // ReadyResponse represents the readiness check response.
@@ -34,7 +40,55 @@ type SystemInfoResponse struct {
 
 var startTime = time.Now()
 
-// HealthCheck performs a basic health check.
+// HealthHandler provides health check endpoints with RPC client.
+type HealthHandler struct {
+	rpc *rpc.Client
+}
+
+// NewHealthHandler creates a new health handler.
+func NewHealthHandler(rpcClient *rpc.Client) *HealthHandler {
+	return &HealthHandler{rpc: rpcClient}
+}
+
+// Check performs a health check including Engine connectivity and agent count.
+func (h *HealthHandler) Check(c *fiber.Ctx) error {
+	response := HealthResponse{
+		Status:    "healthy",
+		Timestamp: time.Now(),
+		Version:   "0.1.0",
+	}
+
+	// Check Engine connectivity and get agent count
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	if err := h.rpc.HealthCheck(ctx); err != nil {
+		response.Engine = "offline"
+		// Log the error for debugging
+		log.Printf("Engine health check failed: %v", err)
+	} else {
+		response.Engine = "connected"
+
+		// Get agent list for count
+		agents, err := h.rpc.ListAgents(ctx, &rpc.ListAgentsParams{})
+		if err == nil && len(agents) > 0 {
+			idle := 0
+			for _, agent := range agents {
+				if agent.Status == "idle" {
+					idle++
+				}
+			}
+			response.Agents = map[string]interface{}{
+				"total": len(agents),
+				"idle":  idle,
+			}
+		}
+	}
+
+	return c.JSON(response)
+}
+
+// HealthCheck is a standalone function for backward compatibility.
 func HealthCheck(c *fiber.Ctx) error {
 	return c.JSON(HealthResponse{
 		Status:    "healthy",

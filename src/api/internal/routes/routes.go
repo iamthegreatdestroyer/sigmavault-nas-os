@@ -49,6 +49,7 @@ func Setup(app *fiber.App, cfg *config.Config) {
 
 	// Create handlers with RPC client injection
 	authHandler := handlers.NewAuthHandler(cfg)
+	healthHandler := handlers.NewHealthHandler(rpcClient)
 	storageHandler := handlers.NewStorageHandler(rpcClient)
 	systemHandler := handlers.NewSystemHandler(rpcClient)
 	agentsHandler := handlers.NewAgentsHandler(rpcClient)
@@ -70,7 +71,7 @@ func Setup(app *fiber.App, cfg *config.Config) {
 	api := app.Group("/api/v1")
 
 	// Health endpoints (public)
-	api.Get("/health", handlers.HealthCheck)
+	api.Get("/health", healthHandler.Check)
 	api.Get("/ready", handlers.ReadyCheck)
 	api.Get("/info", handlers.SystemInfo)
 

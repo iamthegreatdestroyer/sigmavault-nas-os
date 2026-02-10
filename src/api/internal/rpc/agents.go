@@ -10,7 +10,7 @@ import (
 type Agent struct {
 	ID             string         `json:"id"`
 	Codename       string         `json:"codename"`
-	Tier           int            `json:"tier"`
+	Tier           string         `json:"tier"` // Changed from int to string (core, specialist, innovator, meta)
 	Role           string         `json:"role"`
 	Status         string         `json:"status"` // idle, busy, error, offline
 	Specialization string         `json:"specialization"`
