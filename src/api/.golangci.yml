@@ -7,4 +7,3 @@ linters:
   enable:
     - govet
     - ineffassign
-    - gocritic

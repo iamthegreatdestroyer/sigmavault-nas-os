@@ -13,11 +13,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from engined.agents.events import (
-    Event,
-    EventEmitter,
-    EventType,
-)
+from engined.agents.events import Event, EventEmitter, EventType
 
 
 class TestEventType:

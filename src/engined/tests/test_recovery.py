@@ -15,11 +15,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from engined.agents.recovery import (
-    AgentRecovery,
-    CircuitBreaker,
-    CircuitState,
-)
+from engined.agents.recovery import AgentRecovery, CircuitBreaker, CircuitState
 
 
 class TestCircuitState:

@@ -6,33 +6,33 @@ Contains AI agent implementations and swarm management.
 
 # Core infrastructure
 from .base import (
-    AgentCapability,
-    AgentState,
-    AgentTask,
-    BaseAgent,
-    TaskPriority,
-    TaskResult,
+                   AgentCapability,
+                   AgentState,
+                   AgentTask,
+                   BaseAgent,
+                   TaskPriority,
+                   TaskResult,
 )
 from .events import (
-    AgentEventBridge,
-    Event,
-    EventEmitter,
-    EventType,
-    configure_event_system,
-    get_event_bridge,
-    get_event_emitter,
-    shutdown_event_system,
+                   AgentEventBridge,
+                   Event,
+                   EventEmitter,
+                   EventType,
+                   configure_event_system,
+                   get_event_bridge,
+                   get_event_emitter,
+                   shutdown_event_system,
 )
 from .memory import (
-    AgentMemory,
-    MemoryEntry,
-    MemoryPriority,
-    MemoryStore,
-    MemoryType,
-    get_agent_memory,
-    get_memory_store,
-    init_memory_system,
-    shutdown_memory_system,
+                   AgentMemory,
+                   MemoryEntry,
+                   MemoryPriority,
+                   MemoryStore,
+                   MemoryType,
+                   get_agent_memory,
+                   get_memory_store,
+                   init_memory_system,
+                   shutdown_memory_system,
 )
 from .recovery import AgentRecovery, CircuitBreaker, CircuitState
 from .registry import AgentRegistry
@@ -45,14 +45,14 @@ from .swarm import AgentSwarm
 from .tier1 import TIER_1_AGENTS
 from .tier2 import TIER_2_AGENTS
 from .tuning import (
-    ParameterType,
-    PerformanceTracker,
-    SelfTuner,
-    TunableParameter,
-    TuningStrategy,
-    get_tuner,
-    init_tuning_system,
-    shutdown_tuning_system,
+                   ParameterType,
+                   PerformanceTracker,
+                   SelfTuner,
+                   TunableParameter,
+                   TuningStrategy,
+                   get_tuner,
+                   init_tuning_system,
+                   shutdown_tuning_system,
 )
 
 __all__ = [

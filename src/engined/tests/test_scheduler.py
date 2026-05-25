@@ -16,11 +16,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from engined.agents.scheduler import (
-    PriorityTask,
-    TaskPriority,
-    TaskScheduler,
-)
+from engined.agents.scheduler import PriorityTask, TaskPriority, TaskScheduler
 
 
 class TestTaskPriority:

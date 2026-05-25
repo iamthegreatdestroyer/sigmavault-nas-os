@@ -122,10 +122,7 @@ class CompressionBridge:
 
         try:
             # Import EliteSigma-NAS components
-            from nas_core.compression_engine import (
-                CompressionEngine,
-                SigmaCodebook,
-            )
+            from nas_core.compression_engine import CompressionEngine, SigmaCodebook
 
             # Initialize codebook
             self._codebook = SigmaCodebook(max_glyphs=self.config.max_codebook_size)
