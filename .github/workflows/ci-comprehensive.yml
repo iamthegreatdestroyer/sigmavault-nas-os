@@ -96,8 +96,8 @@ jobs:
             - name: Go Test with Coverage
               run: |
                   cd src/api
-                  # Run unit tests only (exclude integration tests in tests/ directory)
-                  go test $(go list ./... | grep -v /tests) -v -race -coverprofile=coverage.out -covermode=atomic
+                  # Run unit tests only (-short skips e2e/integration tests that need live services)
+                  go test -short $(go list ./... | grep -v /tests) -v -race -coverprofile=coverage.out -covermode=atomic
 
             - name: Upload Go Coverage
               uses: codecov/codecov-action@v4
@@ -151,7 +151,7 @@ jobs:
             - name: Install pnpm
               uses: pnpm/action-setup@v2
               with:
-                  version: 8
+                  version: 10
 
             - name: Install dependencies
               run: |
@@ -268,7 +268,7 @@ jobs:
             - name: Install pnpm
               uses: pnpm/action-setup@v2
               with:
-                  version: 8
+                  version: 10
 
             - name: Install dependencies
               run: |

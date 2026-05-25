@@ -29,12 +29,12 @@ lz4>=4.3.0
 brotli>=1.1.0
 
 # gRPC
-grpcio>=1.60.0
-grpcio-tools>=1.60.0
-protobuf>=4.25.0
+grpcio>=1.68.0
+grpcio-tools>=1.68.0
+protobuf>=5.29.0
 
 # Async
-anyio>=4.0.0
+anyio>=4.7.0
 
-# Minimal numpy (for tests) - use older version for compatibility
-numpy>=1.26.0,<2.0.0
+# Numpy 2.x (matches pyproject.toml)
+numpy>=2.0.0

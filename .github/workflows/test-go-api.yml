@@ -77,7 +77,7 @@ jobs:
                   DATABASE_URL: postgres://sigmavault:test_password@localhost:5432/sigmavault_test?sslmode=disable
                   REDIS_URL: redis://localhost:6379/0
               run: |
-                  go test -v -race -coverprofile=coverage.out -covermode=atomic ./...
+                  go test -short -v -race -coverprofile=coverage.out -covermode=atomic ./...
 
             - name: Run integration tests
               working-directory: src/api

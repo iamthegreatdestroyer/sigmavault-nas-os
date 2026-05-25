@@ -17,7 +17,6 @@ import (
 	"sigmavault-nas-os/api/internal/config"
 	"sigmavault-nas-os/api/internal/routes"
 	"sigmavault-nas-os/api/internal/rpc"
-	"sigmavault-nas-os/api/internal/websocket"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -25,10 +24,8 @@ import (
 // E2ETestServer wraps a test API server with lifecycle management
 type E2ETestServer struct {
 	app       *fiber.App
-	server    *http.Server
 	baseURL   string
 	port      int
-	wsHub     *websocket.Hub
 	rpcClient *rpc.Client
 }
 
