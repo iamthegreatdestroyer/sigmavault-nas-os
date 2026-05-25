@@ -194,6 +194,10 @@ ignore = [
 "simple_server.py" = ["ARG"]
 "test_rpc_server.py" = ["ARG"]
 
+[tool.isort]
+profile = "black"
+known_first_party = ["engined"]
+
 [tool.ruff.lint.isort]
 known-first-party = ["engined"]
 
