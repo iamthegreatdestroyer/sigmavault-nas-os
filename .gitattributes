@@ -1,0 +1,23 @@
+# Default: normalize line endings to LF in repo
+* text=auto eol=lf
+
+# Shell scripts and Makefiles must be LF
+*.sh text eol=lf
+debian/rules text eol=lf
+debian/postinst text eol=lf
+debian/prerm text eol=lf
+Makefile text eol=lf
+**/.githooks/* text eol=lf
+
+# Windows-specific files can keep CRLF
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+# Binary files
+*.png binary
+*.jpg binary
+*.gif binary
+*.ico binary
+*.whl binary
+*.deb binary
