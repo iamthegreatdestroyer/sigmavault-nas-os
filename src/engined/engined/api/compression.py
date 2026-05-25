@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import UTC, datetime
-from enum import Enum
+from enum import StrEnum
 from typing import TYPE_CHECKING
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Request, status
@@ -21,7 +21,7 @@ if TYPE_CHECKING:
 router = APIRouter()
 
 
-class CompressionAlgorithm(str, Enum):
+class CompressionAlgorithm(StrEnum):
     """Supported compression algorithms."""
 
     ZSTD = "zstd"
@@ -30,7 +30,7 @@ class CompressionAlgorithm(str, Enum):
     AUTO = "auto"  # AI-selected based on content analysis
 
 
-class CompressionLevel(str, Enum):
+class CompressionLevel(StrEnum):
     """Compression level presets."""
 
     FASTEST = "fastest"
@@ -40,7 +40,7 @@ class CompressionLevel(str, Enum):
     MAXIMUM = "maximum"
 
 
-class JobStatus(str, Enum):
+class JobStatus(StrEnum):
     """Compression job status."""
 
     PENDING = "pending"

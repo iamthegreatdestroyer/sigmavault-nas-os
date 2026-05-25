@@ -11,27 +11,27 @@ Components:
 """
 
 from .bridge import (
-                     CompressionBridge,
-                     CompressionConfig,
-                     CompressionLevel,
-                     CompressionProgress,
-                     CompressionResult,
-                     StubCompressionEngine,
+    CompressionBridge,
+    CompressionConfig,
+    CompressionLevel,
+    CompressionProgress,
+    CompressionResult,
+    StubCompressionEngine,
 )
 from .events import (
-                     CompressionEvent,
-                     CompressionEventEmitter,
-                     CompressionEventType,
-                     WebSocketEventBridge,
-                     get_compression_emitter,
-                     set_compression_emitter,
+    CompressionEvent,
+    CompressionEventEmitter,
+    CompressionEventType,
+    WebSocketEventBridge,
+    get_compression_emitter,
+    set_compression_emitter,
 )
 from .job_queue import (
-                     CompressionJob,
-                     CompressionJobQueue,
-                     JobPriority,
-                     JobStatus,
-                     JobType,
+    CompressionJob,
+    CompressionJobQueue,
+    JobPriority,
+    JobStatus,
+    JobType,
 )
 
 __all__ = [

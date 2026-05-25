@@ -21,13 +21,13 @@ import time
 from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import datetime
-from enum import Enum
+from enum import Enum, StrEnum
 from typing import Any
 
 logger = logging.getLogger(__name__)
 
 
-class MemoryType(str, Enum):
+class MemoryType(StrEnum):
     """Types of memories in the MNEMONIC system."""
 
     EPISODIC = "episodic"  # Event memories: what happened

@@ -8,7 +8,7 @@ Allows querying agent status, submitting tasks, and monitoring performance.
 from __future__ import annotations
 
 from datetime import UTC, datetime
-from enum import Enum
+from enum import StrEnum
 from typing import TYPE_CHECKING
 
 from fastapi import APIRouter, HTTPException, Request, status
@@ -22,7 +22,7 @@ if TYPE_CHECKING:
 router = APIRouter()
 
 
-class AgentTier(str, Enum):
+class AgentTier(StrEnum):
     """Agent tier classification."""
 
     CORE = "core"
@@ -30,7 +30,7 @@ class AgentTier(str, Enum):
     SUPPORT = "support"
 
 
-class AgentStatus(str, Enum):
+class AgentStatus(StrEnum):
     """Agent operational status."""
 
     IDLE = "idle"

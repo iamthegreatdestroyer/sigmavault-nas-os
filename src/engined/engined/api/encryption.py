@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import UTC, datetime
-from enum import Enum
+from enum import StrEnum
 from typing import TYPE_CHECKING
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Request, status
@@ -22,7 +22,7 @@ if TYPE_CHECKING:
 router = APIRouter()
 
 
-class EncryptionAlgorithm(str, Enum):
+class EncryptionAlgorithm(StrEnum):
     """Supported encryption algorithms."""
 
     AES_256_GCM = "aes-256-gcm"
@@ -31,7 +31,7 @@ class EncryptionAlgorithm(str, Enum):
     HYBRID_KYBER_AES = "hybrid-kyber-aes"  # Recommended for future-proofing
 
 
-class KeyType(str, Enum):
+class KeyType(StrEnum):
     """Key types for encryption operations."""
 
     SYMMETRIC = "symmetric"
@@ -39,14 +39,14 @@ class KeyType(str, Enum):
     HYBRID = "hybrid"
 
 
-class OperationType(str, Enum):
+class OperationType(StrEnum):
     """Type of cryptographic operation."""
 
     ENCRYPT = "encrypt"
     DECRYPT = "decrypt"
 
 
-class JobStatus(str, Enum):
+class JobStatus(StrEnum):
     """Encryption job status."""
 
     PENDING = "pending"

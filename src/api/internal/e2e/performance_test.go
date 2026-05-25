@@ -15,9 +15,9 @@ import (
 
 // PerformanceMetrics tracks timing and throughput metrics
 type PerformanceMetrics struct {
-	mu          sync.Mutex
-	durations   []time.Duration
-	errorCount  int32
+	mu           sync.Mutex
+	durations    []time.Duration
+	errorCount   int32
 	successCount int32
 }
 

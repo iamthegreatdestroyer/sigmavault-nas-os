@@ -23,7 +23,7 @@ import statistics
 from collections import deque
 from dataclasses import dataclass, field
 from datetime import datetime
-from enum import Enum
+from enum import StrEnum
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
@@ -32,7 +32,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class TuningStrategy(str, Enum):
+class TuningStrategy(StrEnum):
     """Strategies for parameter tuning."""
 
     GRADIENT_FREE = "gradient_free"  # Evolutionary, no gradients needed
@@ -41,7 +41,7 @@ class TuningStrategy(str, Enum):
     MANUAL = "manual"  # Manual tuning only
 
 
-class ParameterType(str, Enum):
+class ParameterType(StrEnum):
     """Types of tunable parameters."""
 
     CONTINUOUS = "continuous"  # Float values

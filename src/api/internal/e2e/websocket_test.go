@@ -16,14 +16,14 @@ import (
 
 // WSClient manages a WebSocket client connection
 type WSClient struct {
-	conn      *websocket.Conn
-	baseURL   string
-	ctx       context.Context
-	cancel    context.CancelFunc
-	msgChan   chan interface{}
-	errChan   chan error
-	closedMu  sync.Mutex
-	closed    bool
+	conn     *websocket.Conn
+	baseURL  string
+	ctx      context.Context
+	cancel   context.CancelFunc
+	msgChan  chan interface{}
+	errChan  chan error
+	closedMu sync.Mutex
+	closed   bool
 }
 
 // NewWSClient creates and connects a WebSocket client
@@ -184,7 +184,7 @@ func TestE2EWebSocketMessageReceival(t *testing.T) {
 
 	// Send a test subscription message
 	testMsg := map[string]interface{}{
-		"type": "subscribe",
+		"type":    "subscribe",
 		"channel": "events",
 	}
 
@@ -342,7 +342,7 @@ func TestE2EWebSocketStressTest(t *testing.T) {
 
 				msg := map[string]interface{}{
 					"type": "test",
-					"id": fmt.Sprintf("client%d_msg%d", clientNum, m),
+					"id":   fmt.Sprintf("client%d_msg%d", clientNum, m),
 				}
 
 				if err := client.WriteMessage(msg); err != nil {
@@ -383,7 +383,7 @@ func TestE2EWebSocketLatency(t *testing.T) {
 		// Send ping-like message
 		msg := map[string]interface{}{
 			"type": "ping",
-			"id": i,
+			"id":   i,
 		}
 
 		if err := client.WriteMessage(msg); err != nil {

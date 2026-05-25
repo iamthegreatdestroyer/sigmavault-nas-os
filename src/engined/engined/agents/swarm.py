@@ -14,13 +14,13 @@ import time
 import uuid
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 
 logger = logging.getLogger(__name__)
 
 
-class AgentTier(str, Enum):
+class AgentTier(StrEnum):
     """Agent tier classification."""
 
     CORE = "core"
@@ -28,7 +28,7 @@ class AgentTier(str, Enum):
     SUPPORT = "support"
 
 
-class AgentStatus(str, Enum):
+class AgentStatus(StrEnum):
     """Agent operational status."""
 
     IDLE = "idle"
