@@ -15,6 +15,8 @@ from fastapi import APIRouter, HTTPException, Request, status
 from pydantic import BaseModel, Field
 
 if TYPE_CHECKING:
+    from engined.agents.recovery import AgentRecovery
+    from engined.agents.scheduler import TaskScheduler
     from engined.agents.swarm import AgentSwarm
 
 router = APIRouter()
@@ -144,7 +146,7 @@ async def list_agents(
 ) -> list[AgentInfo]:
     """
     List all agents in the swarm.
-    
+
     Optionally filter by tier or status.
     """
     swarm: AgentSwarm | None = getattr(request.app.state, "swarm", None)
@@ -217,7 +219,7 @@ async def get_agent(request: Request, agent_id: str) -> AgentInfo:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Agent {agent_id} not found",
-        )
+        ) from None
 
     swarm: AgentSwarm | None = getattr(request.app.state, "swarm", None)
     agent_def = AGENT_DEFINITIONS[index]
@@ -244,7 +246,7 @@ async def submit_task(
 ) -> TaskResponse:
     """
     Submit a task to the agent swarm.
-    
+
     The swarm coordinator will assign the task to the most suitable agent
     based on task type, agent availability, and specialization.
     """
@@ -355,7 +357,7 @@ async def dispatch_task(
 ) -> DispatchResponse:
     """
     Dispatch a task to the agent swarm via the intelligent scheduler.
-    
+
     The scheduler routes tasks to the most suitable agents based on:
     - Task type and agent specialization
     - Current agent load and availability
@@ -364,7 +366,7 @@ async def dispatch_task(
     """
     import uuid
 
-    from engined.agents.scheduler import TaskPriority, TaskScheduler
+    from engined.agents.scheduler import TaskPriority
 
     scheduler: TaskScheduler | None = getattr(request.app.state, "scheduler", None)
 
@@ -408,7 +410,6 @@ async def dispatch_task(
 @router.get("/scheduler/metrics", response_model=SchedulerMetrics)
 async def get_scheduler_metrics(request: Request) -> SchedulerMetrics:
     """Get task scheduler performance metrics."""
-    from engined.agents.scheduler import TaskScheduler
 
     scheduler: TaskScheduler | None = getattr(request.app.state, "scheduler", None)
 
@@ -435,7 +436,6 @@ async def get_scheduler_metrics(request: Request) -> SchedulerMetrics:
 @router.get("/recovery/status", response_model=RecoveryStatus)
 async def get_recovery_status(request: Request) -> RecoveryStatus:
     """Get agent recovery system status."""
-    from engined.agents.recovery import AgentRecovery
 
     recovery: AgentRecovery | None = getattr(request.app.state, "recovery", None)
 
@@ -461,7 +461,6 @@ async def get_recovery_status(request: Request) -> RecoveryStatus:
 @router.post("/recovery/restart/{agent_name}")
 async def restart_agent(request: Request, agent_name: str) -> dict:
     """Manually trigger agent restart."""
-    from engined.agents.recovery import AgentRecovery
 
     recovery: AgentRecovery | None = getattr(request.app.state, "recovery", None)
 
@@ -494,7 +493,7 @@ class EventSystemStatus(BaseModel):
 
 
 @router.get("/events/status")
-async def get_events_status(request: Request) -> EventSystemStatus:
+async def get_events_status(_request: Request) -> EventSystemStatus:
     """Get event system status and metrics."""
     from engined.agents.events import get_event_emitter
 
@@ -535,7 +534,7 @@ class MemorySystemStatus(BaseModel):
 
 
 @router.get("/memory/status")
-async def get_memory_status(request: Request) -> MemorySystemStatus:
+async def get_memory_status(_request: Request) -> MemorySystemStatus:
     """Get MNEMONIC memory system status and metrics."""
     from engined.agents.memory import get_memory_store
 
@@ -579,7 +578,7 @@ class TuningSystemStatus(BaseModel):
 
 
 @router.get("/tuning/status")
-async def get_tuning_status(request: Request) -> TuningSystemStatus:
+async def get_tuning_status(_request: Request) -> TuningSystemStatus:
     """Get self-tuning system status and metrics."""
     from engined.agents.tuning import get_tuner
 
@@ -624,7 +623,7 @@ class TuningParameterInfo(BaseModel):
 
 
 @router.get("/tuning/parameters")
-async def get_tuning_parameters(request: Request) -> dict:
+async def get_tuning_parameters(_request: Request) -> dict:
     """Get all tunable parameters and their current values."""
     from engined.agents.tuning import get_tuner
 

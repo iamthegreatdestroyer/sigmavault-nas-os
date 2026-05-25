@@ -2,7 +2,7 @@
 Copyright 2025 Stephen Bilodeau. All Rights Reserved.
 SigmaVault NAS OS - Compression Event Emitter
 
-Event emitter for compression operations, integrating with the 
+Event emitter for compression operations, integrating with the
 WebSocket event system for real-time progress streaming.
 """
 
@@ -43,7 +43,7 @@ class CompressionEventType(Enum):
 class CompressionEvent:
     """
     Represents a compression event.
-    
+
     Events are emitted for real-time monitoring and WebSocket streaming.
     """
     event_type: CompressionEventType
@@ -63,7 +63,7 @@ class CompressionEvent:
     def to_websocket_message(self) -> dict[str, Any]:
         """
         Format event for WebSocket transmission.
-        
+
         Compatible with the existing WebSocket event hub.
         """
         return {
@@ -82,7 +82,7 @@ EventHandler = Callable[[CompressionEvent], Awaitable[None]]
 class CompressionEventEmitter:
     """
     Event emitter for compression operations.
-    
+
     Features:
     - Async event handlers
     - Event filtering by type
@@ -93,7 +93,7 @@ class CompressionEventEmitter:
     def __init__(self, history_size: int = 1000):
         """
         Initialize event emitter.
-        
+
         Args:
             history_size: Maximum number of events to retain in history.
         """
@@ -111,7 +111,7 @@ class CompressionEventEmitter:
     ) -> None:
         """
         Register handler for specific event type.
-        
+
         Args:
             event_type: Event type to listen for.
             handler: Async callback function.
@@ -123,7 +123,7 @@ class CompressionEventEmitter:
     def on_all(self, handler: EventHandler) -> None:
         """
         Register handler for all events.
-        
+
         Args:
             handler: Async callback function.
         """
@@ -135,8 +135,7 @@ class CompressionEventEmitter:
         handler: EventHandler,
     ) -> None:
         """Remove handler for specific event type."""
-        if event_type in self._handlers:
-            if handler in self._handlers[event_type]:
+        if event_type in self._handlers and handler in self._handlers[event_type]:
                 self._handlers[event_type].remove(handler)
 
     def off_all(self, handler: EventHandler) -> None:
@@ -147,7 +146,7 @@ class CompressionEventEmitter:
     def subscribe_job(self, job_id: str) -> None:
         """
         Subscribe to events for a specific job.
-        
+
         When subscribed, events for this job will be tracked
         and available via get_job_events().
         """
@@ -165,7 +164,7 @@ class CompressionEventEmitter:
     ) -> None:
         """
         Emit an event.
-        
+
         Args:
             event_type: Type of event.
             job_id: Associated job ID (if applicable).
@@ -376,12 +375,12 @@ class CompressionEventEmitter:
     ) -> list[CompressionEvent]:
         """
         Get event history.
-        
+
         Args:
             event_type: Filter by event type.
             job_id: Filter by job ID.
             limit: Maximum events to return.
-            
+
         Returns:
             List of matching events (most recent first).
         """
@@ -426,7 +425,7 @@ def set_compression_emitter(emitter: CompressionEventEmitter) -> None:
 class WebSocketEventBridge:
     """
     Bridge between compression events and WebSocket hub.
-    
+
     Forwards compression events to the WebSocket system
     for real-time client updates.
     """
@@ -438,7 +437,7 @@ class WebSocketEventBridge:
     ):
         """
         Initialize WebSocket bridge.
-        
+
         Args:
             emitter: Compression event emitter.
             websocket_send: Async function to send WebSocket messages.

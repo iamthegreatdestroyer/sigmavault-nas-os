@@ -58,7 +58,7 @@ class JobType(Enum):
 class CompressionJob:
     """
     Represents a compression/decompression job.
-    
+
     Tracks status, progress, and result of async compression operations.
     """
     id: str
@@ -93,7 +93,7 @@ class CompressionJob:
     def cancel(self) -> bool:
         """
         Request cancellation of this job.
-        
+
         Returns:
             True if cancellation requested, False if job already complete.
         """
@@ -169,7 +169,7 @@ class CompressionJob:
 class CompressionJobQueue:
     """
     Async job queue for compression operations.
-    
+
     Features:
     - Priority-based scheduling
     - Concurrent job execution
@@ -186,7 +186,7 @@ class CompressionJobQueue:
     ):
         """
         Initialize job queue.
-        
+
         Args:
             bridge: CompressionBridge instance (created if not provided).
             max_concurrent: Maximum concurrent jobs.
@@ -231,7 +231,7 @@ class CompressionJobQueue:
     async def stop(self, wait: bool = True) -> None:
         """
         Stop the job queue.
-        
+
         Args:
             wait: If True, wait for running jobs to complete.
         """
@@ -275,7 +275,7 @@ class CompressionJobQueue:
     ) -> CompressionJob:
         """
         Submit a file compression/decompression job.
-        
+
         Args:
             input_path: Path to input file.
             output_path: Path for output file (auto-generated if not provided).
@@ -284,7 +284,7 @@ class CompressionJobQueue:
             config: Compression configuration.
             user_id: User identifier.
             tags: Job metadata tags.
-            
+
         Returns:
             CompressionJob instance for tracking.
         """
@@ -342,7 +342,7 @@ class CompressionJobQueue:
     ) -> CompressionJob:
         """
         Submit a data compression/decompression job.
-        
+
         Args:
             data: Input bytes.
             compress: True for compression, False for decompression.
@@ -350,7 +350,7 @@ class CompressionJobQueue:
             config: Compression configuration.
             user_id: User identifier.
             tags: Job metadata tags.
-            
+
         Returns:
             CompressionJob instance for tracking.
         """
@@ -388,12 +388,12 @@ class CompressionJobQueue:
     ) -> list[CompressionJob]:
         """
         Get jobs matching criteria.
-        
+
         Args:
             status: Filter by status.
             user_id: Filter by user.
             limit: Maximum number of jobs to return.
-            
+
         Returns:
             List of matching jobs.
         """
@@ -411,10 +411,10 @@ class CompressionJobQueue:
     def cancel_job(self, job_id: str) -> bool:
         """
         Cancel a job.
-        
+
         Args:
             job_id: Job ID to cancel.
-            
+
         Returns:
             True if cancellation requested, False if job not found or already complete.
         """

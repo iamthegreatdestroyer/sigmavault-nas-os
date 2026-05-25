@@ -13,6 +13,7 @@ Memory Types:
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import hashlib
 import json
 import logging
@@ -136,7 +137,7 @@ class MemoryIndex:
 class MemoryStore:
     """
     Core memory storage with indexing, decay, and consolidation.
-    
+
     Features:
     - Time-based decay (forgetting curve)
     - Access-based strengthening (spaced repetition)
@@ -184,10 +185,8 @@ class MemoryStore:
         self._running = False
         for task in self._tasks:
             task.cancel()
-            try:
+            with contextlib.suppress(asyncio.CancelledError):
                 await task
-            except asyncio.CancelledError:
-                pass
         self._tasks = []
         logger.info("MemoryStore stopped")
 
@@ -202,7 +201,7 @@ class MemoryStore:
     ) -> str:
         """
         Store a new memory entry.
-        
+
         Returns the memory ID.
         """
         # Generate content-based ID for deduplication
@@ -255,7 +254,7 @@ class MemoryStore:
     ) -> list[MemoryEntry]:
         """
         Search memories by various criteria.
-        
+
         Returns memories sorted by strength (strongest first).
         """
         async with self._lock:
@@ -378,8 +377,7 @@ class MemoryStore:
                 to_forget = []
                 for mid, entry in self._memories.items():
                     entry.decay(elapsed)
-                    if entry.strength < self._strength_threshold:
-                        if entry.priority != MemoryPriority.CRITICAL:
+                    if entry.strength < self._strength_threshold and entry.priority != MemoryPriority.CRITICAL:
                             to_forget.append(mid)
 
                 for mid in to_forget:
@@ -439,7 +437,7 @@ class MemoryStore:
 class AgentMemory:
     """
     Agent-specific memory interface to the shared MemoryStore.
-    
+
     Provides agent-scoped operations and learning from experiences.
     """
 

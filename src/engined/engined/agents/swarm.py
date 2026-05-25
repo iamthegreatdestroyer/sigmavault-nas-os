@@ -2,7 +2,7 @@
 SigmaVault Agent Swarm
 
 Manages the collective of 40 specialized AI agents for intelligent operations.
-The Elite Agent Collective provides AI-powered compression, quantum-resistant 
+The Elite Agent Collective provides AI-powered compression, quantum-resistant
 encryption, and intelligent storage management.
 """
 
@@ -154,7 +154,7 @@ AGENT_DEFINITIONS = [
 class AgentSwarm:
     """
     Manages the collective of 40 specialized AI agents.
-    
+
     The Elite Agent Collective provides:
     - AI-powered compression (90%+ efficiency)
     - Quantum-resistant encryption
@@ -325,7 +325,7 @@ class AgentSwarm:
     ) -> str | None:
         """
         Assign a task to the most suitable agent.
-        
+
         Returns the assigned agent name or None if no agent available.
         """
         if not self._is_initialized:
@@ -460,7 +460,7 @@ class AgentSwarm:
     async def execute_task(self, agent_type: str, task: dict[str, Any]) -> dict[str, Any]:
         """
         Execute a task using the specified agent type.
-        
+
         Legacy compatibility method.
         """
         task_id = str(uuid.uuid4())

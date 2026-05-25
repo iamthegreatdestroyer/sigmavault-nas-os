@@ -132,7 +132,7 @@ async def list_agents(
 ) -> AgentListResponse:
     """
     List all agents in the Elite Agent Collective.
-    
+
     Query parameters:
     - tier: Filter by tier (1, 2, 3, 4)
     - state: Filter by state (stub, idle, busy, error, shutdown)
@@ -162,7 +162,7 @@ async def get_registry_status() -> RegistryStatusResponse:
 async def get_agent_status(agent_id: str) -> AgentStatusResponse:
     """
     Get detailed status for a specific agent.
-    
+
     Parameters:
     - agent_id: Agent identifier (e.g., "APEX-01", "CIPHER-02")
     """
@@ -197,10 +197,10 @@ async def get_agent_status(agent_id: str) -> AgentStatusResponse:
 async def submit_task(agent_id: str, request: TaskSubmitRequest) -> TaskSubmitResponse:
     """
     Submit a task to a specific agent.
-    
+
     Parameters:
     - agent_id: Target agent identifier
-    
+
     Request body:
     - task_type: Type of task (e.g., "code_review", "system_design")
     - payload: Task-specific data
@@ -231,7 +231,7 @@ async def submit_task(agent_id: str, request: TaskSubmitRequest) -> TaskSubmitRe
         raise HTTPException(
             status_code=http_status.HTTP_400_BAD_REQUEST,
             detail=f"Invalid priority: {request.priority}. Must be CRITICAL, HIGH, MEDIUM, or LOW"
-        )
+        ) from None
 
     # Create task
     task_id = str(uuid.uuid4())
@@ -263,7 +263,7 @@ async def submit_task(agent_id: str, request: TaskSubmitRequest) -> TaskSubmitRe
 async def list_agents_by_tier(tier_number: int) -> AgentListResponse:
     """
     List all agents in a specific tier.
-    
+
     Parameters:
     - tier_number: Tier number (1=Foundational, 2=Specialist, 3=Innovator, 4=Meta)
     """
@@ -297,7 +297,7 @@ async def list_agents_by_tier(tier_number: int) -> AgentListResponse:
 async def list_agents_by_domain(domain_name: str) -> AgentListResponse:
     """
     List all agents with expertise in a specific domain.
-    
+
     Parameters:
     - domain_name: Domain expertise (e.g., "software_engineering", "cryptography")
     """
@@ -325,7 +325,7 @@ async def list_agents_by_domain(domain_name: str) -> AgentListResponse:
 async def list_agents_by_skill(skill_name: str) -> AgentListResponse:
     """
     List all agents with a specific skill.
-    
+
     Parameters:
     - skill_name: Skill name (e.g., "production_code", "encryption", "kubernetes")
     """

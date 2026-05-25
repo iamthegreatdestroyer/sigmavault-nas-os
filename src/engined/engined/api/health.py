@@ -65,7 +65,7 @@ def get_startup_time() -> datetime:
 async def liveness_probe() -> HealthStatus:
     """
     Liveness probe endpoint.
-    
+
     Returns 200 if the application is running. Used by Kubernetes
     to determine if the container should be restarted.
     """
@@ -84,7 +84,7 @@ async def liveness_probe() -> HealthStatus:
 async def readiness_probe(request: Request) -> ReadinessStatus:
     """
     Readiness probe endpoint.
-    
+
     Returns 200 if the application is ready to serve traffic.
     Checks all critical dependencies before returning ready.
     """
@@ -107,7 +107,7 @@ async def readiness_probe(request: Request) -> ReadinessStatus:
 async def detailed_status(request: Request) -> DetailedStatus:
     """
     Detailed engine status endpoint.
-    
+
     Returns comprehensive status information about all engine components
     including agent swarm, compression, encryption, and resource usage.
     """

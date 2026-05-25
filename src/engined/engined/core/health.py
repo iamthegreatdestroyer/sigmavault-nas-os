@@ -20,6 +20,7 @@ Author: @SENTRY (Observability) + @VELOCITY (Performance)
 """
 
 import asyncio
+import contextlib
 import logging
 import time
 from collections.abc import Awaitable, Callable
@@ -419,10 +420,8 @@ class HealthCheckManager:
 
         if self._task:
             self._task.cancel()
-            try:
+            with contextlib.suppress(asyncio.CancelledError):
                 await self._task
-            except asyncio.CancelledError:
-                pass
 
         logger.info("Health check manager stopped")
 

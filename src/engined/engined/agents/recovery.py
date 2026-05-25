@@ -8,15 +8,17 @@ Part of the Elite Agent Collective autonomy framework.
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import logging
 import time
-from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from enum import Enum
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from engined.agents.swarm import Agent, AgentSwarm
 
 logger = logging.getLogger(__name__)
@@ -33,7 +35,7 @@ class CircuitState(str, Enum):
 class CircuitBreaker:
     """
     Circuit breaker for an individual agent.
-    
+
     Prevents cascading failures by temporarily stopping requests to failing agents.
     """
     agent_id: str
@@ -62,11 +64,8 @@ class CircuitBreaker:
         self.failure_count += 1
         self.last_failure_time = time.time()
 
-        if self.state == CircuitState.HALF_OPEN:
+        if self.state == CircuitState.HALF_OPEN or (self.state == CircuitState.CLOSED and self.failure_count >= self.failure_threshold):
             self._open()
-        elif self.state == CircuitState.CLOSED:
-            if self.failure_count >= self.failure_threshold:
-                self._open()
 
     def can_execute(self) -> bool:
         """Check if operations are allowed."""
@@ -122,11 +121,11 @@ class CircuitBreaker:
             if bridge:
                 import asyncio
                 if event_type == "open":
-                    asyncio.create_task(
+                    asyncio.create_task(  # noqa: RUF006
                         bridge.on_circuit_breaker_open(self.agent_id, self.failure_count)
                     )
                 elif event_type == "closed":
-                    asyncio.create_task(
+                    asyncio.create_task(  # noqa: RUF006
                         bridge.on_circuit_breaker_closed(self.agent_id)
                     )
         except Exception:
@@ -146,7 +145,7 @@ class CircuitBreaker:
 class HealthCalculator:
     """
     Calculates agent health scores based on multiple factors.
-    
+
     Health Score (0-100) is computed from:
     - Success rate (40% weight)
     - Response time (30% weight)
@@ -200,7 +199,7 @@ class HealthCalculator:
 class AgentRecovery:
     """
     Manages agent recovery and self-healing.
-    
+
     Features:
     - Automatic restart of failed agents
     - Circuit breakers for cascading failure prevention
@@ -290,10 +289,8 @@ class AgentRecovery:
 
         if self._monitor_task and not self._monitor_task.done():
             self._monitor_task.cancel()
-            try:
+            with contextlib.suppress(asyncio.CancelledError):
                 await self._monitor_task
-            except asyncio.CancelledError:
-                pass
 
         logger.info("Agent recovery monitoring stopped")
 
@@ -337,7 +334,7 @@ class AgentRecovery:
     async def _attempt_recovery(self, agent_id: str) -> bool:
         """
         Attempt to recover a failed agent.
-        
+
         Returns True if recovery was successful.
         """
         from engined.agents.swarm import AgentStatus
@@ -442,7 +439,7 @@ class AgentRecovery:
 class RetryStrategy:
     """
     Retry strategy with exponential backoff.
-    
+
     Used for task retry when agent processing fails.
     """
 
@@ -496,7 +493,7 @@ class RetryStrategy:
 class DeadLetterQueue:
     """
     Dead letter queue for tasks that failed all retry attempts.
-    
+
     Allows manual inspection and replay of failed tasks.
     """
 

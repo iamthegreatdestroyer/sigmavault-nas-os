@@ -8,6 +8,8 @@ import pytest
 from fastapi import status
 from httpx import ASGITransport, AsyncClient
 
+pytestmark = pytest.mark.integration
+
 from engined.api.elite_agents import initialize_registry, shutdown_registry
 from engined.main import create_app
 

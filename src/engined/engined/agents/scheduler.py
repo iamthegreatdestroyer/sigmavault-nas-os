@@ -13,7 +13,7 @@ import logging
 import time
 from dataclasses import dataclass, field
 from enum import IntEnum
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, ClassVar
 
 if TYPE_CHECKING:
     from engined.agents.swarm import Agent, AgentSwarm
@@ -46,7 +46,7 @@ class PriorityTask:
 class TaskRouter:
     """
     Routes tasks to the most suitable agent based on task type and agent capabilities.
-    
+
     Implements intelligent routing with:
     - Task type to agent specialty matching
     - Load balancing across available agents
@@ -54,7 +54,7 @@ class TaskRouter:
     """
 
     # Task type to preferred agent names mapping
-    TASK_ROUTING_TABLE: dict[str, list[str]] = {
+    TASK_ROUTING_TABLE: ClassVar[dict[str, list[str]]] = {
         # Compression tasks → Core agents
         "compression": ["TENSOR", "VELOCITY", "AXIOM", "DELTA", "WAVE", "NEXUS"],
         "compression.neural": ["TENSOR", "AXIOM", "PRISM"],
@@ -98,7 +98,7 @@ class TaskRouter:
     def route(self, task_type: str) -> Agent | None:
         """
         Find the best agent for a task type.
-        
+
         Strategy:
         1. Try exact task type match
         2. Try parent task type (e.g., "compression" for "compression.neural")
@@ -145,7 +145,7 @@ class TaskRouter:
 class TaskScheduler:
     """
     Advanced task scheduler with priority queue, rate limiting, and metrics.
-    
+
     Features:
     - Priority-based scheduling (critical > high > normal > low > background)
     - Rate limiting to prevent task flooding
@@ -232,7 +232,7 @@ class TaskScheduler:
     ) -> str:
         """
         Schedule a task for execution.
-        
+
         Returns the assigned agent name or "queued" if no agent immediately available.
         """
         # Create task in swarm
@@ -392,11 +392,11 @@ class TaskScheduler:
                 task = self.swarm.tasks.get(task_id)
                 agent_name = task.assigned_agent if task else "unknown"
                 if success:
-                    asyncio.create_task(
+                    asyncio.create_task(  # noqa: RUF006
                         bridge.on_task_completed(task_id, agent_name, 0)
                     )
                 else:
-                    asyncio.create_task(
+                    asyncio.create_task(  # noqa: RUF006
                         bridge.on_task_failed(task_id, agent_name, "Task failed", False)
                     )
         except Exception:

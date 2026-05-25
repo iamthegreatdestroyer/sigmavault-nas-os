@@ -10,7 +10,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-async def create_grpc_server(settings, swarm=None):
+async def create_grpc_server(_settings, _swarm=None):
     """Create and configure the gRPC server."""
     # Create a mock server for now
     class MockServer:

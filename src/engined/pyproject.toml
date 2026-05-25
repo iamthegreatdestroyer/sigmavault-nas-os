@@ -127,6 +127,7 @@ addopts = [
     "-q",
     "--strict-markers",
     "--strict-config",
+    "-m", "not integration",
 ]
 markers = [
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
@@ -156,6 +157,10 @@ ignore_missing_imports = true
 target-version = "py311"
 line-length = 88
 fix = true
+exclude = [
+    "engined/rpc/system_pb2.py",
+    "engined/rpc/system_pb2_grpc.py",
+]
 
 [tool.ruff.lint]
 select = [
@@ -180,6 +185,8 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["ARG", "S101"]
+"engined/rpc/system_pb2.py" = ["ALL"]
+"engined/rpc/system_pb2_grpc.py" = ["ALL"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["engined"]

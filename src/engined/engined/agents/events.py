@@ -9,6 +9,7 @@ via the Go API gateway.
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import json
 import time
 from collections.abc import Callable, Coroutine
@@ -90,7 +91,7 @@ EventHandler = Callable[[Event], Coroutine[Any, Any, None]]
 class EventEmitter:
     """
     Central event emitter for agent system events.
-    
+
     Manages event subscriptions and broadcasts events to registered handlers.
     Designed to integrate with WebSocket broadcasting via Go API.
     """
@@ -124,10 +125,8 @@ class EventEmitter:
 
         if self._processor_task:
             self._processor_task.cancel()
-            try:
+            with contextlib.suppress(asyncio.CancelledError):
                 await self._processor_task
-            except asyncio.CancelledError:
-                pass
 
         logger.info(
             "Event emitter stopped",
@@ -142,11 +141,11 @@ class EventEmitter:
     ) -> Callable[[], None]:
         """
         Subscribe to events of a specific type.
-        
+
         Args:
             event_type: Type to subscribe to, or None for all events.
             handler: Async function to call when event occurs.
-            
+
         Returns:
             Unsubscribe function.
         """
@@ -163,10 +162,10 @@ class EventEmitter:
     async def emit(self, event: Event) -> bool:
         """
         Emit an event to be processed.
-        
+
         Args:
             event: Event to emit.
-            
+
         Returns:
             True if event was queued, False if dropped.
         """
@@ -190,7 +189,7 @@ class EventEmitter:
     ) -> None:
         """
         Emit an event immediately without buffering.
-        
+
         Use for critical events that must be processed synchronously.
         """
         event = Event(event_type=event_type, data=data)
@@ -239,7 +238,7 @@ class EventEmitter:
 class AgentEventBridge:
     """
     Bridges agent system events to the event emitter.
-    
+
     Integrates with AgentSwarm, TaskScheduler, and AgentRecovery
     to capture and emit relevant events.
     """
@@ -286,10 +285,8 @@ class AgentEventBridge:
         for task in [self._health_check_task, self._metrics_task]:
             if task:
                 task.cancel()
-                try:
+                with contextlib.suppress(asyncio.CancelledError):
                     await task
-                except asyncio.CancelledError:
-                    pass
 
         logger.info("Agent event bridge stopped")
 
@@ -562,12 +559,12 @@ async def configure_event_system(
 ) -> tuple[EventEmitter, AgentEventBridge]:
     """
     Configure and start the event system.
-    
+
     Args:
         swarm: Agent swarm for health monitoring.
         scheduler: Task scheduler for metrics.
         recovery: Recovery system for status events.
-        
+
     Returns:
         Tuple of (EventEmitter, AgentEventBridge).
     """

@@ -13,11 +13,9 @@ from __future__ import annotations
 
 import asyncio
 import signal
-from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from typing import TYPE_CHECKING
 
-import grpc
 import structlog
 from aiohttp import web
 from fastapi import FastAPI
@@ -46,7 +44,9 @@ from engined.config import Settings, get_settings
 from engined.rpc.server import create_grpc_server
 
 if TYPE_CHECKING:
-    from engined.agents.swarm import AgentSwarm
+    from collections.abc import AsyncGenerator
+
+    import grpc
 
 # Configure structured logging
 structlog.configure(
@@ -177,7 +177,7 @@ class EngineState:
 
     def request_shutdown(self) -> None:
         """Request graceful shutdown."""
-        asyncio.create_task(self.shutdown())
+        asyncio.create_task(self.shutdown())  # noqa: RUF006
 
 
 # Global engine state
@@ -318,7 +318,7 @@ def create_app() -> FastAPI:
 
 def setup_signal_handlers() -> None:
     """Setup signal handlers for graceful shutdown."""
-    def handle_signal(signum: int, frame: object) -> None:
+    def handle_signal(signum: int, _frame: object) -> None:
         logger.info("Received shutdown signal", signal=signal.Signals(signum).name)
         engine_state.request_shutdown()
 

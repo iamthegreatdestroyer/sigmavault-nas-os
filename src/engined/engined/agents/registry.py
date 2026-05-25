@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 class AgentRegistry:
     """
     Central registry for all agents in the Elite Agent Collective.
-    
+
     Responsibilities:
     - Agent registration and lifecycle management
     - Agent discovery by ID, tier, or capability
@@ -33,10 +33,10 @@ class AgentRegistry:
     async def register_agent(self, agent: BaseAgent) -> bool:
         """
         Register agent in the registry.
-        
+
         Args:
             agent: Agent instance to register
-            
+
         Returns:
             True if registration successful, False if already registered
         """
@@ -56,10 +56,10 @@ class AgentRegistry:
     async def unregister_agent(self, agent_id: str) -> bool:
         """
         Unregister agent from registry.
-        
+
         Args:
             agent_id: Agent to unregister
-            
+
         Returns:
             True if unregistered, False if not found
         """
@@ -81,7 +81,7 @@ class AgentRegistry:
     async def initialize_all(self) -> dict[str, bool]:
         """
         Initialize all registered agents.
-        
+
         Returns:
             Dict mapping agent_id to initialization success status
         """
@@ -127,13 +127,13 @@ class AgentRegistry:
     async def shutdown_all(self):
         """
         Shutdown all agents gracefully.
-        
+
         Waits for all agents to complete current tasks before shutting down.
         """
         logger.info("Shutting down all agents...")
 
         tasks = []
-        for agent_id, agent in self._agents.items():
+        for _agent_id, agent in self._agents.items():
             if agent.state not in (AgentState.SHUTDOWN, AgentState.STUB):
                 tasks.append(agent.shutdown())
 
@@ -145,10 +145,10 @@ class AgentRegistry:
     def get_agent(self, agent_id: str) -> BaseAgent | None:
         """
         Get agent by ID.
-        
+
         Args:
             agent_id: Agent identifier
-            
+
         Returns:
             Agent instance or None if not found
         """
@@ -162,12 +162,12 @@ class AgentRegistry:
     ) -> list[dict]:
         """
         List agents with optional filters.
-        
+
         Args:
             tier: Filter by tier (1-4)
             state: Filter by agent state
             domain: Filter by domain expertise
-            
+
         Returns:
             List of agent status dictionaries
         """
@@ -189,10 +189,10 @@ class AgentRegistry:
     def get_agents_by_tier(self, tier: int) -> list[BaseAgent]:
         """
         Get all agents in a specific tier.
-        
+
         Args:
             tier: Tier number (1=Foundational, 2=Specialist, 3=Innovator, 4=Meta)
-            
+
         Returns:
             List of agents in that tier
         """
@@ -204,10 +204,10 @@ class AgentRegistry:
     def get_agents_by_domain(self, domain: str) -> list[BaseAgent]:
         """
         Get all agents with expertise in a domain.
-        
+
         Args:
             domain: Domain name (e.g., "security", "ml", "database")
-            
+
         Returns:
             List of agents with that domain expertise
         """
@@ -219,10 +219,10 @@ class AgentRegistry:
     def find_agents_by_skill(self, skill: str) -> list[BaseAgent]:
         """
         Find agents with a specific skill.
-        
+
         Args:
             skill: Skill name
-            
+
         Returns:
             List of agents with that skill
         """
@@ -238,11 +238,11 @@ class AgentRegistry:
     ) -> bool:
         """
         Dispatch task to specific agent.
-        
+
         Args:
             agent_id: Target agent ID
             task: Task to dispatch
-            
+
         Returns:
             True if task submitted successfully
         """
@@ -256,7 +256,7 @@ class AgentRegistry:
     def get_registry_status(self) -> dict:
         """
         Get overall registry status.
-        
+
         Returns:
             Dictionary with registry metrics and statistics
         """

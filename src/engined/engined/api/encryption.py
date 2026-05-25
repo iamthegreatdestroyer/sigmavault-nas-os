@@ -143,7 +143,7 @@ async def start_encryption(
 ) -> EncryptionResult:
     """
     Start a new encryption/decryption job.
-    
+
     For maximum security, use hybrid-kyber-aes which combines classical
     AES-256-GCM with post-quantum Kyber-1024 for key encapsulation.
     """
@@ -262,7 +262,7 @@ async def generate_key(
 ) -> KeyInfo:
     """
     Generate a new encryption key.
-    
+
     For quantum-resistant security, use Kyber-1024 or hybrid-kyber-aes.
     The key is stored in the secure vault and only the key_id is returned.
     """
@@ -344,7 +344,7 @@ async def get_key(key_id: str) -> KeyInfo:
 async def revoke_key(key_id: str) -> None:
     """
     Revoke and securely delete an encryption key.
-    
+
     WARNING: Data encrypted with this key will become unrecoverable.
     """
     if key_id not in _keys:

@@ -8,11 +8,14 @@ import base64
 import platform
 import time
 from datetime import UTC, datetime
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import psutil
 from fastapi import APIRouter, Request
 from pydantic import BaseModel
+
+if TYPE_CHECKING:
+    from engined.agents.swarm import AgentSwarm
 
 router = APIRouter()
 
@@ -163,7 +166,7 @@ def handle_system_status() -> dict[str, Any]:
 
 async def handle_agents_list(request: Request, params: dict[str, Any]) -> list[dict[str, Any]]:
     """Handle agents.list RPC call - returns list of all agents.
-    
+
     Returns array of agent objects directly (not wrapped in object).
     Go client expects: []Agent
     """
@@ -208,7 +211,6 @@ async def handle_agents_list(request: Request, params: dict[str, Any]) -> list[d
 
 async def handle_agents_status(request: Request) -> dict[str, Any]:
     """Handle agents.status RPC call - returns swarm status summary."""
-    from engined.agents.swarm import AgentSwarm
 
     swarm: AgentSwarm | None = getattr(request.app.state, "swarm", None)
 
@@ -231,19 +233,19 @@ async def handle_agents_status(request: Request) -> dict[str, Any]:
 
 async def handle_agents_get(request: Request, params: dict[str, Any]) -> dict[str, Any]:
     """Handle agents.get RPC call - returns specific agent by ID."""
-    from engined.agents.swarm import AgentSwarm, AGENT_DEFINITIONS, AgentStatus
+    from engined.agents.swarm import AGENT_DEFINITIONS, AgentStatus, AgentSwarm
 
     agent_id = params.get("id")
     if not agent_id:
         raise ValueError("id parameter required")
-    
+
     # Try to get agent from initialized swarm
     swarm: AgentSwarm | None = getattr(request.app.state, "swarm", None)
     if swarm and swarm.is_initialized:
         agent = swarm.get_agent(agent_id)
         if agent:
             return agent.to_dict()
-    
+
     # Fallback: construct agent from definitions
     # agent_id format: agent-001, agent-002, etc.
     try:
@@ -265,18 +267,18 @@ async def handle_agents_get(request: Request, params: dict[str, Any]) -> dict[st
             }
     except (ValueError, IndexError):
         pass
-    
+
     raise ValueError(f"Agent {agent_id} not found")
 
 
 async def handle_agents_get_by_codename(request: Request, params: dict[str, Any]) -> dict[str, Any]:
     """Handle agents.get_by_codename RPC call - returns agent by codename."""
-    from engined.agents.swarm import AgentSwarm, AGENT_DEFINITIONS, AgentStatus
+    from engined.agents.swarm import AGENT_DEFINITIONS, AgentStatus, AgentSwarm
 
     codename = params.get("codename")
     if not codename:
         raise ValueError("codename parameter required")
-    
+
     # Try to get agent from initialized swarm
     swarm: AgentSwarm | None = getattr(request.app.state, "swarm", None)
     if swarm and swarm.is_initialized:
@@ -284,7 +286,7 @@ async def handle_agents_get_by_codename(request: Request, params: dict[str, Any]
         for agent in agents:
             if agent.name == codename:
                 return agent.to_dict()
-    
+
     # Fallback: find in definitions
     for i, agent_def in enumerate(AGENT_DEFINITIONS):
         if agent_def["name"] == codename:
@@ -301,20 +303,19 @@ async def handle_agents_get_by_codename(request: Request, params: dict[str, Any]
                 "memory_usage_mb": 0.0,
                 "last_active": now.isoformat(),
             }
-    
+
     raise ValueError(f"Agent {codename} not found")
 
 
 async def handle_agents_metrics(request: Request, params: dict[str, Any]) -> dict[str, Any]:
     """Handle agents.metrics RPC call - returns agent performance metrics."""
-    from engined.agents.swarm import AgentSwarm
 
     agent_id = params.get("id")
     if not agent_id:
         raise ValueError("id parameter required")
-    
+
     swarm: AgentSwarm | None = getattr(request.app.state, "swarm", None)
-    
+
     if not swarm or not swarm.is_initialized:
         # Return default metrics for offline agent
         now = datetime.now(UTC)
@@ -328,20 +329,20 @@ async def handle_agents_metrics(request: Request, params: dict[str, Any]) -> dic
             "memory_usage": 0,
             "last_updated": now.isoformat(),
         }
-    
+
     agent = swarm.get_agent(agent_id)
     if not agent:
         raise ValueError(f"Agent {agent_id} not found")
-    
+
     now = datetime.now(UTC)
     # Calculate tasks_failed from success_rate if possible
     tasks_failed = 0
     if agent.success_rate < 1.0 and agent.tasks_completed > 0:
         tasks_failed = int(agent.tasks_completed * (1 - agent.success_rate))
-    
-    # Total processing time estimate (tasks × average latency)
+
+    # Total processing time estimate (tasks x average latency)
     total_processing_time_ms = int(agent.tasks_completed * agent.avg_response_time_ms)
-    
+
     return {
         "agent_id": agent_id,
         "tasks_completed": agent.tasks_completed,
@@ -354,36 +355,36 @@ async def handle_agents_metrics(request: Request, params: dict[str, Any]) -> dic
     }
 
 
-async def handle_agents_list_tiers(request: Request) -> dict[str, Any]:
+async def handle_agents_list_tiers(_request: Request) -> dict[str, Any]:
     """Handle agents.list_tiers RPC call - returns agent tier breakdown."""
-    from engined.agents.swarm import AgentSwarm, AGENT_DEFINITIONS, AgentTier
+    from engined.agents.swarm import AGENT_DEFINITIONS, AgentTier
 
     tier_map = {
         AgentTier.CORE: {"name": "Core", "description": "Core compression agents"},
         AgentTier.SPECIALIST: {"name": "Specialist", "description": "Specialized domain agents"},
         AgentTier.SUPPORT: {"name": "Support", "description": "Supporting infrastructure agents"},
     }
-    
+
     # Count agents by tier
     tier_counts: dict[str, int] = {
         AgentTier.CORE.value: 0,
         AgentTier.SPECIALIST.value: 0,
         AgentTier.SUPPORT.value: 0,
     }
-    
+
     for agent_def in AGENT_DEFINITIONS:
         tier_counts[agent_def["tier"].value] += 1
-    
+
     # Build tier breakdown
     tiers = []
     agent_idx = 1
     for tier_enum in [AgentTier.CORE, AgentTier.SPECIALIST, AgentTier.SUPPORT]:
         tier_value = tier_enum.value
         agent_ids = []
-        for i in range(tier_counts[tier_value]):
+        for _i in range(tier_counts[tier_value]):
             agent_ids.append(f"agent-{agent_idx:03d}")
             agent_idx += 1
-        
+
         tiers.append({
             "tier": tier_value,
             "name": tier_map[tier_enum]["name"],
@@ -391,7 +392,7 @@ async def handle_agents_list_tiers(request: Request) -> dict[str, Any]:
             "agent_count": tier_counts[tier_value],
             "agents": agent_ids,
         })
-    
+
     return {
         "tiers": tiers,
         "total_agents": len(AGENT_DEFINITIONS),
@@ -439,14 +440,14 @@ def handle_compression_job_get(params: dict[str, Any]) -> dict[str, Any]:
 async def handle_compress_data(params: dict[str, Any]) -> dict[str, Any]:
     """
     Handle compression.compress.data RPC call.
-    
+
     Compress raw data (base64 encoded) synchronously.
-    
+
     Params:
         data: base64 encoded data to compress
         level: compression level (fast, balanced, maximum, adaptive)
         job_id: optional job ID for tracking
-    
+
     Returns:
         job_id, original_size, compressed_size, ratio, data (base64)
     """
@@ -459,7 +460,7 @@ async def handle_compress_data(params: dict[str, Any]) -> dict[str, Any]:
     try:
         data = base64.b64decode(data_b64)
     except Exception as e:
-        raise ValueError(f"Invalid base64 data: {e}")
+        raise ValueError(f"Invalid base64 data: {e}") from e
 
     level_str = params.get("level", "balanced")
     level_map = {
@@ -513,15 +514,15 @@ async def handle_compress_data(params: dict[str, Any]) -> dict[str, Any]:
 async def handle_compress_file(params: dict[str, Any]) -> dict[str, Any]:
     """
     Handle compression.compress.file RPC call.
-    
+
     Compress a file on the filesystem.
-    
+
     Params:
         source_path: path to file to compress
         dest_path: optional destination path
         level: compression level
         job_id: optional job ID
-    
+
     Returns:
         job_id, paths, sizes, ratio
     """
@@ -591,13 +592,13 @@ async def handle_compress_file(params: dict[str, Any]) -> dict[str, Any]:
 async def handle_decompress_data(params: dict[str, Any]) -> dict[str, Any]:
     """
     Handle compression.decompress.data RPC call.
-    
+
     Decompress raw data (base64 encoded).
-    
+
     Params:
         data: base64 encoded compressed data
         job_id: optional job ID
-    
+
     Returns:
         job_id, sizes, decompressed data (base64)
     """
@@ -608,7 +609,7 @@ async def handle_decompress_data(params: dict[str, Any]) -> dict[str, Any]:
     try:
         data = base64.b64decode(data_b64)
     except Exception as e:
-        raise ValueError(f"Invalid base64 data: {e}")
+        raise ValueError(f"Invalid base64 data: {e}") from e
 
     job_id = params.get("job_id")
 
@@ -630,14 +631,14 @@ async def handle_decompress_data(params: dict[str, Any]) -> dict[str, Any]:
 async def handle_decompress_file(params: dict[str, Any]) -> dict[str, Any]:
     """
     Handle compression.decompress.file RPC call.
-    
+
     Decompress a file on the filesystem.
-    
+
     Params:
         source_path: path to compressed file
         dest_path: optional destination path
         job_id: optional job ID
-    
+
     Returns:
         job_id, paths, sizes
     """
@@ -673,16 +674,16 @@ async def handle_decompress_file(params: dict[str, Any]) -> dict[str, Any]:
 async def handle_queue_submit(params: dict[str, Any]) -> dict[str, Any]:
     """
     Handle compression.queue.submit RPC call.
-    
+
     Submit a compression job to the async queue.
-    
+
     Params:
         type: "compress_file", "compress_data", "decompress_file", "decompress_data"
         source_path or data: input
         dest_path: optional output path
         priority: low, normal, high, critical
         level: compression level
-    
+
     Returns:
         job_id, status
     """
@@ -751,12 +752,12 @@ async def handle_queue_submit(params: dict[str, Any]) -> dict[str, Any]:
 async def handle_queue_status(params: dict[str, Any]) -> dict[str, Any]:
     """
     Handle compression.queue.status RPC call.
-    
+
     Get status of a queued job or all jobs.
-    
+
     Params:
         job_id: optional specific job ID
-    
+
     Returns:
         Job status or queue summary
     """
@@ -787,14 +788,14 @@ async def handle_queue_status(params: dict[str, Any]) -> dict[str, Any]:
 async def handle_queue_running(params: dict[str, Any]) -> dict[str, Any]:
     """
     Handle compression.queue.running RPC call.
-    
+
     Get all running and pending jobs with detailed progress information.
     Optimized for WebSocket progress streaming.
-    
+
     Params:
         include_pending: include pending jobs (default: True)
         limit: max jobs to return (default: 50)
-    
+
     Returns:
         List of jobs with detailed progress data
     """
@@ -853,12 +854,12 @@ async def handle_queue_running(params: dict[str, Any]) -> dict[str, Any]:
 async def handle_queue_cancel(params: dict[str, Any]) -> dict[str, Any]:
     """
     Handle compression.queue.cancel RPC call.
-    
+
     Cancel a queued job.
-    
+
     Params:
         job_id: job to cancel
-    
+
     Returns:
         success status
     """
@@ -878,7 +879,7 @@ async def handle_queue_cancel(params: dict[str, Any]) -> dict[str, Any]:
 async def handle_get_compression_config() -> dict[str, Any]:
     """
     Handle compression.config.get RPC call.
-    
+
     Get current compression configuration.
     """
     bridge = await get_compression_bridge()
@@ -897,9 +898,9 @@ async def handle_get_compression_config() -> dict[str, Any]:
 async def handle_set_compression_config(params: dict[str, Any]) -> dict[str, Any]:
     """
     Handle compression.config.set RPC call.
-    
+
     Update compression configuration.
-    
+
     Params:
         level: compression level
         chunk_size: bytes per chunk
@@ -939,13 +940,13 @@ async def handle_set_compression_config(params: dict[str, Any]) -> dict[str, Any
 async def handle_compression_stats() -> dict[str, Any]:
     """
     Handle compression.stats RPC call.
-    
+
     Retrieves overall compression statistics across all jobs.
     """
     from engined.api.compression import get_compression_stats
-    
+
     # Get the stats from the compression API
     stats = await get_compression_stats()
-    
+
     # Convert Pydantic model to dict for JSON serialization
     return stats.model_dump()

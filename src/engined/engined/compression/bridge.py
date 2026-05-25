@@ -83,7 +83,7 @@ class CompressionResult:
 class CompressionBridge:
     """
     Bridge to EliteSigma-NAS compression engine.
-    
+
     Provides:
     - Async compression/decompression operations
     - Progress callbacks for real-time updates
@@ -102,7 +102,7 @@ class CompressionBridge:
     async def initialize(self) -> bool:
         """
         Initialize the compression engine.
-        
+
         Returns:
             True if initialization successful, False otherwise.
         """
@@ -113,7 +113,6 @@ class CompressionBridge:
             # Import EliteSigma-NAS components
             from nas_core.compression_engine import (
                 CompressionEngine,
-                DataTypeDetector,
                 SigmaCodebook,
             )
 
@@ -168,12 +167,12 @@ class CompressionBridge:
     ) -> CompressionResult:
         """
         Compress a file using AI-powered compression.
-        
+
         Args:
             input_path: Path to input file.
             output_path: Path for compressed output (optional).
             job_id: Job identifier for tracking.
-            
+
         Returns:
             CompressionResult with compression statistics.
         """
@@ -241,11 +240,11 @@ class CompressionBridge:
     ) -> CompressionResult:
         """
         Compress raw bytes using AI-powered compression.
-        
+
         Args:
             data: Raw bytes to compress.
             job_id: Job identifier for tracking.
-            
+
         Returns:
             CompressionResult with compressed data and statistics.
         """
@@ -274,7 +273,7 @@ class CompressionBridge:
             current_ratio = 1.0  # Initialize for empty data edge case
 
             for i, chunk in enumerate(chunks):
-                chunk_start = datetime.now()
+                datetime.now()
 
                 # Compress chunk
                 compressed_chunk = await self._compress_chunk(chunk)
@@ -389,12 +388,12 @@ class CompressionBridge:
     ) -> CompressionResult:
         """
         Decompress a file.
-        
+
         Args:
             input_path: Path to compressed file.
             output_path: Path for decompressed output.
             job_id: Job identifier for tracking.
-            
+
         Returns:
             CompressionResult with decompression statistics.
         """
@@ -445,11 +444,11 @@ class CompressionBridge:
     ) -> CompressionResult:
         """
         Decompress raw bytes.
-        
+
         Args:
             data: Compressed bytes to decompress.
             job_id: Job identifier for tracking.
-            
+
         Returns:
             CompressionResult with decompressed data.
         """

@@ -39,7 +39,7 @@ class TaskPriority(Enum):
 class AgentCapability:
     """
     Agent capability descriptor.
-    
+
     Defines what an agent can do, its tier classification,
     and domain expertise.
     """
@@ -56,7 +56,7 @@ class AgentCapability:
 class AgentTask:
     """
     Task submitted to an agent.
-    
+
     Contains all information needed for task execution including
     payload, priority, and timeout constraints.
     """
@@ -74,7 +74,7 @@ class AgentTask:
 class TaskResult:
     """
     Result of task execution.
-    
+
     Contains output, metrics, and any errors encountered.
     """
 
@@ -89,13 +89,13 @@ class TaskResult:
 class BaseAgent(ABC):
     """
     Base class for all Elite Agent Collective members.
-    
+
     Provides common infrastructure for:
     - State management
     - Task execution lifecycle
     - Metrics tracking
     - Error handling
-    
+
     Each specialized agent (APEX, CIPHER, etc.) inherits from this class
     and implements the execute_task method.
     """
@@ -103,7 +103,7 @@ class BaseAgent(ABC):
     def __init__(self, agent_id: str, capability: AgentCapability):
         """
         Initialize base agent.
-        
+
         Args:
             agent_id: Unique agent identifier (e.g., "APEX-01")
             capability: Agent capability descriptor
@@ -127,9 +127,9 @@ class BaseAgent(ABC):
     async def initialize(self) -> bool:
         """
         Initialize agent - transition from STUB to IDLE.
-        
+
         Override this method to add custom initialization logic.
-        
+
         Returns:
             True if initialization successful, False otherwise
         """
@@ -152,27 +152,26 @@ class BaseAgent(ABC):
             self.state = AgentState.ERROR
             return False
 
-    async def _custom_initialize(self):
+    async def _custom_initialize(self) -> None:  # noqa: B027
         """
         Custom initialization logic.
-        
+
         Override this in derived classes for agent-specific initialization.
         """
-        pass
 
     @abstractmethod
     async def execute_task(self, task: AgentTask) -> TaskResult:
         """
         Execute assigned task.
-        
+
         This method MUST be implemented by each specialized agent.
-        
+
         Args:
             task: Task to execute
-            
+
         Returns:
             TaskResult with output and execution metrics
-            
+
         Raises:
             NotImplementedError: If not overridden in derived class
         """
@@ -181,10 +180,10 @@ class BaseAgent(ABC):
     async def submit_task(self, task: AgentTask) -> bool:
         """
         Submit task to agent's queue.
-        
+
         Args:
             task: Task to submit
-            
+
         Returns:
             True if task queued successfully
         """
@@ -199,7 +198,7 @@ class BaseAgent(ABC):
     async def _execute_with_lifecycle(self, task: AgentTask) -> TaskResult:
         """
         Execute task with full lifecycle management.
-        
+
         Handles state transitions, timing, error handling, and metrics.
         """
         start_time = datetime.now(UTC)
@@ -262,7 +261,7 @@ class BaseAgent(ABC):
     async def run(self):
         """
         Main agent loop - processes tasks from queue.
-        
+
         This is typically run as a background task via asyncio.create_task().
         """
         logger.info(f"{self.agent_id}: Agent loop started")
@@ -276,7 +275,7 @@ class BaseAgent(ABC):
                 )
 
                 # Execute task
-                result = await self._execute_with_lifecycle(task)
+                await self._execute_with_lifecycle(task)
 
                 # Mark task done
                 self._task_queue.task_done()
@@ -293,7 +292,7 @@ class BaseAgent(ABC):
     async def shutdown(self):
         """
         Graceful shutdown.
-        
+
         Waits for current task to complete, then stops the agent loop.
         """
         logger.info(f"{self.agent_id}: Shutdown initiated")
@@ -319,7 +318,7 @@ class BaseAgent(ABC):
     def get_status(self) -> dict[str, Any]:
         """
         Get agent status.
-        
+
         Returns:
             Dictionary with agent state, metrics, and current task info
         """
@@ -333,6 +332,7 @@ class BaseAgent(ABC):
             "queue_size": self._task_queue.qsize(),
             "metrics": {
                 "task_count": self.task_count,
+                "total_tasks": self.task_count,
                 "success_count": self.success_count,
                 "error_count": self.error_count,
                 "success_rate": (

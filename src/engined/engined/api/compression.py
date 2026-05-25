@@ -122,7 +122,7 @@ async def start_compression(
 ) -> CompressionResult:
     """
     Start a new compression job.
-    
+
     The job runs asynchronously. Use the returned job_id to track progress.
     When algorithm is 'auto', AI agents analyze the content and select
     the optimal algorithm.
@@ -219,7 +219,7 @@ async def list_compression_jobs(
 ) -> list[CompressionResult]:
     """
     List compression jobs.
-    
+
     Optionally filter by status and paginate results.
     """
     jobs = list(_compression_jobs.values())
@@ -251,7 +251,7 @@ async def get_compression_job(job_id: str) -> CompressionResult:
 async def cancel_compression_job(job_id: str) -> None:
     """
     Cancel a pending or running compression job.
-    
+
     Only pending and analyzing jobs can be cancelled.
     """
     job = _compression_jobs.get(job_id)
@@ -309,7 +309,7 @@ async def analyze_content(
 ) -> dict:
     """
     Analyze content and recommend optimal compression settings.
-    
+
     Uses AI agents to analyze file content type, size, and patterns
     to recommend the best compression algorithm and level.
     """

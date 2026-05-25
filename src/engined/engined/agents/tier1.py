@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 class APEXAgent(BaseAgent):
     """
     APEX-01: Elite Computer Science Engineering Specialist.
-    
+
     Tier: 1 - Foundational
     Philosophy: "Every problem has an elegant solution waiting to be discovered."
     """
@@ -57,7 +57,7 @@ class APEXAgent(BaseAgent):
 class CIPHERAgent(BaseAgent):
     """
     CIPHER-02: Advanced Cryptography & Security Specialist.
-    
+
     Tier: 1 - Foundational
     Philosophy: "Security is not a feature—it is a foundation upon which trust is built."
     """
@@ -97,7 +97,7 @@ class CIPHERAgent(BaseAgent):
 class ARCHITECTAgent(BaseAgent):
     """
     ARCHITECT-03: Systems Architecture & Design Patterns Specialist.
-    
+
     Tier: 1 - Foundational
     Philosophy: "Architecture is the art of making complexity manageable and change inevitable."
     """
@@ -137,7 +137,7 @@ class ARCHITECTAgent(BaseAgent):
 class AXIOMAgent(BaseAgent):
     """
     AXIOM-04: Pure Mathematics & Formal Proofs Specialist.
-    
+
     Tier: 1 - Foundational
     Philosophy: "From axioms flow theorems; from theorems flow certainty."
     """
@@ -177,7 +177,7 @@ class AXIOMAgent(BaseAgent):
 class VELOCITYAgent(BaseAgent):
     """
     VELOCITY-05: Performance Optimization & Sub-Linear Algorithms Specialist.
-    
+
     Tier: 1 - Foundational
     Philosophy: "The fastest code is the code that doesn't run."
     """

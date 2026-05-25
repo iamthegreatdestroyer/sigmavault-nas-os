@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 class TENSORAgent(BaseAgent):
     """
     TENSOR-07: Machine Learning & Deep Neural Networks Specialist.
-    
+
     Tier: 2 - Specialist
     Philosophy: "Intelligence emerges from the right architecture trained on the right data."
     """
@@ -55,7 +55,7 @@ class TENSORAgent(BaseAgent):
 class FORTRESSAgent(BaseAgent):
     """
     FORTRESS-08: Defensive Security & Penetration Testing Specialist.
-    
+
     Tier: 2 - Specialist
     Philosophy: "To defend, you must think like the attacker."
     """
@@ -95,7 +95,7 @@ class FORTRESSAgent(BaseAgent):
 class FLUXAgent(BaseAgent):
     """
     FLUX-11: DevOps & Infrastructure Automation Specialist.
-    
+
     Tier: 2 - Specialist
     Philosophy: "Infrastructure is code. Deployment is continuous. Recovery is automatic."
     """
@@ -135,7 +135,7 @@ class FLUXAgent(BaseAgent):
 class PRISMAgent(BaseAgent):
     """
     PRISM-12: Data Science & Statistical Analysis Specialist.
-    
+
     Tier: 2 - Specialist
     Philosophy: "Data speaks truth, but only to those who ask the right questions."
     """
@@ -175,7 +175,7 @@ class PRISMAgent(BaseAgent):
 class SYNAPSEAgent(BaseAgent):
     """
     SYNAPSE-13: Integration Engineering & API Design Specialist.
-    
+
     Tier: 2 - Specialist
     Philosophy: "Systems are only as powerful as their connections."
     """

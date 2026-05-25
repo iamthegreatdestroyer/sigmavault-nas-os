@@ -16,15 +16,18 @@ Features:
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import logging
 import random
 import statistics
 from collections import deque
-from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 logger = logging.getLogger(__name__)
 
@@ -79,17 +82,13 @@ class TunableParameter:
         if self.param_type == ParameterType.CONTINUOUS:
             if self.min_value is not None and value < self.min_value:
                 return False
-            if self.max_value is not None and value > self.max_value:
-                return False
-            return True
+            return not (self.max_value is not None and value > self.max_value)
         elif self.param_type == ParameterType.DISCRETE:
             if not isinstance(value, int):
                 return False
             if self.min_value is not None and value < self.min_value:
                 return False
-            if self.max_value is not None and value > self.max_value:
-                return False
-            return True
+            return not (self.max_value is not None and value > self.max_value)
         elif self.param_type == ParameterType.CATEGORICAL:
             return value in (self.choices or [])
         return True
@@ -133,7 +132,7 @@ class TuningSession:
 class PerformanceTracker:
     """
     Tracks performance metrics over time for tuning decisions.
-    
+
     Uses sliding windows and statistical analysis to determine
     if parameter changes improved or degraded performance.
     """
@@ -173,7 +172,7 @@ class PerformanceTracker:
     def get_trend(self, metric_name: str) -> float | None:
         """
         Get trend direction for a metric.
-        
+
         Returns positive for improving, negative for degrading.
         """
         values = self._metrics.get(metric_name)
@@ -213,7 +212,7 @@ class PerformanceTracker:
     ) -> float:
         """
         Compute composite performance score.
-        
+
         Uses weighted combination of normalized metrics.
         """
         if not weights:
@@ -249,7 +248,7 @@ class PerformanceTracker:
 class SelfTuner:
     """
     Self-tuning system for adaptive parameter optimization.
-    
+
     Uses evolutionary strategies and memory insights to automatically
     tune system parameters for optimal performance.
     """
@@ -388,7 +387,7 @@ class SelfTuner:
         self,
         success: bool,
         latency_ms: float,
-        task_type: str = "general",
+        task_type: str = "general",  # noqa: ARG002
     ) -> None:
         """Record a task completion for performance tracking."""
         self._tracker.record_metric("success_rate", 1.0 if success else 0.0)
@@ -416,10 +415,8 @@ class SelfTuner:
         self._running = False
         if self._task:
             self._task.cancel()
-            try:
+            with contextlib.suppress(asyncio.CancelledError):
                 await self._task
-            except asyncio.CancelledError:
-                pass
             self._task = None
         logger.info("SelfTuner stopped")
 
