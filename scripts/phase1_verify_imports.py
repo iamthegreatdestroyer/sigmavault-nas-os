@@ -26,7 +26,6 @@ except Exception as e:
 print("\n[TEST 2] Importing CompressionJobQueue...")
 try:
     from engined.compression.job_queue import (
-        CompressionJobQueue,
         CompressionJob,
         JobStatus,
         JobPriority,
@@ -50,7 +49,6 @@ try:
         handle_decompress_file,
         handle_queue_submit,
         handle_queue_status,
-        handle_get_compression_config,
     )
     print("✓ All RPC handlers imported successfully")
     print("  - handle_compress_data")
@@ -94,7 +92,7 @@ except Exception as e:
 print("\n[TEST 6] Instantiating CompressionConfig...")
 try:
     config = CompressionConfig(level=CompressionLevel.BALANCED)
-    print(f"✓ CompressionConfig created:")
+    print("✓ CompressionConfig created:")
     print(f"  - level: {config.level.value}")
     print(f"  - chunk_size: {config.chunk_size:,} bytes")
     print(f"  - use_semantic: {config.use_semantic}")

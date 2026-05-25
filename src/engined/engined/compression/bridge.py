@@ -128,8 +128,8 @@ class CompressionBridge:
 
         except ImportError as e:
             logger.warning(f"EliteSigma-NAS not available: {e}")
-            # Fall back to stub implementation
-            self._engine = StubCompressionEngine()
+            # Fall back to stdlib zlib/lzma implementation
+            self._engine = StubCompressionEngine(level=self.config.level)
             self._initialized = True
             return True
         except Exception as e:
@@ -532,20 +532,43 @@ class CompressionBridge:
 
 class StubCompressionEngine:
     """
-    Stub compression engine for when EliteSigma-NAS is not available.
-    Provides basic zlib compression as fallback.
+    Fallback compression engine using stdlib zlib/lzma when EliteSigma-NAS
+    is not available.  Algorithm is chosen by CompressionLevel:
+      FAST     -> zlib level 1
+      BALANCED -> zlib level 6
+      MAXIMUM  -> lzma (preset 6)
+      ADAPTIVE -> zlib level 6 (same as BALANCED)
+    The 4-byte little-endian header encodes which algorithm was used so
+    decompress() can route correctly without external metadata.
     """
 
-    def __init__(self):
-        """Initialize stub engine."""
-        import zlib
-        self._zlib = zlib
-        logger.info("Using StubCompressionEngine (zlib fallback)")
+    _MAGIC_ZLIB = b"ZLB\x01"
+    _MAGIC_LZMA = b"LZM\x01"
+
+    def __init__(self, level: "CompressionLevel | None" = None):
+        self._level = level or CompressionLevel.BALANCED
+        logger.info("Using StubCompressionEngine (zlib/lzma fallback, level=%s)", self._level.value)
 
     def compress(self, data: bytes) -> bytes:
-        """Compress data using zlib."""
-        return self._zlib.compress(data, level=6)
+        import lzma
+        import zlib
+
+        if self._level is CompressionLevel.MAXIMUM:
+            compressed = lzma.compress(data, preset=6)
+            return self._MAGIC_LZMA + compressed
+        elif self._level is CompressionLevel.FAST:
+            compressed = zlib.compress(data, level=1)
+        else:
+            compressed = zlib.compress(data, level=6)
+        return self._MAGIC_ZLIB + compressed
 
     def decompress(self, data: bytes) -> bytes:
-        """Decompress data using zlib."""
-        return self._zlib.decompress(data)
+        import lzma
+        import zlib
+
+        if data[:4] == self._MAGIC_LZMA:
+            return lzma.decompress(data[4:])
+        if data[:4] == self._MAGIC_ZLIB:
+            return zlib.decompress(data[4:])
+        # Legacy: no header — assume raw zlib (backwards compat)
+        return zlib.decompress(data)

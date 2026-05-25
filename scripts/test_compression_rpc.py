@@ -10,7 +10,6 @@ Tests that:
 """
 
 import asyncio
-import json
 import sys
 import logging
 from pathlib import Path
@@ -46,7 +45,7 @@ async def test_compression_bridge():
         logger.error("Failed to initialize bridge")
         return False
     
-    logger.info(f"✓ Bridge initialized")
+    logger.info("✓ Bridge initialized")
     logger.info(f"  Engine type: {type(bridge._engine).__name__}")
     logger.info(f"  Config level: {config.level.value}")
     
@@ -60,7 +59,7 @@ async def test_compression_bridge():
         logger.error(f"✗ Compression failed: {result.error}")
         return False
     
-    logger.info(f"✓ Compression successful")
+    logger.info("✓ Compression successful")
     logger.info(f"  Job ID: {result.job_id}")
     logger.info(f"  Original size: {result.original_size:,} bytes")
     logger.info(f"  Compressed size: {result.compressed_size:,} bytes")
@@ -78,7 +77,7 @@ async def test_compression_bridge():
         logger.error(f"✗ Decompression failed: {decompressed.error}")
         return False
     
-    logger.info(f"✓ Decompression successful")
+    logger.info("✓ Decompression successful")
     logger.info(f"  Decompressed size: {decompressed.original_size:,} bytes")
     logger.info(f"  Matches original: {decompressed.compressed_data == test_data}")
     
@@ -108,7 +107,7 @@ async def test_rpc_handlers():
     test_data = b"RPC compression test data " * 50
     data_b64 = base64.b64encode(test_data).decode()
     
-    logger.info(f"Calling compression.compress.data RPC...")
+    logger.info("Calling compression.compress.data RPC...")
     
     params = {
         "data": data_b64,
@@ -121,14 +120,14 @@ async def test_rpc_handlers():
         logger.error(f"✗ RPC compression failed: {result.get('error')}")
         return False
     
-    logger.info(f"✓ RPC compression successful")
+    logger.info("✓ RPC compression successful")
     logger.info(f"  Job ID: {result['job_id']}")
     logger.info(f"  Original: {result['original_size']:,} bytes")
     logger.info(f"  Compressed: {result['compressed_size']:,} bytes")
     logger.info(f"  Ratio: {result['compression_ratio']:.2f}x")
     
     # Test 2: Decompress via RPC
-    logger.info(f"\nCalling compression.decompress.data RPC...")
+    logger.info("\nCalling compression.decompress.data RPC...")
     
     compressed_b64 = result.get("data")
     params = {
@@ -141,7 +140,7 @@ async def test_rpc_handlers():
         logger.error(f"✗ RPC decompression failed: {result2.get('error')}")
         return False
     
-    logger.info(f"✓ RPC decompression successful")
+    logger.info("✓ RPC decompression successful")
     logger.info(f"  Decompressed size: {result2['original_size']:,} bytes")
     
     # Verify data integrity
@@ -153,11 +152,11 @@ async def test_rpc_handlers():
     logger.info("✓ RPC data integrity verified")
     
     # Test 3: Get config
-    logger.info(f"\nCalling compression.config.get RPC...")
+    logger.info("\nCalling compression.config.get RPC...")
     
     config = await handle_get_compression_config()
     
-    logger.info(f"✓ Configuration retrieved")
+    logger.info("✓ Configuration retrieved")
     logger.info(f"  Level: {config.get('level')}")
     logger.info(f"  Use semantic: {config.get('use_semantic')}")
     logger.info(f"  Chunk size: {config.get('chunk_size'):,} bytes")
@@ -171,7 +170,7 @@ async def test_compression_pipeline():
     logger.info("TEST 3: End-to-End Pipeline Testing")
     logger.info("=" * 80)
     
-    from engined.compression.job_queue import CompressionJobQueue, CompressionJob, JobType, JobPriority, JobStatus
+    from engined.compression.job_queue import CompressionJobQueue, JobType, JobPriority, JobStatus
     from engined.compression.bridge import CompressionBridge, CompressionConfig
     
     # Create bridge and queue
@@ -210,7 +209,7 @@ async def test_compression_pipeline():
     # Check result
     job = queue.get_job(job_id)
     if not job:
-        logger.error(f"✗ Job not found after completion")
+        logger.error("✗ Job not found after completion")
         return False
     
     logger.info(f"✓ Job completed: {job.status.value}")

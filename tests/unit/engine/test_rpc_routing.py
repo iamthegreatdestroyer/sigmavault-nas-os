@@ -15,7 +15,7 @@ Scope:
 
 import pytest
 import asyncio
-from unittest.mock import Mock, AsyncMock, patch, MagicMock
+from unittest.mock import AsyncMock
 from typing import Dict, Any
 
 
