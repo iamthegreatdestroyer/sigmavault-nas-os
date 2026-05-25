@@ -1,6 +1,6 @@
 module sigmavault-nas-os/api
 
-go 1.24.13
+go 1.25.10
 
 require (
 	github.com/gofiber/contrib/jwt v1.1.2
