@@ -357,14 +357,12 @@ def test_response_structure():
 
 def main():
     """Run all integration tests."""
-    print(
-        """
+    print("""
 ╔════════════════════════════════════════════════════════════════════════════╗
 ║                  Phase 3 Integration Test Suite                           ║
 ║                   Python RPC Handler Verification                         ║
 ╚════════════════════════════════════════════════════════════════════════════╝
-    """
-    )
+    """)
 
     tests = [
         test_empty_jobs_list,

@@ -74,7 +74,7 @@ jobs:
 
             - name: Install linting tools
               run: |
-                  pip install black isort flake8 mypy pylint
+                  pip install "black==26.5.1" isort flake8 mypy pylint
 
             - name: Check formatting with black
               working-directory: src/engined
