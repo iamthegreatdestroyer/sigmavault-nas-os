@@ -398,22 +398,18 @@ def main():
     print(f"  📊 Success Rate: {passed}/{total} ({100*passed//total}%)")
 
     if failed == 0:
-        print(
-            """
+        print("""
 ╔════════════════════════════════════════════════════════════════════════════╗
 ║  🎉 All tests passed! Python RPC handlers are ready for Go integration.    ║
 ╚════════════════════════════════════════════════════════════════════════════╝
-        """
-        )
+        """)
         return 0
     else:
-        print(
-            """
+        print("""
 ╔════════════════════════════════════════════════════════════════════════════╗
 ║  ⚠️  Some tests failed. See errors above for details.                      ║
 ╚════════════════════════════════════════════════════════════════════════════╝
-        """
-        )
+        """)
         return 1
 
 
