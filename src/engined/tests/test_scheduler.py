@@ -28,7 +28,7 @@ class TestTaskPriority:
 
     def test_priority_values_ordering(self):
         """Test priority values are ordered correctly.
-        
+
         In TaskPriority, LOWER value = HIGHER priority.
         """
         assert TaskPriority.CRITICAL.value < TaskPriority.HIGH.value
@@ -86,7 +86,7 @@ class TestPriorityTask:
 
 class TestTaskScheduler:
     """Tests for TaskScheduler class.
-    
+
     All scheduling methods are ASYNC.
     """
 
@@ -101,7 +101,7 @@ class TestTaskScheduler:
     @pytest.fixture
     def scheduler(self, mock_swarm):
         """Create a task scheduler for testing.
-        
+
         TaskScheduler(swarm, max_concurrent=40, rate_limit_per_second=100.0)
         """
         return TaskScheduler(

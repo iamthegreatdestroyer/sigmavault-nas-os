@@ -184,9 +184,13 @@ ignore = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/*" = ["ARG", "S101"]
+"tests/*" = ["ARG", "S101", "PTH", "B007", "B017", "E402", "F841", "SIM105", "RUF015", "SIM118", "RUF013"]
+"*.py" = []
 "engined/rpc/system_pb2.py" = ["ALL"]
 "engined/rpc/system_pb2_grpc.py" = ["ALL"]
+"fix_metrics.py" = ["PTH"]
+"simple_server.py" = ["ARG"]
+"test_rpc_server.py" = ["ARG"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["engined"]

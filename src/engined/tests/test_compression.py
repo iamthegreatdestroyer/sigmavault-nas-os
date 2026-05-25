@@ -6,6 +6,7 @@ Comprehensive tests for the compression bridge, job queue, and event emitter.
 """
 
 import asyncio
+import contextlib
 import os
 import tempfile
 from datetime import datetime
@@ -71,10 +72,8 @@ def temp_file():
         f.flush()
         yield f.name
     # Cleanup
-    try:
+    with contextlib.suppress(Exception):
         os.unlink(f.name)
-    except Exception:
-        pass
 
 
 @pytest.fixture

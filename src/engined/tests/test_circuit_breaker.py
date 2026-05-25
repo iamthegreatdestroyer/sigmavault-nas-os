@@ -65,7 +65,7 @@ class TestCircuitBreakerStateTransitions:
             raise ValueError("Simulated failure")
 
         # Trigger failures
-        for i in range(3):
+        for _i in range(3):
             with pytest.raises(ValueError):
                 await cb.call(failing_func)
 
@@ -206,7 +206,7 @@ class TestCircuitBreakerContextManager:
         cb = circuit_breaker_instance
 
         async with cb:
-            result = "success"
+            pass
 
         assert cb.get_state() == CircuitBreakerState.CLOSED
         assert cb.metrics.successful_calls == 1
@@ -405,7 +405,7 @@ class TestCircuitBreakerExponentialBackoff:
             raise ValueError("Failure")
 
         # Multiple failure cycles
-        for cycle in range(5):
+        for _cycle in range(5):
             with pytest.raises(ValueError):
                 await cb.call(failing_func)
 

@@ -43,7 +43,7 @@ class TestCircuitBreaker:
     @pytest.fixture
     def circuit(self):
         """Create a circuit breaker for testing.
-        
+
         CircuitBreaker(agent_id, failure_threshold=5, recovery_timeout=30.0,
                        half_open_max_calls=3)
         """
@@ -112,9 +112,9 @@ class TestCircuitBreaker:
 
 class TestAgentRecovery:
     """Tests for AgentRecovery class.
-    
+
     AgentRecovery(swarm, check_interval=5.0, max_restart_attempts=3, restart_cooldown=60.0)
-    Methods: start_monitoring (ASYNC), stop_monitoring (ASYNC), record_success, record_failure, 
+    Methods: start_monitoring (ASYNC), stop_monitoring (ASYNC), record_success, record_failure,
              get_circuit, get_status, get_health_score, get_all_health_scores, can_assign_task
     """
 

@@ -295,7 +295,7 @@ class TestSelfTuner:
     @pytest.mark.asyncio
     async def test_record_task_completion(self, tuner):
         """Test recording task completion.
-        
+
         Signature: record_task_completion(success, latency_ms, task_type='general')
         """
         tuner.record_task_completion(

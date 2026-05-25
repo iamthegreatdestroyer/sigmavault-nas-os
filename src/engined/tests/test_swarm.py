@@ -343,7 +343,7 @@ class TestAgentSwarm:
         await swarm.initialize()
 
         # Get any agent
-        agent_id = list(swarm.agents.keys())[0]
+        agent_id = next(iter(swarm.agents.keys()))
         agent = swarm.get_agent(agent_id)
 
         assert agent is not None
@@ -391,7 +391,7 @@ class TestAgentSwarm:
         swarm = AgentSwarm()
         await swarm.initialize()
 
-        agent_name = await swarm.assign_task(
+        await swarm.assign_task(
             task_id="task-001",
             task_type="compression",
             payload={"file": "test.txt"},
@@ -498,7 +498,7 @@ class TestSwarmIntegration:
         ])
 
         # All tasks should be created
-        assert len([k for k in swarm.tasks.keys() if k.startswith("concurrent-")]) == 10
+        assert len([k for k in swarm.tasks if k.startswith("concurrent-")]) == 10
 
         await swarm.shutdown()
 

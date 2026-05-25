@@ -288,7 +288,7 @@ class TestQueueRunningRPC:
         test_data = b"Data for running check"
         data_b64 = base64.b64encode(test_data).decode()
 
-        submit_result = await handle_queue_submit({
+        await handle_queue_submit({
             "type": "compress_data",
             "data": data_b64,
         })

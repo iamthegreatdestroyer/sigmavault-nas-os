@@ -22,6 +22,8 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+import contextlib
+
 from engined.core.circuit_breaker import (
     CircuitBreaker,
     CircuitBreakerConfig,
@@ -67,7 +69,7 @@ async def mock_rpc_service():
             self.failure_count = 0
             self.failure_threshold = 0
 
-        async def call(self, method: str, params: dict = None):
+        async def call(self, method: str, params: dict | None = None):
             """Simulate RPC call with various failure modes."""
             self.call_count += 1
 
@@ -138,7 +140,7 @@ class TestNetworkTimeoutScenarios:
         mock_rpc_service.failure_mode = 'timeout'
 
         # First 3 calls should timeout and count as failures
-        for i in range(3):
+        for _i in range(3):
             with pytest.raises((TimeoutError, CircuitBreakerOpenError)):
                 async with circuit_breaker:
                     await asyncio.wait_for(
@@ -166,7 +168,7 @@ class TestNetworkTimeoutScenarios:
         """Test recovery after service timeout is resolved."""
         # Open circuit with timeouts
         mock_rpc_service.failure_mode = 'timeout'
-        for i in range(3):
+        for _i in range(3):
             try:
                 async with circuit_breaker:
                     await asyncio.wait_for(
@@ -454,7 +456,7 @@ class TestLoadScenarios:
             for attempt in range(3):
                 try:
                     async with circuit_breaker:
-                        result = await mock_rpc_service.call(f"method_{request_id}")
+                        await mock_rpc_service.call(f"method_{request_id}")
                         return ('success', request_id)
                 except CircuitBreakerOpenError:
                     return ('rejected', request_id)
@@ -468,8 +470,8 @@ class TestLoadScenarios:
         results = await asyncio.gather(*tasks)
 
         successes = [r for r in results if r[0] == 'success']
-        rejections = [r for r in results if r[0] == 'rejected']
-        failures = [r for r in results if r[0] == 'failed']
+        [r for r in results if r[0] == 'rejected']
+        [r for r in results if r[0] == 'failed']
 
         # Some should succeed (after threshold), some should fail
         assert len(successes) > 0
@@ -601,11 +603,9 @@ class TestCrossComponentIntegration:
         # Phase 2: Introduce failures to open circuit
         mock_rpc_service.failure_mode = 'unavailable'
 
-        for i in range(3):
-            try:
+        for _i in range(3):
+            with contextlib.suppress(ConnectionError, CircuitBreakerOpenError):
                 await make_protected_call()
-            except (ConnectionError, CircuitBreakerOpenError):
-                pass
 
         assert circuit_breaker.state == CircuitBreakerState.OPEN
 
@@ -620,7 +620,7 @@ class TestCrossComponentIntegration:
 
         # Phase 5: Service should recover
         await asyncio.sleep(1.5)
-        final_status = await health_manager.get_system_health()
+        await health_manager.get_system_health()
 
         # Circuit should eventually close as service is healthy
         assert circuit_breaker.state in [
