@@ -1,0 +1,15 @@
+# Desktop UI uses httpx with a configurable localhost base URL — not user-controlled input
+src/desktop-ui/
+# Generated protobuf files
+src/engined/engined/rpc/system_pb2.py
+src/engined/engined/rpc/system_pb2_grpc.py
+# Test scripts and one-off tools
+tests/
+src/api/tests/
+src/engined/test_*.py
+src/engined/fix_metrics.py
+src/engined/run_test.py
+src/engined/simple_server.py
+src/engined/test_app.py
+# Node modules
+node_modules/
