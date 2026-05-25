@@ -47,7 +47,7 @@ class TestCircuitBreaker:
             agent_id="test-agent",
             failure_threshold=3,
             recovery_timeout=30.0,
-            half_open_max_calls=1
+            half_open_max_calls=1,
         )
 
     def test_circuit_initial_state(self, circuit):

@@ -65,7 +65,7 @@ def event_emitter():
 @pytest.fixture
 def temp_file():
     """Create temporary file with sample data."""
-    with tempfile.NamedTemporaryFile(mode='wb', delete=False, suffix='.txt') as f:
+    with tempfile.NamedTemporaryFile(mode="wb", delete=False, suffix=".txt") as f:
         # Write compressible data (repeated patterns)
         content = b"The quick brown fox jumps over the lazy dog. " * 100
         f.write(content)
@@ -79,7 +79,9 @@ def temp_file():
 @pytest.fixture
 def sample_json_data():
     """Sample JSON data for compression."""
-    return b'{"users": [{"id": 1, "name": "Alice"}, {"id": 2, "name": "Bob"}], "count": 2}'
+    return (
+        b'{"users": [{"id": 1, "name": "Alice"}, {"id": 2, "name": "Bob"}], "count": 2}'
+    )
 
 
 @pytest.fixture
@@ -179,6 +181,7 @@ class TestCompressionBridge:
     @pytest.mark.asyncio
     async def test_remove_progress_callback(self, bridge):
         """Test removing progress callback."""
+
         async def callback(p):
             pass
 

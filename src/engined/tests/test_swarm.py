@@ -259,8 +259,18 @@ class TestAgentDefinitions:
         core_agents = [a for a in AGENT_DEFINITIONS if a["tier"] == AgentTier.CORE]
         core_names = {a["name"] for a in core_agents}
 
-        expected_core = {"TENSOR", "VELOCITY", "AXIOM", "PRISM", "FLUX",
-                        "DELTA", "SPARK", "WAVE", "NEXUS", "PULSE"}
+        expected_core = {
+            "TENSOR",
+            "VELOCITY",
+            "AXIOM",
+            "PRISM",
+            "FLUX",
+            "DELTA",
+            "SPARK",
+            "WAVE",
+            "NEXUS",
+            "PULSE",
+        }
         assert core_names == expected_core
 
 
@@ -487,15 +497,17 @@ class TestSwarmIntegration:
         await swarm.initialize()
 
         # Assign 10 tasks concurrently
-        await asyncio.gather(*[
-            swarm.assign_task(
-                task_id=f"concurrent-{i}",
-                task_type="test",
-                payload={"index": i},
-                priority=i,
-            )
-            for i in range(10)
-        ])
+        await asyncio.gather(
+            *[
+                swarm.assign_task(
+                    task_id=f"concurrent-{i}",
+                    task_type="test",
+                    payload={"index": i},
+                    priority=i,
+                )
+                for i in range(10)
+            ]
+        )
 
         # All tasks should be created
         assert len([k for k in swarm.tasks if k.startswith("concurrent-")]) == 10

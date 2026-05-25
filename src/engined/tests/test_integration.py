@@ -41,6 +41,7 @@ from engined.core.health import (
 # Test Fixtures
 # ============================================================================
 
+
 @pytest.fixture
 def circuit_breaker():
     """Create circuit breaker with fast failure for testing."""
@@ -48,7 +49,7 @@ def circuit_breaker():
         failure_threshold=3,
         success_threshold=2,
         timeout=0.5,  # Fast timeout for testing
-        timeout_max=5.0  # Max timeout for testing
+        timeout_max=5.0,  # Max timeout for testing
     )
     return CircuitBreaker("test_service", config)
 
@@ -62,6 +63,7 @@ def health_manager():
 @pytest.fixture
 async def mock_rpc_service():
     """Mock RPC service with configurable behavior."""
+
     class MockRPCService:
         def __init__(self):
             self.call_count = 0
@@ -73,14 +75,14 @@ async def mock_rpc_service():
             """Simulate RPC call with various failure modes."""
             self.call_count += 1
 
-            if self.failure_mode == 'timeout':
+            if self.failure_mode == "timeout":
                 await asyncio.sleep(2.0)  # Simulate timeout
                 raise TimeoutError(f"RPC timeout calling {method}")
 
-            elif self.failure_mode == 'unavailable':
+            elif self.failure_mode == "unavailable":
                 raise ConnectionError("Service unavailable")
 
-            elif self.failure_mode == 'intermittent':
+            elif self.failure_mode == "intermittent":
                 if self.call_count <= self.failure_threshold:
                     self.failure_count += 1
                     raise ConnectionError(f"Intermittent failure {self.call_count}")
@@ -101,6 +103,7 @@ async def mock_rpc_service():
 @pytest.fixture
 async def mock_database():
     """Mock database with connection management."""
+
     class MockDatabase:
         def __init__(self):
             self.connected = True
@@ -131,21 +134,21 @@ async def mock_database():
 # Integration Test: Network Timeout Scenarios
 # ============================================================================
 
+
 class TestNetworkTimeoutScenarios:
     """Test circuit breaker behavior under network timeout conditions."""
 
     @pytest.mark.asyncio
     async def test_timeout_opens_circuit(self, circuit_breaker, mock_rpc_service):
         """Test that repeated timeouts open the circuit."""
-        mock_rpc_service.failure_mode = 'timeout'
+        mock_rpc_service.failure_mode = "timeout"
 
         # First 3 calls should timeout and count as failures
         for _i in range(3):
             with pytest.raises((TimeoutError, CircuitBreakerOpenError)):
                 async with circuit_breaker:
                     await asyncio.wait_for(
-                        mock_rpc_service.call("test_method"),
-                        timeout=0.5
+                        mock_rpc_service.call("test_method"), timeout=0.5
                     )
 
         # Circuit should now be OPEN
@@ -167,13 +170,12 @@ class TestNetworkTimeoutScenarios:
     ):
         """Test recovery after service timeout is resolved."""
         # Open circuit with timeouts
-        mock_rpc_service.failure_mode = 'timeout'
+        mock_rpc_service.failure_mode = "timeout"
         for _i in range(3):
             try:
                 async with circuit_breaker:
                     await asyncio.wait_for(
-                        mock_rpc_service.call("test_method"),
-                        timeout=0.5
+                        mock_rpc_service.call("test_method"), timeout=0.5
                     )
             except (TimeoutError, CircuitBreakerOpenError):
                 pass
@@ -191,19 +193,20 @@ class TestNetworkTimeoutScenarios:
         async with circuit_breaker:
             result = await mock_rpc_service.call("recovery_test")
 
-        assert result['status'] == 'success'
+        assert result["status"] == "success"
 
         # One more success should close circuit
         async with circuit_breaker:
             result = await mock_rpc_service.call("recovery_test_2")
 
         assert circuit_breaker.state == CircuitBreakerState.CLOSED
-        assert result['status'] == 'success'
+        assert result["status"] == "success"
 
 
 # ============================================================================
 # Integration Test: Service Unavailability
 # ============================================================================
+
 
 class TestServiceUnavailability:
     """Test handling of service unavailability scenarios."""
@@ -223,18 +226,19 @@ class TestServiceUnavailability:
                 HealthCheckResult,
                 HealthStatus,
             )
+
             if not service_healthy:
                 return HealthCheckResult(
                     component="rpc_service",
                     component_type=ComponentType.CUSTOM,
                     status=HealthStatus.UNHEALTHY,
-                    message="Service unavailable"
+                    message="Service unavailable",
                 )
             return HealthCheckResult(
                 component="rpc_service",
                 component_type=ComponentType.CUSTOM,
                 status=HealthStatus.HEALTHY,
-                message="Service available"
+                message="Service available",
             )
 
         async def heal_service():
@@ -245,15 +249,17 @@ class TestServiceUnavailability:
             service_healthy = True
 
         # Register health check with auto-healing
-        health_manager.register_check(HealthCheckConfig(
-            name="rpc_service",
-            component_type=ComponentType.CUSTOM,
-            check_fn=check_service_health,
-            interval=1.0,
-            timeout=2.0,
-            auto_heal=True,
-            heal_fn=heal_service
-        ))
+        health_manager.register_check(
+            HealthCheckConfig(
+                name="rpc_service",
+                component_type=ComponentType.CUSTOM,
+                check_fn=check_service_health,
+                interval=1.0,
+                timeout=2.0,
+                auto_heal=True,
+                heal_fn=heal_service,
+            )
+        )
 
         # Start health monitoring
         await health_manager.start()
@@ -278,7 +284,7 @@ class TestServiceUnavailability:
     ):
         """Test handling of intermittent failures."""
         # Configure intermittent failures: fail first 2 calls, then succeed
-        mock_rpc_service.failure_mode = 'intermittent'
+        mock_rpc_service.failure_mode = "intermittent"
         mock_rpc_service.failure_threshold = 2
 
         results = []
@@ -288,11 +294,11 @@ class TestServiceUnavailability:
             try:
                 async with circuit_breaker:
                     result = await mock_rpc_service.call(f"method_{i}")
-                    results.append(('success', result))
+                    results.append(("success", result))
             except CircuitBreakerOpenError:
-                results.append(('rejected', None))
+                results.append(("rejected", None))
             except ConnectionError:
-                results.append(('failed', None))
+                results.append(("failed", None))
 
             await asyncio.sleep(0.1)
 
@@ -308,6 +314,7 @@ class TestServiceUnavailability:
 # Integration Test: Database Connection Loss
 # ============================================================================
 
+
 class TestDatabaseConnectionLoss:
     """Test circuit breaker protection for database operations."""
 
@@ -319,7 +326,7 @@ class TestDatabaseConnectionLoss:
         # First query should succeed
         async with circuit_breaker:
             result = await mock_database.query("SELECT * FROM users")
-            assert result['rows'] == 10
+            assert result["rows"] == 10
 
         # Simulate connection loss
         mock_database.disconnect()
@@ -345,13 +352,14 @@ class TestDatabaseConnectionLoss:
         # Should transition to HALF_OPEN and succeed
         async with circuit_breaker:
             result = await mock_database.query("SELECT 1")
-            assert result['rows'] == 10
+            assert result["rows"] == 10
 
     @pytest.mark.asyncio
     async def test_database_auto_healing_integration(
         self, health_manager, mock_database
     ):
         """Test automatic database reconnection via health checks."""
+
         async def check_database():
             """Check database connectivity."""
             from engined.core.health import (
@@ -359,35 +367,38 @@ class TestDatabaseConnectionLoss:
                 HealthCheckResult,
                 HealthStatus,
             )
+
             try:
                 await mock_database.query("SELECT 1")
                 return HealthCheckResult(
                     component="database",
                     component_type=ComponentType.DATABASE,
                     status=HealthStatus.HEALTHY,
-                    message="Database connected"
+                    message="Database connected",
                 )
             except ConnectionError:
                 return HealthCheckResult(
                     component="database",
                     component_type=ComponentType.DATABASE,
                     status=HealthStatus.UNHEALTHY,
-                    message="Database not connected"
+                    message="Database not connected",
                 )
 
         async def heal_database():
             """Auto-reconnect database."""
             await mock_database.reconnect()
 
-        health_manager.register_check(HealthCheckConfig(
-            name="database",
-            component_type=ComponentType.DATABASE,
-            check_fn=check_database,
-            interval=1.0,
-            timeout=2.0,
-            auto_heal=True,
-            heal_fn=heal_database
-        ))
+        health_manager.register_check(
+            HealthCheckConfig(
+                name="database",
+                component_type=ComponentType.DATABASE,
+                check_fn=check_database,
+                interval=1.0,
+                timeout=2.0,
+                auto_heal=True,
+                heal_fn=heal_database,
+            )
+        )
 
         await health_manager.start()
 
@@ -408,6 +419,7 @@ class TestDatabaseConnectionLoss:
 # Integration Test: Load Testing
 # ============================================================================
 
+
 class TestLoadScenarios:
     """Test circuit breaker and health checks under load."""
 
@@ -416,25 +428,26 @@ class TestLoadScenarios:
         self, circuit_breaker, mock_rpc_service
     ):
         """Test circuit breaker handles concurrent requests correctly."""
+
         async def make_request(request_id: int):
             """Make single request through circuit breaker."""
             try:
                 async with circuit_breaker:
                     result = await mock_rpc_service.call(f"method_{request_id}")
-                    return ('success', request_id, result)
+                    return ("success", request_id, result)
             except CircuitBreakerOpenError:
-                return ('rejected', request_id, None)
+                return ("rejected", request_id, None)
             except Exception as e:
-                return ('error', request_id, str(e))
+                return ("error", request_id, str(e))
 
         # Send 50 concurrent requests
         tasks = [make_request(i) for i in range(50)]
         results = await asyncio.gather(*tasks)
 
         # Analyze results
-        successes = [r for r in results if r[0] == 'success']
-        rejections = [r for r in results if r[0] == 'rejected']
-        errors = [r for r in results if r[0] == 'error']
+        successes = [r for r in results if r[0] == "success"]
+        rejections = [r for r in results if r[0] == "rejected"]
+        errors = [r for r in results if r[0] == "error"]
 
         # All requests should succeed (service is healthy)
         assert len(successes) == 50
@@ -443,12 +456,10 @@ class TestLoadScenarios:
         assert mock_rpc_service.call_count == 50
 
     @pytest.mark.asyncio
-    async def test_load_with_partial_failures(
-        self, circuit_breaker, mock_rpc_service
-    ):
+    async def test_load_with_partial_failures(self, circuit_breaker, mock_rpc_service):
         """Test circuit breaker under load with intermittent failures."""
         # Configure intermittent failures (only first 2 fail, less than CB threshold of 3)
-        mock_rpc_service.failure_mode = 'intermittent'
+        mock_rpc_service.failure_mode = "intermittent"
         mock_rpc_service.failure_threshold = 2  # First 2 fail, rest succeed
 
         async def make_request(request_id: int):
@@ -457,21 +468,21 @@ class TestLoadScenarios:
                 try:
                     async with circuit_breaker:
                         await mock_rpc_service.call(f"method_{request_id}")
-                        return ('success', request_id)
+                        return ("success", request_id)
                 except CircuitBreakerOpenError:
-                    return ('rejected', request_id)
+                    return ("rejected", request_id)
                 except ConnectionError:
                     if attempt == 2:
-                        return ('failed', request_id)
+                        return ("failed", request_id)
                     await asyncio.sleep(0.1)
 
         # Send 30 requests
         tasks = [make_request(i) for i in range(30)]
         results = await asyncio.gather(*tasks)
 
-        successes = [r for r in results if r[0] == 'success']
-        [r for r in results if r[0] == 'rejected']
-        [r for r in results if r[0] == 'failed']
+        successes = [r for r in results if r[0] == "success"]
+        [r for r in results if r[0] == "rejected"]
+        [r for r in results if r[0] == "failed"]
 
         # Some should succeed (after threshold), some should fail
         assert len(successes) > 0
@@ -482,6 +493,7 @@ class TestLoadScenarios:
 # Integration Test: Cross-Component Integration
 # ============================================================================
 
+
 class TestCrossComponentIntegration:
     """Test integration between circuit breaker, health checks, and metrics."""
 
@@ -490,6 +502,7 @@ class TestCrossComponentIntegration:
         self, health_manager, circuit_breaker
     ):
         """Test health checks can monitor circuit breaker state."""
+
         async def check_circuit_breaker_health():
             """Check if circuit breaker is healthy."""
             from engined.core.health import (
@@ -497,13 +510,15 @@ class TestCrossComponentIntegration:
                 HealthCheckResult,
                 HealthStatus,
             )
+
             if circuit_breaker.state == CircuitBreakerState.OPEN:
                 raise RuntimeError("Circuit breaker is OPEN")
 
             metrics = circuit_breaker.get_metrics()
             failure_rate = (
                 metrics.failed_calls / metrics.total_calls
-                if metrics.total_calls > 0 else 0
+                if metrics.total_calls > 0
+                else 0
             )
 
             if failure_rate > 0.5:
@@ -513,24 +528,26 @@ class TestCrossComponentIntegration:
                 component="circuit_breaker",
                 component_type=ComponentType.CIRCUIT_BREAKER,
                 status=HealthStatus.HEALTHY,
-                message=f"Circuit breaker {circuit_breaker.state.value}, failure rate: {failure_rate:.2%}"
+                message=f"Circuit breaker {circuit_breaker.state.value}, failure rate: {failure_rate:.2%}",
             )
 
-        health_manager.register_check(HealthCheckConfig(
-            name="circuit_breaker",
-            component_type=ComponentType.CIRCUIT_BREAKER,
-            check_fn=check_circuit_breaker_health,
-            interval=1.0,
-            timeout=2.0
-        ))
+        health_manager.register_check(
+            HealthCheckConfig(
+                name="circuit_breaker",
+                component_type=ComponentType.CIRCUIT_BREAKER,
+                check_fn=check_circuit_breaker_health,
+                interval=1.0,
+                timeout=2.0,
+            )
+        )
 
         await health_manager.start()
         await asyncio.sleep(1.5)
 
         status = await health_manager.get_system_health()
-        assert 'circuit_breaker' in status.components
+        assert "circuit_breaker" in status.components
 
-        cb_status = status.components['circuit_breaker']
+        cb_status = status.components["circuit_breaker"]
         assert cb_status.status == HealthStatus.HEALTHY
 
         await health_manager.stop()
@@ -554,44 +571,47 @@ class TestCrossComponentIntegration:
                 HealthCheckResult,
                 HealthStatus,
             )
+
             try:
                 await make_protected_call()
                 return HealthCheckResult(
                     component="rpc_service",
                     component_type=ComponentType.GRPC_SERVER,
                     status=HealthStatus.HEALTHY,
-                    message="RPC service available"
+                    message="RPC service available",
                 )
             except CircuitBreakerOpenError:
                 return HealthCheckResult(
                     component="rpc_service",
                     component_type=ComponentType.GRPC_SERVER,
                     status=HealthStatus.UNHEALTHY,
-                    message="Circuit breaker protecting service"
+                    message="Circuit breaker protecting service",
                 )
             except Exception as e:
                 return HealthCheckResult(
                     component="rpc_service",
                     component_type=ComponentType.GRPC_SERVER,
                     status=HealthStatus.UNHEALTHY,
-                    message=f"RPC call failed: {e}"
+                    message=f"RPC call failed: {e}",
                 )
 
         async def heal_rpc():
             """Healing function to reset service."""
             mock_rpc_service.failure_mode = None
-            recovery_events.append(('heal_attempted', time.time()))
+            recovery_events.append(("heal_attempted", time.time()))
 
         # Register health check
-        health_manager.register_check(HealthCheckConfig(
-            name="rpc_service",
-            component_type=ComponentType.CUSTOM,
-            check_fn=check_rpc_health,
-            interval=1.0,
-            timeout=2.0,
-            auto_heal=True,
-            heal_fn=heal_rpc
-        ))
+        health_manager.register_check(
+            HealthCheckConfig(
+                name="rpc_service",
+                component_type=ComponentType.CUSTOM,
+                check_fn=check_rpc_health,
+                interval=1.0,
+                timeout=2.0,
+                auto_heal=True,
+                heal_fn=heal_rpc,
+            )
+        )
 
         await health_manager.start()
 
@@ -601,7 +621,7 @@ class TestCrossComponentIntegration:
         assert status.overall_status == HealthStatus.HEALTHY
 
         # Phase 2: Introduce failures to open circuit
-        mock_rpc_service.failure_mode = 'unavailable'
+        mock_rpc_service.failure_mode = "unavailable"
 
         for _i in range(3):
             with contextlib.suppress(ConnectionError, CircuitBreakerOpenError):
@@ -625,7 +645,7 @@ class TestCrossComponentIntegration:
         # Circuit should eventually close as service is healthy
         assert circuit_breaker.state in [
             CircuitBreakerState.HALF_OPEN,
-            CircuitBreakerState.CLOSED
+            CircuitBreakerState.CLOSED,
         ]
 
         await health_manager.stop()
@@ -634,6 +654,7 @@ class TestCrossComponentIntegration:
 # ============================================================================
 # Integration Test: Metrics Validation
 # ============================================================================
+
 
 class TestMetricsValidation:
     """Test that metrics are correctly tracked across components."""
@@ -702,22 +723,25 @@ class TestMetricsValidation:
                 HealthCheckResult,
                 HealthStatus,
             )
+
             nonlocal check_count
             check_count += 1
             return HealthCheckResult(
                 component="tracked_check",
                 component_type=ComponentType.CUSTOM,
                 status=HealthStatus.HEALTHY,
-                message=f"Check #{check_count}"
+                message=f"Check #{check_count}",
             )
 
-        health_manager.register_check(HealthCheckConfig(
-            name="tracked_check",
-            component_type=ComponentType.CUSTOM,
-            check_fn=tracked_check,
-            interval=0.5,
-            timeout=2.0
-        ))
+        health_manager.register_check(
+            HealthCheckConfig(
+                name="tracked_check",
+                component_type=ComponentType.CUSTOM,
+                check_fn=tracked_check,
+                interval=0.5,
+                timeout=2.0,
+            )
+        )
 
         await health_manager.start()
         await asyncio.sleep(2.5)
@@ -727,12 +751,13 @@ class TestMetricsValidation:
         assert check_count >= 3
 
         status = await health_manager.get_system_health()
-        assert 'tracked_check' in status.components
+        assert "tracked_check" in status.components
 
 
 # ============================================================================
 # Performance Benchmarks
 # ============================================================================
+
 
 class TestPerformanceBenchmarks:
     """Benchmark performance of integrated components."""
@@ -740,6 +765,7 @@ class TestPerformanceBenchmarks:
     @pytest.mark.asyncio
     async def test_circuit_breaker_overhead(self, circuit_breaker):
         """Measure circuit breaker overhead on successful calls."""
+
         async def fast_operation():
             """Simulated fast operation."""
             return "success"
@@ -781,13 +807,15 @@ class TestPerformanceBenchmarks:
 
         # Register 5 checks, each taking 0.5s
         for i in range(5):
-            health_manager.register_check(HealthCheckConfig(
-                name=f"slow_check_{i}",
-                component_type=ComponentType.CUSTOM,
-                check_fn=lambda d=0.5: slow_check(d),
-                interval=10.0,  # Don't auto-repeat
-                timeout=2.0
-            ))
+            health_manager.register_check(
+                HealthCheckConfig(
+                    name=f"slow_check_{i}",
+                    component_type=ComponentType.CUSTOM,
+                    check_fn=lambda d=0.5: slow_check(d),
+                    interval=10.0,  # Don't auto-repeat
+                    timeout=2.0,
+                )
+            )
 
         # Run all checks
         start_time = time.perf_counter()
@@ -806,37 +834,40 @@ class TestPerformanceBenchmarks:
 # Summary Test
 # ============================================================================
 
+
 @pytest.mark.asyncio
 async def test_integration_suite_summary():
     """Summary test to validate all integration components work together."""
     # Create components
-    cb = CircuitBreaker("integration_test", CircuitBreakerConfig(
-        failure_threshold=3,
-        success_threshold=2,
-        timeout=1.0
-    ))
+    cb = CircuitBreaker(
+        "integration_test",
+        CircuitBreakerConfig(failure_threshold=3, success_threshold=2, timeout=1.0),
+    )
 
     hm = HealthCheckManager(check_interval=1.0)
 
     # Register circuit breaker health check
     async def check_cb():
         from engined.core.health import ComponentType, HealthCheckResult, HealthStatus
+
         if cb.state == CircuitBreakerState.OPEN:
             raise RuntimeError("Circuit is open")
         return HealthCheckResult(
             component="circuit_breaker",
             component_type=ComponentType.CIRCUIT_BREAKER,
             status=HealthStatus.HEALTHY,
-            message=f"Circuit breaker {cb.state.value}"
+            message=f"Circuit breaker {cb.state.value}",
         )
 
-    hm.register_check(HealthCheckConfig(
-        name="circuit_breaker",
-        component_type=ComponentType.CIRCUIT_BREAKER,
-        check_fn=check_cb,
-        interval=1.0,
-        timeout=2.0
-    ))
+    hm.register_check(
+        HealthCheckConfig(
+            name="circuit_breaker",
+            component_type=ComponentType.CIRCUIT_BREAKER,
+            check_fn=check_cb,
+            interval=1.0,
+            timeout=2.0,
+        )
+    )
 
     await hm.start()
 
@@ -856,9 +887,9 @@ async def test_integration_suite_summary():
 
     await hm.stop()
 
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("INTEGRATION TEST SUITE SUMMARY")
-    print("="*60)
+    print("=" * 60)
     print("Circuit Breaker Metrics:")
     print(f"  Total Calls: {cb.metrics.total_calls}")
     print(f"  Successful: {cb.metrics.successful_calls}")
@@ -869,6 +900,6 @@ async def test_integration_suite_summary():
     print(f"  Overall: {status.overall_status}")
     print(f"  Health Score: {status.health_score:.1f}/100")
     print(f"  Components Checked: {len(status.components)}")
-    print("="*60)
+    print("=" * 60)
     print("✅ ALL INTEGRATION TESTS READY")
-    print("="*60)
+    print("=" * 60)

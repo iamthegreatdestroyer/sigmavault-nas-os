@@ -74,9 +74,13 @@ class TestPriorityTask:
 
     def test_critical_priority_comes_first(self):
         """Test critical priority sorts before others."""
-        critical = PriorityTask(task_id="critical", priority=TaskPriority.CRITICAL.value)
+        critical = PriorityTask(
+            task_id="critical", priority=TaskPriority.CRITICAL.value
+        )
         normal = PriorityTask(task_id="normal", priority=TaskPriority.NORMAL.value)
-        background = PriorityTask(task_id="background", priority=TaskPriority.BACKGROUND.value)
+        background = PriorityTask(
+            task_id="background", priority=TaskPriority.BACKGROUND.value
+        )
         assert critical < normal < background
 
 

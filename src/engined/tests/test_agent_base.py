@@ -27,7 +27,7 @@ class MockAgent(BaseAgent):
             tier=1,
             domains=["testing"],
             skills=["unit_tests"],
-            description="Mock agent for testing"
+            description="Mock agent for testing",
         )
         super().__init__(agent_id=agent_id, capability=capability)
         self.executed_tasks = []
@@ -42,7 +42,7 @@ class MockAgent(BaseAgent):
         return TaskResult(
             task_id=task.task_id,
             success=True,
-            output={"result": f"Processed {task.task_type}"}
+            output={"result": f"Processed {task.task_type}"},
         )
 
 
@@ -55,7 +55,7 @@ class FailingAgent(BaseAgent):
             tier=1,
             domains=["testing"],
             skills=["errors"],
-            description="Agent that fails"
+            description="Agent that fails",
         )
         super().__init__(agent_id="FAIL-01", capability=capability)
 
@@ -98,9 +98,7 @@ class TestBaseAgent:
         await agent.initialize()
 
         task = AgentTask(
-            task_id="task-001",
-            task_type="test_task",
-            payload={"data": "test"}
+            task_id="task-001", task_type="test_task", payload={"data": "test"}
         )
 
         # Submit task
@@ -128,11 +126,7 @@ class TestBaseAgent:
         class SlowAgent(MockAgent):
             async def execute_task(self, task: AgentTask) -> TaskResult:
                 await asyncio.sleep(10)  # Longer than timeout
-                return TaskResult(
-                    task_id=task.task_id,
-                    success=True,
-                    output={}
-                )
+                return TaskResult(task_id=task.task_id, success=True, output={})
 
         agent = SlowAgent()
         await agent.initialize()
@@ -141,7 +135,7 @@ class TestBaseAgent:
             task_id="task-002",
             task_type="slow_task",
             payload={},
-            timeout=0.1  # Short timeout
+            timeout=0.1,  # Short timeout
         )
 
         result = await agent._execute_with_lifecycle(task)
@@ -156,11 +150,7 @@ class TestBaseAgent:
         agent = FailingAgent()
         await agent.initialize()
 
-        task = AgentTask(
-            task_id="task-003",
-            task_type="failing_task",
-            payload={}
-        )
+        task = AgentTask(task_id="task-003", task_type="failing_task", payload={})
 
         result = await agent._execute_with_lifecycle(task)
 
@@ -308,11 +298,7 @@ class TestAgentRegistry:
         await registry.register_agent(agent)
         await agent.initialize()
 
-        task = AgentTask(
-            task_id="task-004",
-            task_type="test",
-            payload={}
-        )
+        task = AgentTask(task_id="task-004", task_type="test", payload={})
 
         success = await registry.dispatch_task("MOCK-01", task)
         assert success is True

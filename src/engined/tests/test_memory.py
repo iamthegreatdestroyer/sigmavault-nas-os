@@ -102,7 +102,7 @@ class TestMemoryEntry:
             created_at=now,
             accessed_at=now,
             priority=MemoryPriority.NORMAL,
-            tags={"compression", "optimization"}
+            tags={"compression", "optimization"},
         )
 
         assert "compression" in entry.tags
@@ -178,7 +178,7 @@ class TestMemoryStore:
             content={"data": "test"},
             memory_type=MemoryType.SEMANTIC,
             priority=MemoryPriority.HIGH,
-            tags={"tag1", "tag2"}
+            tags={"tag1", "tag2"},
         )
 
         retrieved = await store.retrieve(memory_id)
@@ -192,13 +192,13 @@ class TestMemoryStore:
             content={"name": "memory1"},
             memory_type=MemoryType.EPISODIC,
             priority=MemoryPriority.NORMAL,
-            tags={"important", "test"}
+            tags={"important", "test"},
         )
         await store.store(
             content={"name": "memory2"},
             memory_type=MemoryType.EPISODIC,
             priority=MemoryPriority.NORMAL,
-            tags={"unimportant"}
+            tags={"unimportant"},
         )
 
         results = await store.search(tags={"important"})
@@ -325,7 +325,7 @@ class TestAgentMemory:
         """Test remembering a pattern."""
         memory_id = await agent_memory.remember_pattern(
             pattern_name="high_load_response",
-            pattern_data={"threshold": 0.8, "action": "scale_up"}
+            pattern_data={"threshold": 0.8, "action": "scale_up"},
         )
 
         assert memory_id is not None

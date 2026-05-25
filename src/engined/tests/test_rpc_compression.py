@@ -79,10 +79,12 @@ class TestCompressDataRPC:
         data_b64 = base64.b64encode(test_data).decode()
 
         for level in ["fast", "balanced", "maximum", "adaptive"]:
-            result = await handle_compress_data({
-                "data": data_b64,
-                "level": level,
-            })
+            result = await handle_compress_data(
+                {
+                    "data": data_b64,
+                    "level": level,
+                }
+            )
 
             assert result["success"] is True
             assert result["original_size"] == len(test_data)
@@ -112,9 +114,9 @@ class TestDecompressDataRPC:
         assert compress_result["success"] is True
 
         # Decompress
-        decompress_result = await handle_decompress_data({
-            "data": compress_result["data"]
-        })
+        decompress_result = await handle_decompress_data(
+            {"data": compress_result["data"]}
+        )
 
         assert decompress_result["success"] is True
 
@@ -136,9 +138,7 @@ class TestCompressFileRPC:
     async def test_compress_file_not_exists(self):
         """Test error when file doesn't exist."""
         with pytest.raises(ValueError, match="does not exist"):
-            await handle_compress_file({
-                "source_path": "/nonexistent/file.txt"
-            })
+            await handle_compress_file({"source_path": "/nonexistent/file.txt"})
 
     @pytest.mark.asyncio
     async def test_compress_file_missing_path(self):
@@ -154,10 +154,12 @@ class TestCompressFileRPC:
         test_content = b"File content for compression test " * 100
         test_file.write_bytes(test_content)
 
-        result = await handle_compress_file({
-            "source_path": str(test_file),
-            "level": "fast",
-        })
+        result = await handle_compress_file(
+            {
+                "source_path": str(test_file),
+                "level": "fast",
+            }
+        )
 
         assert result["success"] is True
         assert result["original_size"] == len(test_content)
@@ -171,9 +173,9 @@ class TestDecompressFileRPC:
     async def test_decompress_file_not_exists(self):
         """Test error when file doesn't exist."""
         with pytest.raises(ValueError, match="does not exist"):
-            await handle_decompress_file({
-                "source_path": "/nonexistent/file.compressed"
-            })
+            await handle_decompress_file(
+                {"source_path": "/nonexistent/file.compressed"}
+            )
 
     @pytest.mark.asyncio
     async def test_decompress_file_missing_path(self):
@@ -191,11 +193,13 @@ class TestQueueSubmitRPC:
         test_data = b"Data for queue processing"
         data_b64 = base64.b64encode(test_data).decode()
 
-        result = await handle_queue_submit({
-            "type": "compress_data",
-            "data": data_b64,
-            "priority": "high",
-        })
+        result = await handle_queue_submit(
+            {
+                "type": "compress_data",
+                "data": data_b64,
+                "priority": "high",
+            }
+        )
 
         assert result["job_id"] is not None
         assert result["status"] in ["pending", "running"]
@@ -206,26 +210,32 @@ class TestQueueSubmitRPC:
     async def test_queue_submit_invalid_type(self):
         """Test error with invalid job type."""
         with pytest.raises(ValueError, match="Invalid job type"):
-            await handle_queue_submit({
-                "type": "invalid_type",
-                "data": base64.b64encode(b"test").decode(),
-            })
+            await handle_queue_submit(
+                {
+                    "type": "invalid_type",
+                    "data": base64.b64encode(b"test").decode(),
+                }
+            )
 
     @pytest.mark.asyncio
     async def test_queue_submit_file_missing_path(self):
         """Test error when file path missing for file operation."""
         with pytest.raises(ValueError, match="source_path required"):
-            await handle_queue_submit({
-                "type": "compress_file",
-            })
+            await handle_queue_submit(
+                {
+                    "type": "compress_file",
+                }
+            )
 
     @pytest.mark.asyncio
     async def test_queue_submit_data_missing_data(self):
         """Test error when data missing for data operation."""
         with pytest.raises(ValueError, match="data required"):
-            await handle_queue_submit({
-                "type": "compress_data",
-            })
+            await handle_queue_submit(
+                {
+                    "type": "compress_data",
+                }
+            )
 
 
 class TestQueueStatusRPC:
@@ -246,15 +256,15 @@ class TestQueueStatusRPC:
         test_data = b"Data for status check"
         data_b64 = base64.b64encode(test_data).decode()
 
-        submit_result = await handle_queue_submit({
-            "type": "compress_data",
-            "data": data_b64,
-        })
+        submit_result = await handle_queue_submit(
+            {
+                "type": "compress_data",
+                "data": data_b64,
+            }
+        )
 
         # Then check its status
-        status_result = await handle_queue_status({
-            "job_id": submit_result["job_id"]
-        })
+        status_result = await handle_queue_status({"job_id": submit_result["job_id"]})
 
         assert status_result["job_id"] == submit_result["job_id"]
         assert "status" in status_result
@@ -288,10 +298,12 @@ class TestQueueRunningRPC:
         test_data = b"Data for running check"
         data_b64 = base64.b64encode(test_data).decode()
 
-        await handle_queue_submit({
-            "type": "compress_data",
-            "data": data_b64,
-        })
+        await handle_queue_submit(
+            {
+                "type": "compress_data",
+                "data": data_b64,
+            }
+        )
 
         # Get running jobs with pending
         result = await handle_queue_running({"include_pending": True})
@@ -307,10 +319,12 @@ class TestQueueRunningRPC:
         test_data = b"Data for structure check " * 10
         data_b64 = base64.b64encode(test_data).decode()
 
-        await handle_queue_submit({
-            "type": "compress_data",
-            "data": data_b64,
-        })
+        await handle_queue_submit(
+            {
+                "type": "compress_data",
+                "data": data_b64,
+            }
+        )
 
         # Get running jobs
         result = await handle_queue_running({"include_pending": True})
@@ -319,10 +333,18 @@ class TestQueueRunningRPC:
             job = result["jobs"][0]
             # Verify all WebSocket-required fields are present
             expected_fields = [
-                "job_id", "status", "job_type", "priority",
-                "progress", "phase", "bytes_processed", "bytes_total",
-                "current_ratio", "elapsed_seconds", "eta_seconds",
-                "created_at"
+                "job_id",
+                "status",
+                "job_type",
+                "priority",
+                "progress",
+                "phase",
+                "bytes_processed",
+                "bytes_total",
+                "current_ratio",
+                "elapsed_seconds",
+                "eta_seconds",
+                "created_at",
             ]
             for field in expected_fields:
                 assert field in job, f"Missing field: {field}"
@@ -352,15 +374,15 @@ class TestQueueCancelRPC:
         test_data = b"Data to cancel"
         data_b64 = base64.b64encode(test_data).decode()
 
-        submit_result = await handle_queue_submit({
-            "type": "compress_data",
-            "data": data_b64,
-        })
+        submit_result = await handle_queue_submit(
+            {
+                "type": "compress_data",
+                "data": data_b64,
+            }
+        )
 
         # Cancel it
-        cancel_result = await handle_queue_cancel({
-            "job_id": submit_result["job_id"]
-        })
+        cancel_result = await handle_queue_cancel({"job_id": submit_result["job_id"]})
 
         assert cancel_result["job_id"] == submit_result["job_id"]
         assert "cancelled" in cancel_result
@@ -383,12 +405,14 @@ class TestCompressionConfigRPC:
     @pytest.mark.asyncio
     async def test_set_config(self):
         """Test setting compression config."""
-        result = await handle_set_compression_config({
-            "level": "maximum",
-            "chunk_size": 2 * 1024 * 1024,  # 2MB
-            "use_semantic": True,
-            "lossless": True,
-        })
+        result = await handle_set_compression_config(
+            {
+                "level": "maximum",
+                "chunk_size": 2 * 1024 * 1024,  # 2MB
+                "use_semantic": True,
+                "lossless": True,
+            }
+        )
 
         assert result["success"] is True
         assert result["level"] == "maximum"
@@ -403,9 +427,11 @@ class TestCompressionConfigRPC:
         current = await handle_get_compression_config()
 
         # Set only level
-        result = await handle_set_compression_config({
-            "level": "fast",
-        })
+        result = await handle_set_compression_config(
+            {
+                "level": "fast",
+            }
+        )
 
         assert result["success"] is True
         assert result["level"] == "fast"
@@ -425,16 +451,18 @@ class TestRPCIntegration:
 
         # 2. Compress data
         original_data = b"Integration test data " * 50
-        compress_result = await handle_compress_data({
-            "data": base64.b64encode(original_data).decode(),
-            "level": "balanced",
-        })
+        compress_result = await handle_compress_data(
+            {
+                "data": base64.b64encode(original_data).decode(),
+                "level": "balanced",
+            }
+        )
         assert compress_result["success"] is True
 
         # 3. Decompress
-        decompress_result = await handle_decompress_data({
-            "data": compress_result["data"]
-        })
+        decompress_result = await handle_decompress_data(
+            {"data": compress_result["data"]}
+        )
         assert decompress_result["success"] is True
 
         # 4. Verify
@@ -448,10 +476,12 @@ class TestRPCIntegration:
         large_data = b"Large data block for testing " * 3600
         assert len(large_data) >= 100 * 1024
 
-        result = await handle_compress_data({
-            "data": base64.b64encode(large_data).decode(),
-            "level": "balanced",
-        })
+        result = await handle_compress_data(
+            {
+                "data": base64.b64encode(large_data).decode(),
+                "level": "balanced",
+            }
+        )
 
         assert result["success"] is True
         assert result["original_size"] == len(large_data)
@@ -461,19 +491,20 @@ class TestRPCIntegration:
     async def test_binary_data_compression(self):
         """Test compression of binary data via RPC."""
         import os
+
         binary_data = os.urandom(1024)  # 1KB random bytes
 
-        result = await handle_compress_data({
-            "data": base64.b64encode(binary_data).decode(),
-            "level": "fast",
-        })
+        result = await handle_compress_data(
+            {
+                "data": base64.b64encode(binary_data).decode(),
+                "level": "fast",
+            }
+        )
 
         assert result["success"] is True
 
         # Decompress and verify
-        decompress_result = await handle_decompress_data({
-            "data": result["data"]
-        })
+        decompress_result = await handle_decompress_data({"data": result["data"]})
 
         recovered = base64.b64decode(decompress_result["data"])
         assert recovered == binary_data

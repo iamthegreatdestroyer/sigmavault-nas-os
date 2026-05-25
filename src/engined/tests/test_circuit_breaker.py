@@ -73,7 +73,9 @@ class TestCircuitBreakerStateTransitions:
         assert cb.get_state() == CircuitBreakerState.OPEN
 
     @pytest.mark.asyncio
-    async def test_transition_to_half_open_after_timeout(self, circuit_breaker_instance):
+    async def test_transition_to_half_open_after_timeout(
+        self, circuit_breaker_instance
+    ):
         """Should transition to HALF_OPEN after timeout expires."""
         cb = circuit_breaker_instance
 
@@ -249,7 +251,9 @@ class TestCircuitBreakerDecorator:
         """Decorator should wrap function with circuit breaker."""
         call_count = 0
 
-        @circuit_breaker("test_decorator", CircuitBreakerConfig(failure_threshold=2, timeout=0.1))
+        @circuit_breaker(
+            "test_decorator", CircuitBreakerConfig(failure_threshold=2, timeout=0.1)
+        )
         async def test_func():
             nonlocal call_count
             call_count += 1
@@ -267,7 +271,10 @@ class TestCircuitBreakerDecorator:
     async def test_decorator_with_failures(self):
         """Decorator should open circuit after failures."""
 
-        @circuit_breaker("test_decorator_fail", CircuitBreakerConfig(failure_threshold=2, timeout=0.1))
+        @circuit_breaker(
+            "test_decorator_fail",
+            CircuitBreakerConfig(failure_threshold=2, timeout=0.1),
+        )
         async def failing_func():
             raise ValueError("Failure")
 
@@ -629,4 +636,11 @@ class TestCircuitBreakerIntegration:
 
 
 if __name__ == "__main__":
-    pytest.main([__file__, "-v", "--cov=engined.core.circuit_breaker", "--cov-report=term-missing"])
+    pytest.main(
+        [
+            __file__,
+            "-v",
+            "--cov=engined.core.circuit_breaker",
+            "--cov-report=term-missing",
+        ]
+    )

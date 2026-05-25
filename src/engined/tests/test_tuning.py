@@ -237,10 +237,7 @@ class TestSelfTuner:
     @pytest.fixture
     async def tuner(self):
         """Create a self-tuner for testing."""
-        tuner = SelfTuner(
-            strategy=TuningStrategy.GRADIENT_FREE,
-            tuning_interval=1.0
-        )
+        tuner = SelfTuner(strategy=TuningStrategy.GRADIENT_FREE, tuning_interval=1.0)
         await tuner.start()
         yield tuner
         await tuner.stop()
@@ -299,14 +296,10 @@ class TestSelfTuner:
         Signature: record_task_completion(success, latency_ms, task_type='general')
         """
         tuner.record_task_completion(
-            success=True,
-            latency_ms=120.0,
-            task_type="compression"
+            success=True, latency_ms=120.0, task_type="compression"
         )
         tuner.record_task_completion(
-            success=True,
-            latency_ms=150.0,
-            task_type="compression"
+            success=True, latency_ms=150.0, task_type="compression"
         )
         # Should not raise any errors
 

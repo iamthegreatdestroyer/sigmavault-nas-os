@@ -45,7 +45,7 @@ class TestEvent:
         """Test event is created with correct fields."""
         event = Event(
             event_type=EventType.AGENT_STARTED,
-            data={"agent_id": "test-001", "status": "running"}
+            data={"agent_id": "test-001", "status": "running"},
         )
 
         assert event.event_type == EventType.AGENT_STARTED
@@ -57,8 +57,7 @@ class TestEvent:
     def test_event_to_dict(self):
         """Test event serializes to dictionary."""
         event = Event(
-            event_type=EventType.AGENT_TASK_COMPLETED,
-            data={"result": "success"}
+            event_type=EventType.AGENT_TASK_COMPLETED, data={"result": "success"}
         )
 
         d = event.to_dict()
@@ -73,6 +72,7 @@ class TestEvent:
         event1 = Event(event_type=EventType.AGENT_STARTED, data={})
         # Small delay to ensure different timestamps
         import time
+
         time.sleep(0.01)
         event2 = Event(event_type=EventType.AGENT_STARTED, data={})
 

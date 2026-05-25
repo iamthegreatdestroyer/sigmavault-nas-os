@@ -85,7 +85,13 @@ async def handle_rpc(request: web.Request) -> web.Response:
                 "platform": platform.system(),
                 "uptime": 0,
                 "cpu_usage": 0.0,
-                "memory_usage": {"total": 0, "used": 0, "free": 0, "available": 0, "used_percent": 0.0},
+                "memory_usage": {
+                    "total": 0,
+                    "used": 0,
+                    "free": 0,
+                    "available": 0,
+                    "used_percent": 0.0,
+                },
                 "disk_usage": [],
                 "load_average": {"load1": 0.0, "load5": 0.0, "load15": 0.0},
                 "timestamp": datetime.now(UTC).isoformat(),
@@ -95,7 +101,10 @@ async def handle_rpc(request: web.Request) -> web.Response:
             # Validate input
             data_b64 = params.get("data")
             if not data_b64:
-                error = {"code": -32602, "message": "Invalid params: 'data' is required"}
+                error = {
+                    "code": -32602,
+                    "message": "Invalid params: 'data' is required",
+                }
             else:
                 try:
                     data = base64.b64decode(data_b64)
@@ -104,12 +113,16 @@ async def handle_rpc(request: web.Request) -> web.Response:
 
                     # Calculate compression ratio (ratio of space saved)
                     # 0.7 = 70% compression = only 30% of original size remains
-                    compression_ratio = 1.0 - (stats["compressed_size"] / stats["original_size"]) if stats["original_size"] > 0 else 0.0
+                    compression_ratio = (
+                        1.0 - (stats["compressed_size"] / stats["original_size"])
+                        if stats["original_size"] > 0
+                        else 0.0
+                    )
 
                     result = {
                         "job_id": generate_job_id(),
                         "success": True,
-                        "data": base64.b64encode(compressed).decode('utf-8'),
+                        "data": base64.b64encode(compressed).decode("utf-8"),
                         "original_size": stats["original_size"],
                         "compressed_size": stats["compressed_size"],
                         "compression_ratio": compression_ratio,
@@ -122,7 +135,10 @@ async def handle_rpc(request: web.Request) -> web.Response:
         elif method == "compression.decompress.data":
             data_b64 = params.get("data")
             if not data_b64:
-                error = {"code": -32602, "message": "Invalid params: 'data' is required"}
+                error = {
+                    "code": -32602,
+                    "message": "Invalid params: 'data' is required",
+                }
             else:
                 try:
                     data = base64.b64decode(data_b64)
@@ -130,7 +146,7 @@ async def handle_rpc(request: web.Request) -> web.Response:
                     result = {
                         "job_id": generate_job_id(),
                         "success": True,
-                        "data": base64.b64encode(decompressed).decode('utf-8'),
+                        "data": base64.b64encode(decompressed).decode("utf-8"),
                         "compressed_size": stats["compressed_size"],
                         "decompressed_size": stats["decompressed_size"],
                         "elapsed_seconds": stats["duration_ms"] / 1000.0,
@@ -212,18 +228,20 @@ async def handle_rpc(request: web.Request) -> web.Response:
             pending = []
             for j in _compression_jobs.values():
                 if j["status"] == "running":
-                    running.append({
-                        "job_id": j["job_id"],
-                        "status": j["status"],
-                        "job_type": j.get("job_type", "compress_data"),
-                        "priority": j.get("priority", "normal"),
-                        "progress": j["progress"] / 100.0,  # Normalize to 0-1
-                        "phase": "compressing",
-                        "bytes_processed": 512,
-                        "bytes_total": 1024,
-                        "current_ratio": 0.7,
-                        "eta_seconds": 0.5,
-                    })
+                    running.append(
+                        {
+                            "job_id": j["job_id"],
+                            "status": j["status"],
+                            "job_type": j.get("job_type", "compress_data"),
+                            "priority": j.get("priority", "normal"),
+                            "progress": j["progress"] / 100.0,  # Normalize to 0-1
+                            "phase": "compressing",
+                            "bytes_processed": 512,
+                            "bytes_total": 1024,
+                            "current_ratio": 0.7,
+                            "eta_seconds": 0.5,
+                        }
+                    )
                 elif j["status"] == "queued":
                     pending.append(j)
 
@@ -240,7 +258,10 @@ async def handle_rpc(request: web.Request) -> web.Response:
             if not job:
                 error = {"code": -32602, "message": f"Job not found: {job_id}"}
             elif job["status"] in ("completed", "failed", "cancelled"):
-                error = {"code": -32602, "message": f"Job cannot be cancelled: {job['status']}"}
+                error = {
+                    "code": -32602,
+                    "message": f"Job cannot be cancelled: {job['status']}",
+                }
             else:
                 job["status"] = "cancelled"
                 job["completed_at"] = datetime.now(UTC).isoformat()
@@ -258,19 +279,22 @@ async def handle_rpc(request: web.Request) -> web.Response:
                 jobs_list = [j for j in jobs_list if j["status"] == status_filter]
 
             # Apply pagination
-            jobs_list = jobs_list[offset:offset + limit]
+            jobs_list = jobs_list[offset : offset + limit]
 
             result = {
-                "jobs": [{
-                    "job_id": j["job_id"],
-                    "status": j["status"],
-                    "priority": j.get("priority", "normal"),
-                    "job_type": j.get("job_type", "compress_data"),
-                    "progress": j.get("progress", 0.0),
-                    "created_at": j["created_at"],
-                    "started_at": j.get("started_at"),
-                    "completed_at": j.get("completed_at"),
-                } for j in jobs_list],
+                "jobs": [
+                    {
+                        "job_id": j["job_id"],
+                        "status": j["status"],
+                        "priority": j.get("priority", "normal"),
+                        "job_type": j.get("job_type", "compress_data"),
+                        "progress": j.get("progress", 0.0),
+                        "created_at": j["created_at"],
+                        "started_at": j.get("started_at"),
+                        "completed_at": j.get("completed_at"),
+                    }
+                    for j in jobs_list
+                ],
                 "total": len(_compression_jobs),
                 "limit": limit,
                 "offset": offset,
@@ -298,26 +322,89 @@ async def handle_rpc(request: web.Request) -> web.Response:
 
             # Generate 40 agents (matching test expectations)
             agent_names = [
-                "APEX", "CIPHER", "ARCHITECT", "AXIOM", "VELOCITY",
-                "QUANTUM", "TENSOR", "FORTRESS", "NEURAL", "CRYPTO",
-                "FLUX", "PRISM", "SYNAPSE", "CORE", "HELIX",
-                "VANGUARD", "ECLIPSE", "NEXUS", "GENESIS", "OMNISCIENT",
-                "ATLAS", "FORGE", "SENTRY", "VERTEX", "STREAM",
-                "PHOTON", "LATTICE", "MORPH", "PHANTOM", "ORBIT",
-                "CANVAS", "LINGUA", "SCRIBE", "MENTOR", "BRIDGE",
-                "AEGIS", "LEDGER", "PULSE", "ARBITER", "ORACLE",
+                "APEX",
+                "CIPHER",
+                "ARCHITECT",
+                "AXIOM",
+                "VELOCITY",
+                "QUANTUM",
+                "TENSOR",
+                "FORTRESS",
+                "NEURAL",
+                "CRYPTO",
+                "FLUX",
+                "PRISM",
+                "SYNAPSE",
+                "CORE",
+                "HELIX",
+                "VANGUARD",
+                "ECLIPSE",
+                "NEXUS",
+                "GENESIS",
+                "OMNISCIENT",
+                "ATLAS",
+                "FORGE",
+                "SENTRY",
+                "VERTEX",
+                "STREAM",
+                "PHOTON",
+                "LATTICE",
+                "MORPH",
+                "PHANTOM",
+                "ORBIT",
+                "CANVAS",
+                "LINGUA",
+                "SCRIBE",
+                "MENTOR",
+                "BRIDGE",
+                "AEGIS",
+                "LEDGER",
+                "PULSE",
+                "ARBITER",
+                "ORACLE",
             ]
 
             tier_map = {
-                "APEX": "core", "CIPHER": "core", "ARCHITECT": "core", "AXIOM": "core", "VELOCITY": "core",
-                "QUANTUM": "specialist", "TENSOR": "specialist", "FORTRESS": "specialist", "NEURAL": "specialist",
-                "CRYPTO": "specialist", "FLUX": "specialist", "PRISM": "specialist", "SYNAPSE": "specialist",
-                "CORE": "specialist", "HELIX": "specialist", "VANGUARD": "specialist", "ECLIPSE": "specialist",
-                "NEXUS": "specialist", "GENESIS": "specialist", "OMNISCIENT": "specialist",
-                "ATLAS": "support", "FORGE": "support", "SENTRY": "support", "VERTEX": "support", "STREAM": "support",
-                "PHOTON": "support", "LATTICE": "support", "MORPH": "support", "PHANTOM": "support", "ORBIT": "support",
-                "CANVAS": "support", "LINGUA": "support", "SCRIBE": "support", "MENTOR": "support", "BRIDGE": "support",
-                "AEGIS": "support", "LEDGER": "support", "PULSE": "support", "ARBITER": "support", "ORACLE": "support",
+                "APEX": "core",
+                "CIPHER": "core",
+                "ARCHITECT": "core",
+                "AXIOM": "core",
+                "VELOCITY": "core",
+                "QUANTUM": "specialist",
+                "TENSOR": "specialist",
+                "FORTRESS": "specialist",
+                "NEURAL": "specialist",
+                "CRYPTO": "specialist",
+                "FLUX": "specialist",
+                "PRISM": "specialist",
+                "SYNAPSE": "specialist",
+                "CORE": "specialist",
+                "HELIX": "specialist",
+                "VANGUARD": "specialist",
+                "ECLIPSE": "specialist",
+                "NEXUS": "specialist",
+                "GENESIS": "specialist",
+                "OMNISCIENT": "specialist",
+                "ATLAS": "support",
+                "FORGE": "support",
+                "SENTRY": "support",
+                "VERTEX": "support",
+                "STREAM": "support",
+                "PHOTON": "support",
+                "LATTICE": "support",
+                "MORPH": "support",
+                "PHANTOM": "support",
+                "ORBIT": "support",
+                "CANVAS": "support",
+                "LINGUA": "support",
+                "SCRIBE": "support",
+                "MENTOR": "support",
+                "BRIDGE": "support",
+                "AEGIS": "support",
+                "LEDGER": "support",
+                "PULSE": "support",
+                "ARBITER": "support",
+                "ORACLE": "support",
             }
 
             agents = []
@@ -325,14 +412,16 @@ async def handle_rpc(request: web.Request) -> web.Response:
                 tier = tier_map.get(name, "support")
                 if tier_filter and tier != tier_filter:
                     continue
-                agents.append({
-                    "agent_id": f"agent-{i+1:04d}",
-                    "name": name,
-                    "tier": tier,
-                    "specialty": f"{name.lower()} operations",
-                    "status": "idle",
-                    "load": 0.0,
-                })
+                agents.append(
+                    {
+                        "agent_id": f"agent-{i+1:04d}",
+                        "name": name,
+                        "tier": tier,
+                        "specialty": f"{name.lower()} operations",
+                        "status": "idle",
+                        "load": 0.0,
+                    }
+                )
 
             result = {
                 "agents": agents,
@@ -365,36 +454,42 @@ async def handle_rpc(request: web.Request) -> web.Response:
         return web.json_response(response)
 
     except json.JSONDecodeError:
-        return web.json_response({
-            "jsonrpc": "2.0",
-            "error": {"code": -32700, "message": "Parse error"},
-            "id": None,
-        })
+        return web.json_response(
+            {
+                "jsonrpc": "2.0",
+                "error": {"code": -32700, "message": "Parse error"},
+                "id": None,
+            }
+        )
     except Exception as e:
-        return web.json_response({
-            "jsonrpc": "2.0",
-            "error": {"code": -32603, "message": f"Internal error: {e!s}"},
-            "id": body.get("id") if 'body' in dir() else None,
-        })
+        return web.json_response(
+            {
+                "jsonrpc": "2.0",
+                "error": {"code": -32603, "message": f"Internal error: {e!s}"},
+                "id": body.get("id") if "body" in dir() else None,
+            }
+        )
 
 
 async def health_check(request: web.Request) -> web.Response:
     """Health check endpoint."""
-    return web.json_response({
-        "status": "healthy",
-        "timestamp": datetime.now(UTC).isoformat(),
-    })
+    return web.json_response(
+        {
+            "status": "healthy",
+            "timestamp": datetime.now(UTC).isoformat(),
+        }
+    )
 
 
 async def main():
     """Start the test RPC server."""
     app = web.Application()
-    app.router.add_post('/api/v1/rpc', handle_rpc)
-    app.router.add_get('/health', health_check)
+    app.router.add_post("/api/v1/rpc", handle_rpc)
+    app.router.add_get("/health", health_check)
 
     runner = web.AppRunner(app)
     await runner.setup()
-    site = web.TCPSite(runner, '127.0.0.1', 8102)
+    site = web.TCPSite(runner, "127.0.0.1", 8102)
     await site.start()
 
     print("=" * 60)

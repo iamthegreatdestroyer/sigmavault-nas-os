@@ -4,15 +4,16 @@ from aiohttp import web
 
 
 async def hello(request):
-    return web.Response(text='{"Hello": "World"}', content_type='application/json')
+    return web.Response(text='{"Hello": "World"}', content_type="application/json")
+
 
 async def main():
     app = web.Application()
-    app.router.add_get('/', hello)
+    app.router.add_get("/", hello)
 
     runner = web.AppRunner(app)
     await runner.setup()
-    site = web.TCPSite(runner, '0.0.0.0', 8004)
+    site = web.TCPSite(runner, "0.0.0.0", 8004)
     await site.start()
     print("Server started on http://0.0.0.0:8004")
 
@@ -23,6 +24,7 @@ async def main():
     except KeyboardInterrupt:
         print("Shutting down...")
         await runner.cleanup()
+
 
 if __name__ == "__main__":
     asyncio.run(main())

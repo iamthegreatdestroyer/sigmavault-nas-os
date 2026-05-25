@@ -82,7 +82,9 @@ class TestEliteAgentsAPI:
     @pytest.mark.asyncio
     async def test_list_agents_by_domain(self, client):
         """Test filtering agents by domain."""
-        response = await client.get("/elite-agents/", params={"domain": "software_engineering"})
+        response = await client.get(
+            "/elite-agents/", params={"domain": "software_engineering"}
+        )
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
@@ -186,7 +188,7 @@ class TestEliteAgentsAPI:
             "task_type": "code_review",
             "payload": {"code": "def hello(): print('world')"},
             "priority": "HIGH",
-            "timeout": 60
+            "timeout": 60,
         }
 
         response = await client.post("/elite-agents/APEX-01/task", json=task_data)
@@ -205,7 +207,7 @@ class TestEliteAgentsAPI:
             "task_type": "code_review",
             "payload": {"code": "test"},
             "priority": "INVALID",
-            "timeout": 60
+            "timeout": 60,
         }
 
         response = await client.post("/elite-agents/APEX-01/task", json=task_data)
@@ -216,13 +218,11 @@ class TestEliteAgentsAPI:
     @pytest.mark.asyncio
     async def test_submit_task_to_nonexistent_agent(self, client):
         """Test submitting task to non-existent agent."""
-        task_data = {
-            "task_type": "test",
-            "payload": {},
-            "priority": "MEDIUM"
-        }
+        task_data = {"task_type": "test", "payload": {}, "priority": "MEDIUM"}
 
-        response = await client.post("/elite-agents/NONEXISTENT-99/task", json=task_data)
+        response = await client.post(
+            "/elite-agents/NONEXISTENT-99/task", json=task_data
+        )
 
         assert response.status_code == status.HTTP_404_NOT_FOUND
 

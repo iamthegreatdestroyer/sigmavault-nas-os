@@ -177,9 +177,9 @@ def test_multiple_jobs_sorting():
     expected_order = ["job-002", "job-003", "job-001"]
     actual_order = [j["job_id"] for j in result["jobs"]]
 
-    assert actual_order == expected_order, (
-        f"Expected order {expected_order}, got {actual_order}"
-    )
+    assert (
+        actual_order == expected_order
+    ), f"Expected order {expected_order}, got {actual_order}"
 
     print_test("Jobs sorted by created_at descending", "PASS")
     print(f"  Order: {' → '.join(actual_order)}")
@@ -276,7 +276,9 @@ def test_limit_parameter():
 
     # Test limit=2
     result = handle_compression_jobs_list({"limit": 2})
-    assert len(result["jobs"]) == 2, f"Expected 2 with limit=2, got {len(result['jobs'])}"
+    assert (
+        len(result["jobs"]) == 2
+    ), f"Expected 2 with limit=2, got {len(result['jobs'])}"
     assert result["total"] == 5, f"Total should still be 5, got {result['total']}"
     print_test("Limit=2 returns 2 jobs but total=5", "PASS")
 
@@ -316,9 +318,16 @@ def test_response_structure():
 
     # Verify each job has required fields that Go expects
     required_fields = [
-        "job_id", "status", "original_size", "compressed_size",
-        "compression_ratio", "elapsed_seconds", "method", "data_type",
-        "created_at", "error"
+        "job_id",
+        "status",
+        "original_size",
+        "compressed_size",
+        "compression_ratio",
+        "elapsed_seconds",
+        "method",
+        "data_type",
+        "created_at",
+        "error",
     ]
 
     for field in required_fields:
@@ -330,8 +339,12 @@ def test_response_structure():
     assert isinstance(job["status"], str), "status should be string"
     assert isinstance(job["original_size"], int), "original_size should be int"
     assert isinstance(job["compressed_size"], int), "compressed_size should be int"
-    assert isinstance(job["compression_ratio"], (int, float)), "compression_ratio should be numeric"
-    assert isinstance(job["elapsed_seconds"], (int, float)), "elapsed_seconds should be numeric"
+    assert isinstance(
+        job["compression_ratio"], (int, float)
+    ), "compression_ratio should be numeric"
+    assert isinstance(
+        job["elapsed_seconds"], (int, float)
+    ), "elapsed_seconds should be numeric"
     assert isinstance(job["method"], str), "method should be string"
     assert isinstance(job["data_type"], str), "data_type should be string"
     assert isinstance(job["created_at"], str), "created_at should be string (ISO8601)"
@@ -344,12 +357,14 @@ def test_response_structure():
 
 def main():
     """Run all integration tests."""
-    print("""
+    print(
+        """
 ╔════════════════════════════════════════════════════════════════════════════╗
 ║                  Phase 3 Integration Test Suite                           ║
 ║                   Python RPC Handler Verification                         ║
 ╚════════════════════════════════════════════════════════════════════════════╝
-    """)
+    """
+    )
 
     tests = [
         test_empty_jobs_list,
@@ -385,18 +400,22 @@ def main():
     print(f"  📊 Success Rate: {passed}/{total} ({100*passed//total}%)")
 
     if failed == 0:
-        print("""
+        print(
+            """
 ╔════════════════════════════════════════════════════════════════════════════╗
 ║  🎉 All tests passed! Python RPC handlers are ready for Go integration.    ║
 ╚════════════════════════════════════════════════════════════════════════════╝
-        """)
+        """
+        )
         return 0
     else:
-        print("""
+        print(
+            """
 ╔════════════════════════════════════════════════════════════════════════════╗
 ║  ⚠️  Some tests failed. See errors above for details.                      ║
 ╚════════════════════════════════════════════════════════════════════════════╝
-        """)
+        """
+        )
         return 1
 
 
