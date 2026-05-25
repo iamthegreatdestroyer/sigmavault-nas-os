@@ -3,6 +3,7 @@
 ## Current State Assessment
 
 ### ✅ What Exists
+
 1. **Go API Handlers** (`src/api/internal/handlers/agents.go`):
    - `ListAgents()` - Returns all agents
    - `GetAgent(id)` - Gets specific agent
@@ -27,6 +28,7 @@
    - AgentTier struct for tier organization
 
 4. **Routes** (`src/api/internal/routes/routes.go`, lines 115-118):
+
    ```go
    agents := protected.Group("/agents")
    agents.Get("/", agentsHandler.ListAgents)
@@ -39,6 +41,7 @@
    - Likely has agents menu/section
 
 ### ❌ What's Missing
+
 1. **Engine RPC Handlers**:
    - Likely missing these methods in `src/engined/engined/api/rpc.py`:
      - agents.list
@@ -47,7 +50,6 @@
      - agents.metrics
      - agents.swarm_status
      - agents.list_tiers
-   
 2. **Agent Control Panel UI**:
    - Need to build Desktop UI agents page with:
      - List of all agents (with search/sort)
@@ -67,6 +69,7 @@
 ## Implementation Priority
 
 ### Phase 2.3.2a: Foundation (CRITICAL)
+
 1. Check if Engine has agents API module
 2. Review what agent data Engine tracks
 3. Implement missing RPC handlers in Engine
@@ -74,12 +77,14 @@
 5. Verify Go API endpoints respond with real data
 
 ### Phase 2.3.2b: UI (HIGH)
+
 1. Build agents list view in Desktop UI
 2. Add agent detail panel
 3. Implement agent status visualization
 4. Add metrics/performance graphs
 
 ### Phase 2.3.2c: Advanced Features (MEDIUM)
+
 1. Task dispatch UI
 2. Agent configuration editor
 3. Collaboration interface
@@ -114,10 +119,11 @@
 ✅ `/api/v1/agents/:id` returns agent details
 ✅ `/api/v1/agents/:id/metrics` returns agent metrics
 ✅ Desktop UI displays agent panel with:
-   - List of all agents
-   - Agent status (color-coded)
-   - Agent specialization
-   - Basic metrics
+
+- List of all agents
+- Agent status (color-coded)
+- Agent specialization
+- Basic metrics
 
 ## Reference: Testing Endpoints
 

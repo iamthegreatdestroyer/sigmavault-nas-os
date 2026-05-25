@@ -3,6 +3,7 @@ package websocket
 
 import (
 	"encoding/json"
+	"fmt"
 	"sync"
 	"time"
 
@@ -82,6 +83,8 @@ type Hub struct {
 	unregister chan *Client
 	broadcast  chan []byte
 	mu         sync.RWMutex
+	done       chan struct{}
+	stopOnce   sync.Once
 }
 
 // NewHub creates a new WebSocket hub.
@@ -91,6 +94,7 @@ func NewHub() *Hub {
 		register:   make(chan *Client),
 		unregister: make(chan *Client),
 		broadcast:  make(chan []byte),
+		done:       make(chan struct{}),
 	}
 }
 
@@ -98,6 +102,21 @@ func NewHub() *Hub {
 func (h *Hub) Run() {
 	for {
 		select {
+		case <-h.done:
+			// Graceful shutdown - close all channels and clean up
+			h.mu.Lock()
+			for client := range h.clients {
+				close(client.Send)
+			}
+			h.clients = make(map[*Client]bool)
+			h.mu.Unlock()
+
+			// Close the channels to unblock any pending sends
+			close(h.register)
+			close(h.unregister)
+			close(h.broadcast)
+			return
+
 		case client := <-h.register:
 			h.mu.Lock()
 			h.clients[client] = true
@@ -152,7 +171,14 @@ func (h *Hub) Run() {
 }
 
 // Broadcast sends a message to all connected clients.
-func (h *Hub) Broadcast(msgType MessageType, data interface{}) error {
+func (h *Hub) Broadcast(msgType MessageType, data interface{}) (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			// Hub has been stopped, channels are closed
+			err = fmt.Errorf("hub stopped")
+		}
+	}()
+
 	jsonData, err := json.Marshal(data)
 	if err != nil {
 		return err
@@ -226,6 +252,13 @@ func (h *Hub) BroadcastIfSubscribed(msgType MessageType, data interface{}) error
 		Msg("BroadcastIfSubscribed: broadcast complete")
 
 	return nil
+}
+
+// Stop gracefully shuts down the hub.
+func (h *Hub) Stop() {
+	h.stopOnce.Do(func() {
+		close(h.done)
+	})
 }
 
 // ClientCount returns the number of connected clients.

@@ -6,33 +6,33 @@ $baseUrl = "http://localhost:5000/api/v1/rpc"
 $tests = @(
     @{
         description = "List all agents"
-        method = "agents.list"
-        params = @{}
+        method      = "agents.list"
+        params      = @{}
     },
     @{
         description = "Get agent by ID (TENSOR)"
-        method = "agents.get"
-        params = @{"id" = "agent-001"}
+        method      = "agents.get"
+        params      = @{"id" = "agent-001" }
     },
     @{
         description = "Get agent by codename (APEX)"
-        method = "agents.get_by_codename"
-        params = @{"codename" = "APEX"}
+        method      = "agents.get_by_codename"
+        params      = @{"codename" = "APEX" }
     },
     @{
         description = "Get agent metrics (agent-001)"
-        method = "agents.metrics"
-        params = @{"id" = "agent-001"}
+        method      = "agents.metrics"
+        params      = @{"id" = "agent-001" }
     },
     @{
         description = "List agent tiers"
-        method = "agents.list_tiers"
-        params = @{}
+        method      = "agents.list_tiers"
+        params      = @{}
     },
     @{
         description = "Get swarm status"
-        method = "agents.status"
-        params = @{}
+        method      = "agents.status"
+        params      = @{}
     }
 )
 
@@ -46,9 +46,9 @@ $failed = 0
 foreach ($test in $tests) {
     $payload = @{
         jsonrpc = "2.0"
-        method = $test.method
-        params = $test.params
-        id = 1
+        method  = $test.method
+        params  = $test.params
+        id      = 1
     } | ConvertTo-Json
 
     Write-Host "Testing: $($test.description)" -ForegroundColor Yellow
@@ -56,7 +56,7 @@ foreach ($test in $tests) {
     try {
         $response = Invoke-WebRequest -Uri $baseUrl `
             -Method Post `
-            -Headers @{"Content-Type" = "application/json"} `
+            -Headers @{"Content-Type" = "application/json" } `
             -Body $payload `
             -UseBasicParsing
 
@@ -65,11 +65,13 @@ foreach ($test in $tests) {
         if ($parsed.error) {
             Write-Host "  ERROR: $($parsed.error.message)" -ForegroundColor Red
             $failed++
-        } else {
+        }
+        else {
             Write-Host "  OK" -ForegroundColor Green
             $passed++
         }
-    } catch {
+    }
+    catch {
         Write-Host "  FAILED: $($_.Exception.Message)" -ForegroundColor Red
         $failed++
     }

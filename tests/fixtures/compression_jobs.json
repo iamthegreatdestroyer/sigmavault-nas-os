@@ -1,0 +1,49 @@
+[
+  {
+    "job_id": "job-0001",
+    "source_size_bytes": 1000000,
+    "target_size_bytes": 100000,
+    "status": "completed",
+    "progress_percent": 100,
+    "compression_ratio": 0.1,
+    "created_at": "2026-02-10T10:00:00Z",
+    "completed_at": "2026-02-10T10:05:30Z",
+    "duration_ms": 330000
+  },
+  {
+    "job_id": "job-0002",
+    "source_size_bytes": 5000000,
+    "target_size_bytes": 1250000,
+    "status": "running",
+    "progress_percent": 45,
+    "compression_ratio": 0.25,
+    "created_at": "2026-02-10T10:15:00Z",
+    "completed_at": null,
+    "duration_ms": null,
+    "estimated_completion_ms": 5000
+  },
+  {
+    "job_id": "job-0003",
+    "source_size_bytes": 2000000,
+    "target_size_bytes": null,
+    "status": "queued",
+    "progress_percent": 0,
+    "compression_ratio": null,
+    "created_at": "2026-02-10T10:20:00Z",
+    "completed_at": null,
+    "duration_ms": null,
+    "estimated_completion_ms": 15000
+  },
+  {
+    "job_id": "job-0004",
+    "source_size_bytes": 500000,
+    "target_size_bytes": null,
+    "status": "failed",
+    "progress_percent": 35,
+    "compression_ratio": null,
+    "created_at": "2026-02-10T09:50:00Z",
+    "completed_at": "2026-02-10T09:52:15Z",
+    "duration_ms": 135000,
+    "error": "Compression codec not supported"
+  }
+]

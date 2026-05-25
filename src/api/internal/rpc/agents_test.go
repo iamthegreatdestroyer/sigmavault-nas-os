@@ -15,7 +15,7 @@ func TestAgent_JSONSerialization(t *testing.T) {
 	agent := Agent{
 		ID:             "agent-001",
 		Codename:       "TENSOR",
-		Tier:           1,
+		Tier:           "core",
 		Role:           "ML Specialist",
 		Status:         "idle",
 		Specialization: "machine-learning",

@@ -4,38 +4,38 @@
 $baseUrl = "http://localhost:5000/api/v1/rpc"
 $methods = @(
     @{
-        method = "agents.list"
-        params = @{}
+        method      = "agents.list"
+        params      = @{}
         description = "List all agents"
     },
     @{
-        method = "agents.status"
-        params = @{}
+        method      = "agents.status"
+        params      = @{}
         description = "Get swarm status"
     },
     @{
-        method = "agents.get"
-        params = @{"id" = "agent-001"}
+        method      = "agents.get"
+        params      = @{"id" = "agent-001" }
         description = "Get specific agent (agent-001)"
     },
     @{
-        method = "agents.get_by_codename"
-        params = @{"codename" = "TENSOR"}
+        method      = "agents.get_by_codename"
+        params      = @{"codename" = "TENSOR" }
         description = "Get agent by codename (TENSOR)"
     },
     @{
-        method = "agents.metrics"
-        params = @{"id" = "agent-001"}
+        method      = "agents.metrics"
+        params      = @{"id" = "agent-001" }
         description = "Get agent metrics (agent-001)"
     },
     @{
-        method = "agents.list_tiers"
-        params = @{}
+        method      = "agents.list_tiers"
+        params      = @{}
         description = "List agent tiers"
     },
     @{
-        method = "agents.swarm_status"
-        params = @{}
+        method      = "agents.swarm_status"
+        params      = @{}
         description = "Get swarm status (alias)"
     }
 )
@@ -46,9 +46,9 @@ Write-Host "=========================" -ForegroundColor Cyan
 foreach ($test in $methods) {
     $payload = @{
         jsonrpc = "2.0"
-        method = $test.method
-        params = $test.params
-        id = 1
+        method  = $test.method
+        params  = $test.params
+        id      = 1
     } | ConvertTo-Json
 
     Write-Host ""
@@ -58,7 +58,7 @@ foreach ($test in $methods) {
     try {
         $response = Invoke-WebRequest -Uri $baseUrl `
             -Method Post `
-            -Headers @{"Content-Type" = "application/json"} `
+            -Headers @{"Content-Type" = "application/json" } `
             -Body $payload `
             -UseBasicParsing
 
@@ -67,7 +67,8 @@ foreach ($test in $methods) {
         if ($parsed.error) {
             Write-Host "❌ RPC Error:" -ForegroundColor Red
             Write-Host $parsed.error | ConvertTo-Json -Depth 2
-        } else {
+        }
+        else {
             Write-Host "✅ SUCCESS" -ForegroundColor Green
             
             # Show result summary
@@ -77,17 +78,20 @@ foreach ($test in $methods) {
                     Write-Host "  Sample:" -ForegroundColor Gray
                     $parsed.result[0] | ConvertTo-Json -Depth 2 | ForEach-Object { Write-Host "    $_" }
                 }
-            } elseif ($parsed.result -is [PSCustomObject]) {
+            }
+            elseif ($parsed.result -is [PSCustomObject]) {
                 Write-Host "  Returned object:"
                 # Show key properties
                 $parsed.result | Get-Member -MemberType NoteProperty | Select-Object -First 5 -ExpandProperty Name | ForEach-Object {
                     Write-Host "    $($_): $($parsed.result.$_)" -ForegroundColor Gray
                 }
-            } else {
+            }
+            else {
                 Write-Host "  Result: $($parsed.result | ConvertTo-Json -Compress -Depth 1)"
             }
         }
-    } catch {
+    }
+    catch {
         Write-Host "❌ ERROR:" -ForegroundColor Red
         Write-Host $_.Exception.Message
     }

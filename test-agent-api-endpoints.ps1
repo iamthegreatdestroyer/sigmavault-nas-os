@@ -12,14 +12,15 @@ Write-Host "Getting authorization token..." -ForegroundColor Gray
 try {
     $loginResponse = Invoke-WebRequest -Uri $loginUrl `
         -Method Post `
-        -Headers @{"Content-Type" = "application/json"} `
+        -Headers @{"Content-Type" = "application/json" } `
         -Body $loginPayload `
         -UseBasicParsing
 
     $loginData = $loginResponse.Content | ConvertFrom-Json
     $token = $loginData.access_token
     Write-Host "✅ Got token" -ForegroundColor Green
-} catch {
+}
+catch {
     Write-Host "❌ Login failed:" -ForegroundColor Red
     Write-Host $_.Exception.Message
     exit 1
@@ -27,27 +28,27 @@ try {
 
 $headers = @{
     "Authorization" = "Bearer $token"
-    "Content-Type" = "application/json"
+    "Content-Type"  = "application/json"
 }
 
 $tests = @(
     @{
-        name = "List all agents"
+        name   = "List all agents"
         method = "GET"
-        url = "http://localhost:12080/api/v1/agents"
-        body = $null
+        url    = "http://localhost:12080/api/v1/agents"
+        body   = $null
     },
     @{
-        name = "Get agent by ID (agent-001)"
+        name   = "Get agent by ID (agent-001)"
         method = "GET"
-        url = "http://localhost:12080/api/v1/agents/agent-001"
-        body = $null
+        url    = "http://localhost:12080/api/v1/agents/agent-001"
+        body   = $null
     },
     @{
-        name = "Get agent metrics (agent-001)"
+        name   = "Get agent metrics (agent-001)"
         method = "GET"
-        url = "http://localhost:12080/api/v1/agents/agent-001/metrics"
-        body = $null
+        url    = "http://localhost:12080/api/v1/agents/agent-001/metrics"
+        body   = $null
     }
 )
 
@@ -76,13 +77,15 @@ foreach ($test in $tests) {
                 Write-Host "  Sample:" -ForegroundColor Gray
                 $data[0] | ConvertTo-Json -Depth 1 | ForEach-Object { Write-Host "    $_" }
             }
-        } else {
+        }
+        else {
             Write-Host "  Response:" -ForegroundColor Gray
             $data | Get-Member -MemberType NoteProperty | Select-Object -First 8 -ExpandProperty Name | ForEach-Object {
                 Write-Host "    $($_): $($data.$_)" -ForegroundColor Gray
             }
         }
-    } catch {
+    }
+    catch {
         Write-Host "❌ ERROR - $($_.Exception.Response.StatusCode)" -ForegroundColor Red
         Write-Host $_.Exception.Message
     }

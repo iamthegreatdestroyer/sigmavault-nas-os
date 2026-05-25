@@ -1,0 +1,74 @@
+[
+  {
+    "id": "agent-001",
+    "codename": "TENSOR",
+    "tier": "core",
+    "status": "active",
+    "tasks_completed": 500,
+    "success_rate": 0.98,
+    "avg_response_time_ms": 45
+  },
+  {
+    "id": "agent-002",
+    "codename": "VELOCITY",
+    "tier": "core",
+    "status": "active",
+    "tasks_completed": 450,
+    "success_rate": 0.96,
+    "avg_response_time_ms": 40
+  },
+  {
+    "id": "agent-003",
+    "codename": "AXIOM",
+    "tier": "core",
+    "status": "active",
+    "tasks_completed": 420,
+    "success_rate": 0.97,
+    "avg_response_time_ms": 50
+  },
+  {
+    "id": "agent-004",
+    "codename": "PRISM",
+    "tier": "core",
+    "status": "active",
+    "tasks_completed": 380,
+    "success_rate": 0.95,
+    "avg_response_time_ms": 55
+  },
+  {
+    "id": "agent-005",
+    "codename": "FLUX",
+    "tier": "core",
+    "status": "active",
+    "tasks_completed": 410,
+    "success_rate": 0.96,
+    "avg_response_time_ms": 48
+  },
+  {
+    "id": "agent-011",
+    "codename": "CIPHER",
+    "tier": "specialist",
+    "status": "active",
+    "tasks_completed": 350,
+    "success_rate": 0.99,
+    "avg_response_time_ms": 60
+  },
+  {
+    "id": "agent-012",
+    "codename": "FORTRESS",
+    "tier": "specialist",
+    "status": "active",
+    "tasks_completed": 320,
+    "success_rate": 0.98,
+    "avg_response_time_ms": 65
+  },
+  {
+    "id": "agent-031",
+    "codename": "SYNAPSE",
+    "tier": "support",
+    "status": "active",
+    "tasks_completed": 200,
+    "success_rate": 0.94,
+    "avg_response_time_ms": 70
+  }
+]
