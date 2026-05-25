@@ -29,23 +29,26 @@ logger = logging.getLogger(__name__)
 
 class MemoryType(str, Enum):
     """Types of memories in the MNEMONIC system."""
-    EPISODIC = "episodic"      # Event memories: what happened
-    SEMANTIC = "semantic"       # Knowledge memories: what is true
-    PROCEDURAL = "procedural"   # Skill memories: how to do things
+
+    EPISODIC = "episodic"  # Event memories: what happened
+    SEMANTIC = "semantic"  # Knowledge memories: what is true
+    PROCEDURAL = "procedural"  # Skill memories: how to do things
 
 
 class MemoryPriority(int, Enum):
     """Priority levels for memory retention."""
-    CRITICAL = 100   # Never forget (errors, security events)
-    HIGH = 75        # Rarely forget (important patterns)
-    NORMAL = 50      # Standard retention
-    LOW = 25         # Quick to forget (routine events)
-    EPHEMERAL = 10   # Very short-term
+
+    CRITICAL = 100  # Never forget (errors, security events)
+    HIGH = 75  # Rarely forget (important patterns)
+    NORMAL = 50  # Standard retention
+    LOW = 25  # Quick to forget (routine events)
+    EPHEMERAL = 10  # Very short-term
 
 
 @dataclass
 class MemoryEntry:
     """A single memory entry in the MNEMONIC system."""
+
     id: str
     type: MemoryType
     content: dict[str, Any]
@@ -57,7 +60,7 @@ class MemoryEntry:
     associations: set[str] = field(default_factory=set)  # IDs of related memories
     embedding: list[float] | None = None  # For semantic search
     decay_rate: float = 0.1  # How fast memory fades (0-1)
-    strength: float = 1.0    # Current memory strength (0-1)
+    strength: float = 1.0  # Current memory strength (0-1)
 
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for serialization."""
@@ -110,10 +113,15 @@ class MemoryEntry:
 @dataclass
 class MemoryIndex:
     """Index for fast memory lookup."""
+
     by_tag: dict[str, set[str]] = field(default_factory=lambda: defaultdict(set))
-    by_type: dict[MemoryType, set[str]] = field(default_factory=lambda: defaultdict(set))
+    by_type: dict[MemoryType, set[str]] = field(
+        default_factory=lambda: defaultdict(set)
+    )
     by_agent: dict[str, set[str]] = field(default_factory=lambda: defaultdict(set))
-    temporal: list[tuple[datetime, str]] = field(default_factory=list)  # (timestamp, id)
+    temporal: list[tuple[datetime, str]] = field(
+        default_factory=list
+    )  # (timestamp, id)
 
     def add(self, entry: MemoryEntry, agent_id: str | None = None) -> None:
         """Add entry to indices."""
@@ -208,7 +216,9 @@ class MemoryStore:
         content_hash = hashlib.sha256(
             json.dumps(content, sort_keys=True).encode()
         ).hexdigest()[:16]
-        memory_id = f"{memory_type.value[:3]}_{content_hash}_{int(time.time() * 1000) % 100000}"
+        memory_id = (
+            f"{memory_type.value[:3]}_{content_hash}_{int(time.time() * 1000) % 100000}"
+        )
 
         now = datetime.now()
         entry = MemoryEntry(
@@ -345,19 +355,22 @@ class MemoryStore:
         """Evict weakest memories when at capacity."""
         # Find memories below threshold or lowest strength non-critical
         weak_memories = [
-            (mid, m) for mid, m in self._memories.items()
-            if m.priority != MemoryPriority.CRITICAL and m.strength < self._strength_threshold
+            (mid, m)
+            for mid, m in self._memories.items()
+            if m.priority != MemoryPriority.CRITICAL
+            and m.strength < self._strength_threshold
         ]
 
         if not weak_memories:
             # No weak memories, evict lowest strength non-critical
             candidates = [
-                (mid, m) for mid, m in self._memories.items()
+                (mid, m)
+                for mid, m in self._memories.items()
                 if m.priority != MemoryPriority.CRITICAL
             ]
             if candidates:
                 candidates.sort(key=lambda x: x[1].strength)
-                weak_memories = candidates[:max(1, len(candidates) // 10)]
+                weak_memories = candidates[: max(1, len(candidates) // 10)]
 
         for mid, entry in weak_memories:
             del self._memories[mid]
@@ -377,8 +390,11 @@ class MemoryStore:
                 to_forget = []
                 for mid, entry in self._memories.items():
                     entry.decay(elapsed)
-                    if entry.strength < self._strength_threshold and entry.priority != MemoryPriority.CRITICAL:
-                            to_forget.append(mid)
+                    if (
+                        entry.strength < self._strength_threshold
+                        and entry.priority != MemoryPriority.CRITICAL
+                    ):
+                        to_forget.append(mid)
 
                 for mid in to_forget:
                     entry = self._memories.pop(mid, None)
@@ -408,7 +424,7 @@ class MemoryStore:
                 for tag_set, memory_ids in tag_groups.items():
                     if len(memory_ids) > 1 and len(tag_set) >= 2:
                         for i, mid1 in enumerate(memory_ids):
-                            for mid2 in memory_ids[i+1:]:
+                            for mid2 in memory_ids[i + 1 :]:
                                 m1 = self._memories.get(mid1)
                                 m2 = self._memories.get(mid2)
                                 if m1 and m2 and mid2 not in m1.associations:
@@ -417,7 +433,9 @@ class MemoryStore:
                                     associations_made += 1
 
                 if associations_made:
-                    logger.debug(f"Consolidation created {associations_made} associations")
+                    logger.debug(
+                        f"Consolidation created {associations_made} associations"
+                    )
 
     def get_metrics(self) -> dict[str, Any]:
         """Get memory store metrics."""
@@ -428,9 +446,7 @@ class MemoryStore:
             "total_retrieved": self._total_retrieved,
             "consolidation_runs": self._consolidation_runs,
             "max_entries": self._max_entries,
-            "by_type": {
-                t.value: len(ids) for t, ids in self._index.by_type.items()
-            },
+            "by_type": {t.value: len(ids) for t, ids in self._index.by_type.items()},
         }
 
 
@@ -569,7 +585,9 @@ class AgentMemory:
                 "agent_id": self.agent_id,
                 "total_memories": len(agent_memories),
                 "by_type": dict(by_type),
-                "avg_strength": total_strength / len(agent_memories) if agent_memories else 0.0,
+                "avg_strength": (
+                    total_strength / len(agent_memories) if agent_memories else 0.0
+                ),
             }
 
 

@@ -23,6 +23,7 @@ logger = logging.getLogger(__name__)
 
 class TaskPriority(IntEnum):
     """Task priority levels (lower number = higher priority)."""
+
     CRITICAL = 0
     HIGH = 1
     NORMAL = 5
@@ -33,6 +34,7 @@ class TaskPriority(IntEnum):
 @dataclass(order=True)
 class PriorityTask:
     """Wrapper for priority queue ordering."""
+
     priority: int
     timestamp: float = field(compare=True)
     task_id: str = field(compare=False)
@@ -60,31 +62,26 @@ class TaskRouter:
         "compression.neural": ["TENSOR", "AXIOM", "PRISM"],
         "compression.fast": ["VELOCITY", "SPARK", "PULSE"],
         "compression.adaptive": ["FLUX", "NEXUS", "DELTA"],
-
         # Encryption tasks → Security agents
         "encryption": ["CIPHER", "QUANTUM", "VAULT", "SHIELD"],
         "encryption.quantum": ["QUANTUM", "CIPHER"],
         "encryption.keys": ["VAULT", "GUARDIAN"],
         "encryption.verify": ["SHIELD", "FORTRESS"],
-
         # Storage tasks → Storage agents
         "storage": ["ARCHITECT", "LATTICE", "PHOTON", "ATLAS"],
         "storage.zfs": ["LATTICE", "ARCHITECT"],
         "storage.io": ["PHOTON", "STREAM"],
         "storage.mapping": ["ATLAS", "BEACON"],
-
         # Analysis tasks → Analytics agents
         "analysis": ["PRISM", "VERTEX", "ORACLE", "CHRONICLE"],
         "analysis.pattern": ["PRISM", "TENSOR"],
         "analysis.graph": ["VERTEX", "NEXUS"],
         "analysis.predict": ["ORACLE", "PRISM"],
-
         # Security tasks → Security agents
         "security": ["FORTRESS", "SENTINEL", "GUARDIAN", "AEGIS", "PHANTOM"],
         "security.threat": ["SENTINEL", "ORACLE"],
         "security.access": ["GUARDIAN", "AEGIS"],
         "security.erase": ["PHANTOM", "SHIELD"],
-
         # Network tasks → Integration agents
         "network": ["SYNAPSE", "BRIDGE", "RELAY", "MESH", "CRYPTO"],
         "network.mesh": ["MESH", "RELAY"],
@@ -113,7 +110,9 @@ class TaskRouter:
         for agent_name in preferred:
             agent = self.swarm.get_agent_by_name(agent_name)
             if agent and agent.status == AgentStatus.IDLE:
-                logger.debug(f"Routed task type '{task_type}' to preferred agent {agent_name}")
+                logger.debug(
+                    f"Routed task type '{task_type}' to preferred agent {agent_name}"
+                )
                 return agent
 
         # Fall back to any idle agent with load balancing
@@ -121,7 +120,9 @@ class TaskRouter:
         if idle_agents:
             # Select agent with fewest completed tasks (load balancing)
             agent = min(idle_agents, key=lambda a: a.tasks_completed)
-            logger.debug(f"Routed task type '{task_type}' to fallback agent {agent.name}")
+            logger.debug(
+                f"Routed task type '{task_type}' to fallback agent {agent.name}"
+            )
             return agent
 
         logger.warning(f"No available agent for task type '{task_type}'")
@@ -197,9 +198,7 @@ class TaskScheduler:
         self._running = True
 
         for i in range(num_workers):
-            worker = asyncio.create_task(
-                self._worker_loop(f"scheduler-worker-{i+1}")
-            )
+            worker = asyncio.create_task(self._worker_loop(f"scheduler-worker-{i+1}"))
             self._workers.append(worker)
 
         logger.info(f"TaskScheduler started with {num_workers} workers")
@@ -374,10 +373,13 @@ class TaskScheduler:
         """Emit task event to event bridge."""
         try:
             from engined.agents.events import get_event_bridge
+
             bridge = get_event_bridge()
             if bridge and event_type == "assigned":
                 priority_name = self._priority_to_name(priority)
-                await bridge.on_task_assigned(task_id, task_type, agent_name, priority_name)
+                await bridge.on_task_assigned(
+                    task_id, task_type, agent_name, priority_name
+                )
         except Exception:
             pass  # Don't fail on event emission errors
 
@@ -387,6 +389,7 @@ class TaskScheduler:
             import asyncio
 
             from engined.agents.events import get_event_bridge
+
             bridge = get_event_bridge()
             if bridge:
                 task = self.swarm.tasks.get(task_id)

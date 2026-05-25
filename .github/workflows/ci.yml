@@ -72,8 +72,8 @@ jobs:
 
             - name: Run Go tests
               run: |
-                  # Run unit tests only (exclude integration tests in tests/ directory)
-                  go test -v -race -coverprofile=coverage.out $(go list ./... | grep -v /tests)
+                  # Run unit tests only (-short skips e2e tests that need live services)
+                  go test -short -v -race -coverprofile=coverage.out $(go list ./... | grep -v /tests)
 
             - name: Upload coverage
               uses: codecov/codecov-action@v4

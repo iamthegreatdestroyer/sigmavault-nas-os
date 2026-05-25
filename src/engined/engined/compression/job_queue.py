@@ -28,15 +28,17 @@ logger = logging.getLogger(__name__)
 
 class JobStatus(Enum):
     """Status of a compression job."""
-    PENDING = "pending"       # Waiting in queue
-    RUNNING = "running"       # Currently processing
-    COMPLETED = "completed"   # Finished successfully
-    FAILED = "failed"         # Finished with error
-    CANCELLED = "cancelled"   # User cancelled
+
+    PENDING = "pending"  # Waiting in queue
+    RUNNING = "running"  # Currently processing
+    COMPLETED = "completed"  # Finished successfully
+    FAILED = "failed"  # Finished with error
+    CANCELLED = "cancelled"  # User cancelled
 
 
 class JobPriority(Enum):
     """Priority levels for job scheduling."""
+
     LOW = 0
     NORMAL = 1
     HIGH = 2
@@ -48,6 +50,7 @@ class JobPriority(Enum):
 
 class JobType(Enum):
     """Type of compression job."""
+
     COMPRESS_FILE = "compress_file"
     COMPRESS_DATA = "compress_data"
     DECOMPRESS_FILE = "decompress_file"
@@ -61,6 +64,7 @@ class CompressionJob:
 
     Tracks status, progress, and result of async compression operations.
     """
+
     id: str
     job_type: JobType
     priority: JobPriority
@@ -113,7 +117,11 @@ class CompressionJob:
     @property
     def is_complete(self) -> bool:
         """Check if job has finished (success, failure, or cancelled)."""
-        return self.status in (JobStatus.COMPLETED, JobStatus.FAILED, JobStatus.CANCELLED)
+        return self.status in (
+            JobStatus.COMPLETED,
+            JobStatus.FAILED,
+            JobStatus.CANCELLED,
+        )
 
     @property
     def elapsed_seconds(self) -> float:
@@ -141,7 +149,9 @@ class CompressionJob:
             "status": self.status.value,
             "created_at": self.created_at.isoformat(),
             "started_at": self.started_at.isoformat() if self.started_at else None,
-            "completed_at": self.completed_at.isoformat() if self.completed_at else None,
+            "completed_at": (
+                self.completed_at.isoformat() if self.completed_at else None
+            ),
             "progress": self.progress,
             "bytes_processed": self.bytes_processed,
             "bytes_total": self.bytes_total,
@@ -154,15 +164,19 @@ class CompressionJob:
             "output_path": self.output_path,
             "user_id": self.user_id,
             "tags": self.tags,
-            "result": {
-                "success": self.result.success,
-                "original_size": self.result.original_size,
-                "compressed_size": self.result.compressed_size,
-                "compression_ratio": self.result.compression_ratio,
-                "elapsed_seconds": self.result.elapsed_seconds,
-                "data_type": self.result.data_type,
-                "checksum": self.result.checksum,
-            } if self.result else None,
+            "result": (
+                {
+                    "success": self.result.success,
+                    "original_size": self.result.original_size,
+                    "compressed_size": self.result.compressed_size,
+                    "compression_ratio": self.result.compression_ratio,
+                    "elapsed_seconds": self.result.elapsed_seconds,
+                    "data_type": self.result.data_type,
+                    "checksum": self.result.checksum,
+                }
+                if self.result
+                else None
+            ),
         }
 
 
@@ -250,15 +264,13 @@ class CompressionJobQueue:
         logger.info("CompressionJobQueue stopped")
 
     def add_progress_callback(
-        self,
-        callback: Callable[[CompressionJob], Awaitable[None]]
+        self, callback: Callable[[CompressionJob], Awaitable[None]]
     ) -> None:
         """Register callback for job progress updates."""
         self._on_progress.append(callback)
 
     def add_complete_callback(
-        self,
-        callback: Callable[[CompressionJob], Awaitable[None]]
+        self, callback: Callable[[CompressionJob], Awaitable[None]]
     ) -> None:
         """Register callback for job completion."""
         self._on_complete.append(callback)

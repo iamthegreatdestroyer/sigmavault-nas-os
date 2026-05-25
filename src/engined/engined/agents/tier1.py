@@ -27,10 +27,13 @@ class APEXAgent(BaseAgent):
             tier=1,
             domains=["software_engineering", "algorithms", "system_design"],
             skills=[
-                "production_code", "data_structures", "clean_code",
-                "design_patterns", "distributed_systems"
+                "production_code",
+                "data_structures",
+                "clean_code",
+                "design_patterns",
+                "distributed_systems",
             ],
-            description="Master-level software engineering and computational problem-solving"
+            description="Master-level software engineering and computational problem-solving",
         )
         super().__init__(agent_id="APEX-01", capability=capability)
 
@@ -49,8 +52,8 @@ class APEXAgent(BaseAgent):
                 "task_type": task.task_type,
                 "message": "Task received and processed by APEX (stub implementation)",
                 "tier": 1,
-                "philosophy": "Every problem has an elegant solution"
-            }
+                "philosophy": "Every problem has an elegant solution",
+            },
         )
 
 
@@ -68,10 +71,13 @@ class CIPHERAgent(BaseAgent):
             tier=1,
             domains=["cryptography", "security", "protocols"],
             skills=[
-                "encryption", "key_management", "tls_ssl",
-                "zero_knowledge", "threat_modeling"
+                "encryption",
+                "key_management",
+                "tls_ssl",
+                "zero_knowledge",
+                "threat_modeling",
             ],
-            description="Cryptographic protocol design and security analysis"
+            description="Cryptographic protocol design and security analysis",
         )
         super().__init__(agent_id="CIPHER-02", capability=capability)
 
@@ -89,8 +95,8 @@ class CIPHERAgent(BaseAgent):
                 "task_type": task.task_type,
                 "message": "Task received and processed by CIPHER (stub implementation)",
                 "tier": 1,
-                "philosophy": "Security is foundation, not feature"
-            }
+                "philosophy": "Security is foundation, not feature",
+            },
         )
 
 
@@ -108,10 +114,14 @@ class ARCHITECTAgent(BaseAgent):
             tier=1,
             domains=["architecture", "design_patterns", "scalability"],
             skills=[
-                "microservices", "event_driven", "ddd",
-                "cqrs", "caching", "load_balancing"
+                "microservices",
+                "event_driven",
+                "ddd",
+                "cqrs",
+                "caching",
+                "load_balancing",
             ],
-            description="Large-scale system design and architectural decision-making"
+            description="Large-scale system design and architectural decision-making",
         )
         super().__init__(agent_id="ARCHITECT-03", capability=capability)
 
@@ -129,8 +139,8 @@ class ARCHITECTAgent(BaseAgent):
                 "task_type": task.task_type,
                 "message": "Task received and processed by ARCHITECT (stub implementation)",
                 "tier": 1,
-                "philosophy": "Making complexity manageable"
-            }
+                "philosophy": "Making complexity manageable",
+            },
         )
 
 
@@ -148,10 +158,13 @@ class AXIOMAgent(BaseAgent):
             tier=1,
             domains=["mathematics", "algorithms", "complexity"],
             skills=[
-                "formal_proofs", "complexity_analysis", "graph_theory",
-                "optimization", "statistics"
+                "formal_proofs",
+                "complexity_analysis",
+                "graph_theory",
+                "optimization",
+                "statistics",
             ],
-            description="Mathematical reasoning and algorithmic analysis"
+            description="Mathematical reasoning and algorithmic analysis",
         )
         super().__init__(agent_id="AXIOM-04", capability=capability)
 
@@ -169,8 +182,8 @@ class AXIOMAgent(BaseAgent):
                 "task_type": task.task_type,
                 "message": "Task received and processed by AXIOM (stub implementation)",
                 "tier": 1,
-                "philosophy": "From axioms flow certainty"
-            }
+                "philosophy": "From axioms flow certainty",
+            },
         )
 
 
@@ -188,10 +201,13 @@ class VELOCITYAgent(BaseAgent):
             tier=1,
             domains=["performance", "optimization", "algorithms"],
             skills=[
-                "profiling", "cache_optimization", "simd",
-                "sub_linear_algorithms", "streaming"
+                "profiling",
+                "cache_optimization",
+                "simd",
+                "sub_linear_algorithms",
+                "streaming",
             ],
-            description="Extreme performance optimization and computational efficiency"
+            description="Extreme performance optimization and computational efficiency",
         )
         super().__init__(agent_id="VELOCITY-05", capability=capability)
 
@@ -209,8 +225,8 @@ class VELOCITYAgent(BaseAgent):
                 "task_type": task.task_type,
                 "message": "Task received and processed by VELOCITY (stub implementation)",
                 "tier": 1,
-                "philosophy": "Fastest code is code that doesn't run"
-            }
+                "philosophy": "Fastest code is code that doesn't run",
+            },
         )
 
 

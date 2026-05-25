@@ -30,7 +30,7 @@ async def get_registry() -> AgentRegistry:
     if _registry is None:
         raise HTTPException(
             status_code=http_status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Agent registry not initialized"
+            detail="Agent registry not initialized",
         )
     return _registry
 
@@ -72,6 +72,7 @@ async def shutdown_registry() -> None:
 
 # ===== Pydantic Models =====
 
+
 class AgentStatusResponse(BaseModel):
     """Agent status information."""
 
@@ -110,7 +111,9 @@ class TaskSubmitRequest(BaseModel):
 
     task_type: str = Field(..., description="Type of task to execute")
     payload: dict[str, Any] = Field(..., description="Task payload data")
-    priority: str = Field(default="MEDIUM", description="Task priority (CRITICAL, HIGH, MEDIUM, LOW)")
+    priority: str = Field(
+        default="MEDIUM", description="Task priority (CRITICAL, HIGH, MEDIUM, LOW)"
+    )
     timeout: int = Field(default=300, description="Task timeout in seconds")
 
 
@@ -124,11 +127,10 @@ class TaskSubmitResponse(BaseModel):
 
 # ===== Endpoints =====
 
+
 @router.get("/", response_model=AgentListResponse)
 async def list_agents(
-    tier: int | None = None,
-    state: str | None = None,
-    domain: str | None = None
+    tier: int | None = None, state: str | None = None, domain: str | None = None
 ) -> AgentListResponse:
     """
     List all agents in the Elite Agent Collective.
@@ -142,10 +144,7 @@ async def list_agents(
 
     agents = registry.list_agents(tier=tier, state=state, domain=domain)
 
-    return AgentListResponse(
-        total=len(agents),
-        agents=agents
-    )
+    return AgentListResponse(total=len(agents), agents=agents)
 
 
 @router.get("/registry/status", response_model=RegistryStatusResponse)
@@ -172,7 +171,7 @@ async def get_agent_status(agent_id: str) -> AgentStatusResponse:
     if not agent:
         raise HTTPException(
             status_code=http_status.HTTP_404_NOT_FOUND,
-            detail=f"Agent {agent_id} not found"
+            detail=f"Agent {agent_id} not found",
         )
 
     status_data = agent.get_status()
@@ -189,7 +188,9 @@ async def get_agent_status(agent_id: str) -> AgentStatusResponse:
         error_count=status_data["metrics"]["error_count"],
         success_rate=status_data["metrics"]["success_rate"],
         avg_execution_time=status_data["metrics"]["avg_execution_time"],
-        current_task_id=status_data["current_task"]  # Fixed: "current_task" not "current_task_id"
+        current_task_id=status_data[
+            "current_task"
+        ],  # Fixed: "current_task" not "current_task_id"
     )
 
 
@@ -213,7 +214,7 @@ async def submit_task(agent_id: str, request: TaskSubmitRequest) -> TaskSubmitRe
     if not agent:
         raise HTTPException(
             status_code=http_status.HTTP_404_NOT_FOUND,
-            detail=f"Agent {agent_id} not found"
+            detail=f"Agent {agent_id} not found",
         )
 
     # Check agent state
@@ -221,7 +222,7 @@ async def submit_task(agent_id: str, request: TaskSubmitRequest) -> TaskSubmitRe
     if status_data["state"] not in ["idle", "busy"]:
         raise HTTPException(
             status_code=http_status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail=f"Agent {agent_id} is not available (state: {status_data['state']})"
+            detail=f"Agent {agent_id} is not available (state: {status_data['state']})",
         )
 
     # Convert priority string to enum
@@ -230,7 +231,7 @@ async def submit_task(agent_id: str, request: TaskSubmitRequest) -> TaskSubmitRe
     except KeyError:
         raise HTTPException(
             status_code=http_status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid priority: {request.priority}. Must be CRITICAL, HIGH, MEDIUM, or LOW"
+            detail=f"Invalid priority: {request.priority}. Must be CRITICAL, HIGH, MEDIUM, or LOW",
         ) from None
 
     # Create task
@@ -240,7 +241,7 @@ async def submit_task(agent_id: str, request: TaskSubmitRequest) -> TaskSubmitRe
         task_type=request.task_type,
         payload=request.payload,
         priority=priority_enum,
-        timeout=request.timeout
+        timeout=request.timeout,
     )
 
     # Submit task
@@ -249,14 +250,10 @@ async def submit_task(agent_id: str, request: TaskSubmitRequest) -> TaskSubmitRe
     if not success:
         raise HTTPException(
             status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to submit task to agent {agent_id}"
+            detail=f"Failed to submit task to agent {agent_id}",
         )
 
-    return TaskSubmitResponse(
-        task_id=task_id,
-        agent_id=agent_id,
-        status="submitted"
-    )
+    return TaskSubmitResponse(task_id=task_id, agent_id=agent_id, status="submitted")
 
 
 @router.get("/tier/{tier_number}", response_model=AgentListResponse)
@@ -270,7 +267,7 @@ async def list_agents_by_tier(tier_number: int) -> AgentListResponse:
     if tier_number not in [1, 2, 3, 4]:
         raise HTTPException(
             status_code=http_status.HTTP_400_BAD_REQUEST,
-            detail="Tier must be 1, 2, 3, or 4"
+            detail="Tier must be 1, 2, 3, or 4",
         )
 
     registry = await get_registry()
@@ -279,18 +276,17 @@ async def list_agents_by_tier(tier_number: int) -> AgentListResponse:
     agents_data = []
     for agent in agents:
         status = agent.get_status()
-        agents_data.append({
-            "agent_id": status["agent_id"],
-            "state": status["state"],
-            "tier": agent.capability.tier,
-            "domains": agent.capability.domains,
-            "success_rate": status["metrics"]["success_rate"]
-        })
+        agents_data.append(
+            {
+                "agent_id": status["agent_id"],
+                "state": status["state"],
+                "tier": agent.capability.tier,
+                "domains": agent.capability.domains,
+                "success_rate": status["metrics"]["success_rate"],
+            }
+        )
 
-    return AgentListResponse(
-        total=len(agents_data),
-        agents=agents_data
-    )
+    return AgentListResponse(total=len(agents_data), agents=agents_data)
 
 
 @router.get("/domain/{domain_name}", response_model=AgentListResponse)
@@ -307,18 +303,17 @@ async def list_agents_by_domain(domain_name: str) -> AgentListResponse:
     agents_data = []
     for agent in agents:
         status = agent.get_status()
-        agents_data.append({
-            "agent_id": status["agent_id"],
-            "state": status["state"],
-            "tier": agent.capability.tier,
-            "domains": agent.capability.domains,
-            "success_rate": status["metrics"]["success_rate"]
-        })
+        agents_data.append(
+            {
+                "agent_id": status["agent_id"],
+                "state": status["state"],
+                "tier": agent.capability.tier,
+                "domains": agent.capability.domains,
+                "success_rate": status["metrics"]["success_rate"],
+            }
+        )
 
-    return AgentListResponse(
-        total=len(agents_data),
-        agents=agents_data
-    )
+    return AgentListResponse(total=len(agents_data), agents=agents_data)
 
 
 @router.get("/skill/{skill_name}", response_model=AgentListResponse)
@@ -335,15 +330,14 @@ async def list_agents_by_skill(skill_name: str) -> AgentListResponse:
     agents_data = []
     for agent in agents:
         status = agent.get_status()
-        agents_data.append({
-            "agent_id": status["agent_id"],
-            "state": status["state"],
-            "tier": agent.capability.tier,
-            "skills": agent.capability.skills,
-            "success_rate": status["metrics"]["success_rate"]
-        })
+        agents_data.append(
+            {
+                "agent_id": status["agent_id"],
+                "state": status["state"],
+                "tier": agent.capability.tier,
+                "skills": agent.capability.skills,
+                "success_rate": status["metrics"]["success_rate"],
+            }
+        )
 
-    return AgentListResponse(
-        total=len(agents_data),
-        agents=agents_data
-    )
+    return AgentListResponse(total=len(agents_data), agents=agents_data)

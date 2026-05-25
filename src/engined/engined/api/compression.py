@@ -114,7 +114,9 @@ class CompressionStats(BaseModel):
 _compression_jobs: dict[str, CompressionResult] = {}
 
 
-@router.post("/jobs", response_model=CompressionResult, status_code=status.HTTP_202_ACCEPTED)
+@router.post(
+    "/jobs", response_model=CompressionResult, status_code=status.HTTP_202_ACCEPTED
+)
 async def start_compression(
     request: Request,
     compression_request: CompressionRequest,
@@ -197,7 +199,9 @@ async def process_compression_job(
         job.algorithm_used = agent_result.get("algorithm", request.algorithm.value)
         job.original_size = agent_result.get("original_size", 0)
         job.compressed_size = agent_result.get("compressed_size", 0)
-        job.destination_path = agent_result.get("destination_path", request.destination_path)
+        job.destination_path = agent_result.get(
+            "destination_path", request.destination_path
+        )
 
         if job.original_size and job.compressed_size:
             job.compression_ratio = 1 - (job.compressed_size / job.original_size)
@@ -262,7 +266,11 @@ async def cancel_compression_job(job_id: str) -> None:
             detail=f"Job {job_id} not found",
         )
 
-    if job.status not in (JobStatus.PENDING, JobStatus.ANALYZING, JobStatus.COMPRESSING):
+    if job.status not in (
+        JobStatus.PENDING,
+        JobStatus.ANALYZING,
+        JobStatus.COMPRESSING,
+    ):
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail=f"Cannot cancel job with status {job.status}",
@@ -287,9 +295,13 @@ async def get_compression_stats() -> CompressionStats:
     algorithm_counts: dict[str, int] = {}
     for job in completed:
         if job.algorithm_used:
-            algorithm_counts[job.algorithm_used] = algorithm_counts.get(job.algorithm_used, 0) + 1
+            algorithm_counts[job.algorithm_used] = (
+                algorithm_counts.get(job.algorithm_used, 0) + 1
+            )
 
-    most_used = max(algorithm_counts, key=algorithm_counts.get) if algorithm_counts else "none"
+    most_used = (
+        max(algorithm_counts, key=algorithm_counts.get) if algorithm_counts else "none"
+    )
 
     return CompressionStats(
         total_jobs=len(jobs),
@@ -297,7 +309,9 @@ async def get_compression_stats() -> CompressionStats:
         failed_jobs=len(failed),
         bytes_processed=total_original,
         bytes_saved=total_original - total_compressed,
-        average_ratio=1 - (total_compressed / total_original) if total_original > 0 else 0,
+        average_ratio=(
+            1 - (total_compressed / total_original) if total_original > 0 else 0
+        ),
         most_used_algorithm=most_used,
     )
 

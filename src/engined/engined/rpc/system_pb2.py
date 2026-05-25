@@ -13,33 +13,33 @@ _sym_db = _symbol_database.Default()
 # Messages: MemoryUsage, GetSystemStatusRequest, GetSystemStatusResponse
 # Service:  SystemService.GetSystemStatus
 _DESCRIPTOR_BYTES = (
-    b'\n\x18engined/rpc/sy'
-    b'stem.proto\x12\x11sigm'
+    b"\n\x18engined/rpc/sy"
+    b"stem.proto\x12\x11sigm"
     b'avault.system"@\n'
-    b'\x0bMemoryUsage\x12\x0c\n\x04'
-    b'used\x18\x01 \x01(\x04\x12\r\n\x05to'
-    b'tal\x18\x02 \x01(\x04\x12\x14\n\x0cuse'
+    b"\x0bMemoryUsage\x12\x0c\n\x04"
+    b"used\x18\x01 \x01(\x04\x12\r\n\x05to"
+    b"tal\x18\x02 \x01(\x04\x12\x14\n\x0cuse"
     b'd_percent\x18\x03 \x01(\x01"'
-    b'\x18\n\x16GetSystemStat'
+    b"\x18\n\x16GetSystemStat"
     b'usRequest"\x9a\x01\n\x17Ge'
-    b'tSystemStatusRes'
-    b'ponse\x12\x10\n\x08hostnam'
-    b'e\x18\x01 \x01(\t\x12\x0e\n\x06uptim'
-    b'e\x18\x02 \x01(\x04\x12\x11\n\tcpu_u'
-    b'sage\x18\x03 \x01(\x01\x124\n\x0cme'
-    b'mory_usage\x18\x04 \x01(\x0b'
-    b'2\x1e.sigmavault.sy'
-    b'stem.MemoryUsage'
-    b'\x12\x14\n\x0cload_average'
-    b'\x18\x05 \x03(\x012y\n\rSystem'
-    b'Service\x12h\n\x0fGetSy'
-    b'stemStatus\x12).sig'
-    b'mavault.system.G'
-    b'etSystemStatusRe'
-    b'quest\x1a*.sigmavau'
-    b'lt.system.GetSys'
-    b'temStatusRespons'
-    b'eb\x06proto3'
+    b"tSystemStatusRes"
+    b"ponse\x12\x10\n\x08hostnam"
+    b"e\x18\x01 \x01(\t\x12\x0e\n\x06uptim"
+    b"e\x18\x02 \x01(\x04\x12\x11\n\tcpu_u"
+    b"sage\x18\x03 \x01(\x01\x124\n\x0cme"
+    b"mory_usage\x18\x04 \x01(\x0b"
+    b"2\x1e.sigmavault.sy"
+    b"stem.MemoryUsage"
+    b"\x12\x14\n\x0cload_average"
+    b"\x18\x05 \x03(\x012y\n\rSystem"
+    b"Service\x12h\n\x0fGetSy"
+    b"stemStatus\x12).sig"
+    b"mavault.system.G"
+    b"etSystemStatusRe"
+    b"quest\x1a*.sigmavau"
+    b"lt.system.GetSys"
+    b"temStatusRespons"
+    b"eb\x06proto3"
 )
 
 _fdp = _descriptor_pb2.FileDescriptorProto()

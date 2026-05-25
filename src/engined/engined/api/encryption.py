@@ -135,7 +135,9 @@ _encryption_jobs: dict[str, EncryptionResult] = {}
 _keys: dict[str, KeyInfo] = {}
 
 
-@router.post("/jobs", response_model=EncryptionResult, status_code=status.HTTP_202_ACCEPTED)
+@router.post(
+    "/jobs", response_model=EncryptionResult, status_code=status.HTTP_202_ACCEPTED
+)
 async def start_encryption(
     request: Request,
     encryption_request: EncryptionRequest,

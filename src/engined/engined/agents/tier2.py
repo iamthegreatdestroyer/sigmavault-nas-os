@@ -26,10 +26,13 @@ class TENSORAgent(BaseAgent):
             tier=2,
             domains=["machine_learning", "deep_learning", "ai"],
             skills=[
-                "neural_networks", "training", "optimization",
-                "model_deployment", "feature_engineering"
+                "neural_networks",
+                "training",
+                "optimization",
+                "model_deployment",
+                "feature_engineering",
             ],
-            description="Deep learning architectures and model training"
+            description="Deep learning architectures and model training",
         )
         super().__init__(agent_id="TENSOR-07", capability=capability)
 
@@ -47,8 +50,8 @@ class TENSORAgent(BaseAgent):
                 "task_type": task.task_type,
                 "message": "Task received and processed by TENSOR (stub implementation)",
                 "tier": 2,
-                "philosophy": "Intelligence from architecture and data"
-            }
+                "philosophy": "Intelligence from architecture and data",
+            },
         )
 
 
@@ -66,10 +69,12 @@ class FORTRESSAgent(BaseAgent):
             tier=2,
             domains=["security", "penetration_testing", "threat_modeling"],
             skills=[
-                "vulnerability_assessment", "exploit_development",
-                "incident_response", "forensics"
+                "vulnerability_assessment",
+                "exploit_development",
+                "incident_response",
+                "forensics",
             ],
-            description="Threat modeling and penetration testing"
+            description="Threat modeling and penetration testing",
         )
         super().__init__(agent_id="FORTRESS-08", capability=capability)
 
@@ -87,8 +92,8 @@ class FORTRESSAgent(BaseAgent):
                 "task_type": task.task_type,
                 "message": "Task received and processed by FORTRESS (stub implementation)",
                 "tier": 2,
-                "philosophy": "Think like the attacker"
-            }
+                "philosophy": "Think like the attacker",
+            },
         )
 
 
@@ -105,11 +110,8 @@ class FLUXAgent(BaseAgent):
             name="FLUX",
             tier=2,
             domains=["devops", "infrastructure", "automation"],
-            skills=[
-                "kubernetes", "terraform", "cicd",
-                "monitoring", "observability"
-            ],
-            description="Container orchestration and infrastructure automation"
+            skills=["kubernetes", "terraform", "cicd", "monitoring", "observability"],
+            description="Container orchestration and infrastructure automation",
         )
         super().__init__(agent_id="FLUX-11", capability=capability)
 
@@ -127,8 +129,8 @@ class FLUXAgent(BaseAgent):
                 "task_type": task.task_type,
                 "message": "Task received and processed by FLUX (stub implementation)",
                 "tier": 2,
-                "philosophy": "Infrastructure is code"
-            }
+                "philosophy": "Infrastructure is code",
+            },
         )
 
 
@@ -146,10 +148,12 @@ class PRISMAgent(BaseAgent):
             tier=2,
             domains=["data_science", "statistics", "analytics"],
             skills=[
-                "statistical_inference", "experimental_design",
-                "visualization", "forecasting"
+                "statistical_inference",
+                "experimental_design",
+                "visualization",
+                "forecasting",
             ],
-            description="Statistical inference and experimental design"
+            description="Statistical inference and experimental design",
         )
         super().__init__(agent_id="PRISM-12", capability=capability)
 
@@ -167,8 +171,8 @@ class PRISMAgent(BaseAgent):
                 "task_type": task.task_type,
                 "message": "Task received and processed by PRISM (stub implementation)",
                 "tier": 2,
-                "philosophy": "Data speaks truth to those who ask"
-            }
+                "philosophy": "Data speaks truth to those who ask",
+            },
         )
 
 
@@ -185,11 +189,8 @@ class SYNAPSEAgent(BaseAgent):
             name="SYNAPSE",
             tier=2,
             domains=["integration", "api_design", "protocols"],
-            skills=[
-                "rest_api", "graphql", "grpc",
-                "event_driven", "message_queues"
-            ],
-            description="API design and system integration"
+            skills=["rest_api", "graphql", "grpc", "event_driven", "message_queues"],
+            description="API design and system integration",
         )
         super().__init__(agent_id="SYNAPSE-13", capability=capability)
 
@@ -207,8 +208,8 @@ class SYNAPSEAgent(BaseAgent):
                 "task_type": task.task_type,
                 "message": "Task received and processed by SYNAPSE (stub implementation)",
                 "tier": 2,
-                "philosophy": "Systems powered by connections"
-            }
+                "philosophy": "Systems powered by connections",
+            },
         )
 
 

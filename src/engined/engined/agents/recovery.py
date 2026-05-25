@@ -26,8 +26,9 @@ logger = logging.getLogger(__name__)
 
 class CircuitState(str, Enum):
     """Circuit breaker states."""
-    CLOSED = "closed"      # Normal operation
-    OPEN = "open"          # Failing, rejecting requests
+
+    CLOSED = "closed"  # Normal operation
+    OPEN = "open"  # Failing, rejecting requests
     HALF_OPEN = "half_open"  # Testing if recovered
 
 
@@ -38,6 +39,7 @@ class CircuitBreaker:
 
     Prevents cascading failures by temporarily stopping requests to failing agents.
     """
+
     agent_id: str
     failure_threshold: int = 5
     recovery_timeout: float = 30.0  # seconds
@@ -64,7 +66,10 @@ class CircuitBreaker:
         self.failure_count += 1
         self.last_failure_time = time.time()
 
-        if self.state == CircuitState.HALF_OPEN or (self.state == CircuitState.CLOSED and self.failure_count >= self.failure_threshold):
+        if self.state == CircuitState.HALF_OPEN or (
+            self.state == CircuitState.CLOSED
+            and self.failure_count >= self.failure_threshold
+        ):
             self._open()
 
     def can_execute(self) -> bool:
@@ -74,8 +79,10 @@ class CircuitBreaker:
 
         if self.state == CircuitState.OPEN:
             # Check if recovery timeout has elapsed
-            if self.last_failure_time and \
-               (time.time() - self.last_failure_time) >= self.recovery_timeout:
+            if (
+                self.last_failure_time
+                and (time.time() - self.last_failure_time) >= self.recovery_timeout
+            ):
                 self._half_open()
                 return True
             return False
@@ -117,12 +124,16 @@ class CircuitBreaker:
         """Emit circuit breaker event to event bridge."""
         try:
             from engined.agents.events import get_event_bridge
+
             bridge = get_event_bridge()
             if bridge:
                 import asyncio
+
                 if event_type == "open":
                     asyncio.create_task(  # noqa: RUF006
-                        bridge.on_circuit_breaker_open(self.agent_id, self.failure_count)
+                        bridge.on_circuit_breaker_open(
+                            self.agent_id, self.failure_count
+                        )
                     )
                 elif event_type == "closed":
                     asyncio.create_task(  # noqa: RUF006
@@ -325,7 +336,9 @@ class AgentRecovery:
             self._health_scores[agent_id] = health
 
             # Check if agent needs recovery
-            if agent.status == AgentStatus.ERROR or (agent.status == AgentStatus.OFFLINE and self.swarm.is_initialized):
+            if agent.status == AgentStatus.ERROR or (
+                agent.status == AgentStatus.OFFLINE and self.swarm.is_initialized
+            ):
                 await self._attempt_recovery(agent_id)
             elif health < 30 and circuit.state == CircuitState.OPEN:
                 # Low health with open circuit - consider restart
@@ -401,6 +414,7 @@ class AgentRecovery:
         """Emit recovery event to event bridge."""
         try:
             from engined.agents.events import get_event_bridge
+
             bridge = get_event_bridge()
             if bridge:
                 if event_type == "started":
@@ -415,8 +429,7 @@ class AgentRecovery:
     def get_status(self) -> dict[str, Any]:
         """Get recovery system status."""
         circuit_states = {
-            agent_id: circuit.state.value
-            for agent_id, circuit in self.circuits.items()
+            agent_id: circuit.state.value for agent_id, circuit in self.circuits.items()
         }
 
         open_circuits = sum(
@@ -457,7 +470,7 @@ class RetryStrategy:
 
     def get_delay(self, attempt: int) -> float:
         """Calculate delay for a retry attempt."""
-        delay = self.initial_delay * (self.exponential_base ** attempt)
+        delay = self.initial_delay * (self.exponential_base**attempt)
         return min(delay, self.max_delay)
 
     async def execute_with_retry(
@@ -525,7 +538,7 @@ class DeadLetterQueue:
 
             # Trim if over max size (remove oldest)
             if len(self._queue) > self.max_size:
-                self._queue = self._queue[-self.max_size:]
+                self._queue = self._queue[-self.max_size :]
 
             logger.info(f"Task {task_id} added to dead letter queue: {error}")
 

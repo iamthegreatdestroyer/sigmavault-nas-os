@@ -135,9 +135,7 @@ class EventEmitter:
         )
 
     def subscribe(
-        self,
-        event_type: EventType | None,
-        handler: EventHandler
+        self, event_type: EventType | None, handler: EventHandler
     ) -> Callable[[], None]:
         """
         Subscribe to events of a specific type.
@@ -182,11 +180,7 @@ class EventEmitter:
             )
             return False
 
-    async def emit_now(
-        self,
-        event_type: EventType,
-        data: dict[str, Any]
-    ) -> None:
+    async def emit_now(self, event_type: EventType, data: dict[str, Any]) -> None:
         """
         Emit an event immediately without buffering.
 
@@ -199,10 +193,7 @@ class EventEmitter:
         """Process events from the buffer."""
         while self._running:
             try:
-                event = await asyncio.wait_for(
-                    self._event_buffer.get(),
-                    timeout=1.0
-                )
+                event = await asyncio.wait_for(self._event_buffer.get(), timeout=1.0)
                 await self._dispatch_event(event)
                 self._metrics["events_processed"] += 1
 
@@ -304,20 +295,28 @@ class AgentEventBridge:
                     health_data = {
                         "agent_id": agent.agent_id,
                         "name": agent.name,
-                        "status": agent.status.value if hasattr(agent.status, 'value') else str(agent.status),
-                        "health_score": getattr(agent, 'health_score', 100),
+                        "status": (
+                            agent.status.value
+                            if hasattr(agent.status, "value")
+                            else str(agent.status)
+                        ),
+                        "health_score": getattr(agent, "health_score", 100),
                         "success_rate": agent.success_rate,
                         "avg_response_time_ms": agent.avg_response_time_ms,
                         "tasks_completed": agent.tasks_completed,
                         "uptime_seconds": (
-                            datetime.now(UTC) - agent.last_active
-                        ).total_seconds() if agent.last_active else 0,
+                            (datetime.now(UTC) - agent.last_active).total_seconds()
+                            if agent.last_active
+                            else 0
+                        ),
                     }
 
-                    await self.emitter.emit(Event(
-                        event_type=EventType.AGENT_HEALTH_CHECK,
-                        data=health_data,
-                    ))
+                    await self.emitter.emit(
+                        Event(
+                            event_type=EventType.AGENT_HEALTH_CHECK,
+                            data=health_data,
+                        )
+                    )
 
             except asyncio.CancelledError:
                 break
@@ -335,10 +334,12 @@ class AgentEventBridge:
 
                 metrics = self.scheduler.get_metrics()
 
-                await self.emitter.emit(Event(
-                    event_type=EventType.SCHEDULER_METRICS,
-                    data=metrics,
-                ))
+                await self.emitter.emit(
+                    Event(
+                        event_type=EventType.SCHEDULER_METRICS,
+                        data=metrics,
+                    )
+                )
 
             except asyncio.CancelledError:
                 break
@@ -349,31 +350,32 @@ class AgentEventBridge:
 
     async def on_agent_started(self, agent_name: str, agent_id: str) -> None:
         """Emit agent started event."""
-        await self.emitter.emit(Event(
-            event_type=EventType.AGENT_STARTED,
-            data={
-                "agent_id": agent_id,
-                "agent_name": agent_name,
-                "timestamp": datetime.now(UTC).isoformat(),
-            },
-        ))
+        await self.emitter.emit(
+            Event(
+                event_type=EventType.AGENT_STARTED,
+                data={
+                    "agent_id": agent_id,
+                    "agent_name": agent_name,
+                    "timestamp": datetime.now(UTC).isoformat(),
+                },
+            )
+        )
 
     async def on_agent_stopped(
-        self,
-        agent_name: str,
-        agent_id: str,
-        reason: str = "normal"
+        self, agent_name: str, agent_id: str, reason: str = "normal"
     ) -> None:
         """Emit agent stopped event."""
-        await self.emitter.emit(Event(
-            event_type=EventType.AGENT_STOPPED,
-            data={
-                "agent_id": agent_id,
-                "agent_name": agent_name,
-                "reason": reason,
-                "timestamp": datetime.now(UTC).isoformat(),
-            },
-        ))
+        await self.emitter.emit(
+            Event(
+                event_type=EventType.AGENT_STOPPED,
+                data={
+                    "agent_id": agent_id,
+                    "agent_name": agent_name,
+                    "reason": reason,
+                    "timestamp": datetime.now(UTC).isoformat(),
+                },
+            )
+        )
 
     async def on_agent_restarted(
         self,
@@ -382,15 +384,17 @@ class AgentEventBridge:
         restart_count: int,
     ) -> None:
         """Emit agent restarted event."""
-        await self.emitter.emit(Event(
-            event_type=EventType.AGENT_RESTARTED,
-            data={
-                "agent_id": agent_id,
-                "agent_name": agent_name,
-                "restart_count": restart_count,
-                "timestamp": datetime.now(UTC).isoformat(),
-            },
-        ))
+        await self.emitter.emit(
+            Event(
+                event_type=EventType.AGENT_RESTARTED,
+                data={
+                    "agent_id": agent_id,
+                    "agent_name": agent_name,
+                    "restart_count": restart_count,
+                    "timestamp": datetime.now(UTC).isoformat(),
+                },
+            )
+        )
 
     async def on_task_assigned(
         self,
@@ -400,16 +404,18 @@ class AgentEventBridge:
         priority: str,
     ) -> None:
         """Emit task assigned event."""
-        await self.emitter.emit(Event(
-            event_type=EventType.AGENT_TASK_ASSIGNED,
-            data={
-                "task_id": task_id,
-                "task_type": task_type,
-                "agent_name": agent_name,
-                "priority": priority,
-                "timestamp": datetime.now(UTC).isoformat(),
-            },
-        ))
+        await self.emitter.emit(
+            Event(
+                event_type=EventType.AGENT_TASK_ASSIGNED,
+                data={
+                    "task_id": task_id,
+                    "task_type": task_type,
+                    "agent_name": agent_name,
+                    "priority": priority,
+                    "timestamp": datetime.now(UTC).isoformat(),
+                },
+            )
+        )
 
     async def on_task_completed(
         self,
@@ -419,16 +425,18 @@ class AgentEventBridge:
         result: dict[str, Any] | None = None,
     ) -> None:
         """Emit task completed event."""
-        await self.emitter.emit(Event(
-            event_type=EventType.AGENT_TASK_COMPLETED,
-            data={
-                "task_id": task_id,
-                "agent_name": agent_name,
-                "duration_ms": duration_ms,
-                "result": result or {},
-                "timestamp": datetime.now(UTC).isoformat(),
-            },
-        ))
+        await self.emitter.emit(
+            Event(
+                event_type=EventType.AGENT_TASK_COMPLETED,
+                data={
+                    "task_id": task_id,
+                    "agent_name": agent_name,
+                    "duration_ms": duration_ms,
+                    "result": result or {},
+                    "timestamp": datetime.now(UTC).isoformat(),
+                },
+            )
+        )
 
     async def on_task_failed(
         self,
@@ -438,21 +446,21 @@ class AgentEventBridge:
         will_retry: bool = False,
     ) -> None:
         """Emit task failed event."""
-        await self.emitter.emit(Event(
-            event_type=EventType.AGENT_TASK_FAILED,
-            data={
-                "task_id": task_id,
-                "agent_name": agent_name,
-                "error": error,
-                "will_retry": will_retry,
-                "timestamp": datetime.now(UTC).isoformat(),
-            },
-        ))
+        await self.emitter.emit(
+            Event(
+                event_type=EventType.AGENT_TASK_FAILED,
+                data={
+                    "task_id": task_id,
+                    "agent_name": agent_name,
+                    "error": error,
+                    "will_retry": will_retry,
+                    "timestamp": datetime.now(UTC).isoformat(),
+                },
+            )
+        )
 
     async def on_circuit_breaker_open(
-        self,
-        agent_name: str,
-        failure_count: int
+        self, agent_name: str, failure_count: int
     ) -> None:
         """Emit circuit breaker open event."""
         await self.emitter.emit_now(
@@ -466,19 +474,17 @@ class AgentEventBridge:
 
     async def on_circuit_breaker_closed(self, agent_name: str) -> None:
         """Emit circuit breaker closed event."""
-        await self.emitter.emit(Event(
-            event_type=EventType.CIRCUIT_BREAKER_CLOSED,
-            data={
-                "agent_name": agent_name,
-                "timestamp": datetime.now(UTC).isoformat(),
-            },
-        ))
+        await self.emitter.emit(
+            Event(
+                event_type=EventType.CIRCUIT_BREAKER_CLOSED,
+                data={
+                    "agent_name": agent_name,
+                    "timestamp": datetime.now(UTC).isoformat(),
+                },
+            )
+        )
 
-    async def on_recovery_started(
-        self,
-        agent_name: str,
-        attempt: int
-    ) -> None:
+    async def on_recovery_started(self, agent_name: str, attempt: int) -> None:
         """Emit recovery started event."""
         await self.emitter.emit_now(
             EventType.AGENT_RECOVERY_STARTED,
@@ -491,19 +497,17 @@ class AgentEventBridge:
 
     async def on_recovery_success(self, agent_name: str) -> None:
         """Emit recovery success event."""
-        await self.emitter.emit(Event(
-            event_type=EventType.AGENT_RECOVERY_SUCCESS,
-            data={
-                "agent_name": agent_name,
-                "timestamp": datetime.now(UTC).isoformat(),
-            },
-        ))
+        await self.emitter.emit(
+            Event(
+                event_type=EventType.AGENT_RECOVERY_SUCCESS,
+                data={
+                    "agent_name": agent_name,
+                    "timestamp": datetime.now(UTC).isoformat(),
+                },
+            )
+        )
 
-    async def on_recovery_failed(
-        self,
-        agent_name: str,
-        error: str
-    ) -> None:
+    async def on_recovery_failed(self, agent_name: str, error: str) -> None:
         """Emit recovery failed event."""
         await self.emitter.emit_now(
             EventType.AGENT_RECOVERY_FAILED,
@@ -522,16 +526,18 @@ class AgentEventBridge:
         attempts: int,
     ) -> None:
         """Emit dead letter queued event."""
-        await self.emitter.emit(Event(
-            event_type=EventType.DEAD_LETTER_QUEUED,
-            data={
-                "task_id": task_id,
-                "task_type": task_type,
-                "error": error,
-                "attempts": attempts,
-                "timestamp": datetime.now(UTC).isoformat(),
-            },
-        ))
+        await self.emitter.emit(
+            Event(
+                event_type=EventType.DEAD_LETTER_QUEUED,
+                data={
+                    "task_id": task_id,
+                    "task_type": task_type,
+                    "error": error,
+                    "attempts": attempts,
+                    "timestamp": datetime.now(UTC).isoformat(),
+                },
+            )
+        )
 
 
 # Global event emitter instance

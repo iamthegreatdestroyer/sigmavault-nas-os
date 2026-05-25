@@ -47,6 +47,7 @@ async def get_compression_bridge():
     global _compression_bridge
     if _compression_bridge is None:
         from engined.compression import CompressionBridge, CompressionConfig
+
         _compression_bridge = CompressionBridge(CompressionConfig())
         await _compression_bridge.initialize()
     return _compression_bridge
@@ -57,6 +58,7 @@ async def get_compression_queue():
     global _compression_queue
     if _compression_queue is None:
         from engined.compression import CompressionJobQueue
+
         bridge = await get_compression_bridge()
         _compression_queue = CompressionJobQueue(bridge, max_concurrent=4)
     return _compression_queue
@@ -120,18 +122,15 @@ async def handle_rpc(
         else:
             return JSONRPCResponse(
                 error={"code": -32601, "message": f"Method not found: {method}"},
-                id=rpc_request.id
+                id=rpc_request.id,
             )
 
-        return JSONRPCResponse(
-            result=result,
-            id=rpc_request.id
-        )
+        return JSONRPCResponse(result=result, id=rpc_request.id)
 
     except Exception as e:
         return JSONRPCResponse(
             error={"code": -32603, "message": "Internal error", "data": str(e)},
-            id=rpc_request.id
+            id=rpc_request.id,
         )
 
 
@@ -140,7 +139,7 @@ def handle_system_status() -> dict[str, Any]:
     # Use non-blocking CPU check (returns 0.0 on first call, cached value after)
     cpu_percent = psutil.cpu_percent(interval=None)
     memory = psutil.virtual_memory()
-    load_avg = psutil.getloadavg() if hasattr(psutil, 'getloadavg') else (0.0, 0.0, 0.0)
+    load_avg = psutil.getloadavg() if hasattr(psutil, "getloadavg") else (0.0, 0.0, 0.0)
 
     return {
         "hostname": platform.node(),
@@ -164,7 +163,9 @@ def handle_system_status() -> dict[str, Any]:
     }
 
 
-async def handle_agents_list(request: Request, params: dict[str, Any]) -> list[dict[str, Any]]:
+async def handle_agents_list(
+    request: Request, params: dict[str, Any]
+) -> list[dict[str, Any]]:
     """Handle agents.list RPC call - returns list of all agents.
 
     Returns array of agent objects directly (not wrapped in object).
@@ -177,21 +178,24 @@ async def handle_agents_list(request: Request, params: dict[str, Any]) -> list[d
     if not swarm or not swarm.is_initialized:
         # Return agent definitions even if swarm not initialized
         from engined.agents.swarm import AGENT_DEFINITIONS, AgentStatus
+
         now = datetime.now(UTC)
         agents = []
         for i, agent_def in enumerate(AGENT_DEFINITIONS):
-            agents.append({
-                "agent_id": f"agent-{i+1:03d}",
-                "name": agent_def["name"],
-                "tier": agent_def["tier"].value,
-                "specialty": agent_def["specialty"],
-                "status": AgentStatus.OFFLINE.value,
-                "tasks_completed": 0,
-                "success_rate": 1.0,
-                "avg_response_time_ms": 0.0,
-                "memory_usage_mb": 0.0,
-                "last_active": now.isoformat(),
-            })
+            agents.append(
+                {
+                    "agent_id": f"agent-{i+1:03d}",
+                    "name": agent_def["name"],
+                    "tier": agent_def["tier"].value,
+                    "specialty": agent_def["specialty"],
+                    "status": AgentStatus.OFFLINE.value,
+                    "tasks_completed": 0,
+                    "success_rate": 1.0,
+                    "avg_response_time_ms": 0.0,
+                    "memory_usage_mb": 0.0,
+                    "last_active": now.isoformat(),
+                }
+            )
         return agents  # Return array directly, not wrapped in object
 
     # Get agents from initialized swarm
@@ -271,7 +275,9 @@ async def handle_agents_get(request: Request, params: dict[str, Any]) -> dict[st
     raise ValueError(f"Agent {agent_id} not found")
 
 
-async def handle_agents_get_by_codename(request: Request, params: dict[str, Any]) -> dict[str, Any]:
+async def handle_agents_get_by_codename(
+    request: Request, params: dict[str, Any]
+) -> dict[str, Any]:
     """Handle agents.get_by_codename RPC call - returns agent by codename."""
     from engined.agents.swarm import AGENT_DEFINITIONS, AgentStatus, AgentSwarm
 
@@ -307,7 +313,9 @@ async def handle_agents_get_by_codename(request: Request, params: dict[str, Any]
     raise ValueError(f"Agent {codename} not found")
 
 
-async def handle_agents_metrics(request: Request, params: dict[str, Any]) -> dict[str, Any]:
+async def handle_agents_metrics(
+    request: Request, params: dict[str, Any]
+) -> dict[str, Any]:
     """Handle agents.metrics RPC call - returns agent performance metrics."""
 
     agent_id = params.get("id")
@@ -361,8 +369,14 @@ async def handle_agents_list_tiers(_request: Request) -> dict[str, Any]:
 
     tier_map = {
         AgentTier.CORE: {"name": "Core", "description": "Core compression agents"},
-        AgentTier.SPECIALIST: {"name": "Specialist", "description": "Specialized domain agents"},
-        AgentTier.SUPPORT: {"name": "Support", "description": "Supporting infrastructure agents"},
+        AgentTier.SPECIALIST: {
+            "name": "Specialist",
+            "description": "Specialized domain agents",
+        },
+        AgentTier.SUPPORT: {
+            "name": "Support",
+            "description": "Supporting infrastructure agents",
+        },
     }
 
     # Count agents by tier
@@ -385,13 +399,15 @@ async def handle_agents_list_tiers(_request: Request) -> dict[str, Any]:
             agent_ids.append(f"agent-{agent_idx:03d}")
             agent_idx += 1
 
-        tiers.append({
-            "tier": tier_value,
-            "name": tier_map[tier_enum]["name"],
-            "description": tier_map[tier_enum]["description"],
-            "agent_count": tier_counts[tier_value],
-            "agents": agent_ids,
-        })
+        tiers.append(
+            {
+                "tier": tier_value,
+                "name": tier_map[tier_enum]["name"],
+                "description": tier_map[tier_enum]["description"],
+                "agent_count": tier_counts[tier_value],
+                "agents": agent_ids,
+            }
+        )
 
     return {
         "tiers": tiers,
@@ -478,6 +494,7 @@ async def handle_compress_data(params: dict[str, Any]) -> dict[str, Any]:
     # Update config if level changed
     if bridge.config.level != level:
         from engined.compression import CompressionConfig
+
         bridge.config = CompressionConfig(level=level)
 
     result = await bridge.compress_data(data, job_id=job_id)
@@ -506,7 +523,11 @@ async def handle_compress_data(params: dict[str, Any]) -> dict[str, Any]:
         "method": result.method,
         "data_type": result.data_type,
         "checksum": result.checksum,
-        "data": base64.b64encode(result.compressed_data).decode() if result.compressed_data else None,
+        "data": (
+            base64.b64encode(result.compressed_data).decode()
+            if result.compressed_data
+            else None
+        ),
         "error": result.error,
     }
 
@@ -555,6 +576,7 @@ async def handle_compress_file(params: dict[str, Any]) -> dict[str, Any]:
     # Update config if level changed
     if bridge.config.level != level:
         from engined.compression import CompressionConfig
+
         bridge.config = CompressionConfig(level=level)
 
     result = await bridge.compress_file(source, dest_path, job_id=job_id)
@@ -623,7 +645,11 @@ async def handle_decompress_data(params: dict[str, Any]) -> dict[str, Any]:
         "decompressed_size": result.compressed_size,  # In decompress, this is output size
         "elapsed_seconds": result.elapsed_seconds,
         "checksum": result.checksum,
-        "data": base64.b64encode(result.compressed_data).decode() if result.compressed_data else None,
+        "data": (
+            base64.b64encode(result.compressed_data).decode()
+            if result.compressed_data
+            else None
+        ),
         "error": result.error,
     }
 
@@ -936,6 +962,7 @@ async def handle_set_compression_config(params: dict[str, Any]) -> dict[str, Any
         "use_semantic": new_config.use_semantic,
         "lossless": new_config.lossless,
     }
+
 
 async def handle_compression_stats() -> dict[str, Any]:
     """

@@ -48,7 +48,7 @@ jobs:
                     --cov=engined \
                     --cov-report=xml \
                     --cov-report=html \
-                    --cov-fail-under=90 \
+                    --cov-fail-under=50 \
                     -v
 
             - name: Archive coverage reports

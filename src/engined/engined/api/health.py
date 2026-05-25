@@ -126,7 +126,9 @@ async def detailed_status(request: Request) -> DetailedStatus:
 
     # Compression status
     compression_info = {
-        "default_algorithm": settings.compression_default_algorithm if settings else "zstd",
+        "default_algorithm": (
+            settings.compression_default_algorithm if settings else "zstd"
+        ),
         "level": settings.compression_level if settings else 3,
         "threads": settings.compression_threads if settings else 4,
     }
@@ -139,6 +141,7 @@ async def detailed_status(request: Request) -> DetailedStatus:
 
     # Resource usage (placeholder - would be actual metrics in production)
     import psutil
+
     process = psutil.Process()
 
     resource_info = {

@@ -307,9 +307,7 @@ class CircuitBreakerOpenError(Exception):
     pass
 
 
-def circuit_breaker(
-    name: str, config: CircuitBreakerConfig | None = None
-) -> Callable:
+def circuit_breaker(name: str, config: CircuitBreakerConfig | None = None) -> Callable:
     """
     Decorator for applying circuit breaker to async functions.
 

@@ -1,11 +1,10 @@
-version: "2"
+# golangci-lint v1.x configuration
+run:
+  timeout: 5m
 
 linters:
-  default: none
+  disable-all: true
   enable:
     - govet
     - ineffassign
     - gocritic
-
-severity:
-  default: error

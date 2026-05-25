@@ -98,7 +98,9 @@ class AgentRegistry:
         # Initialize all agents concurrently
         initialization_results = await asyncio.gather(*tasks, return_exceptions=True)
 
-        for agent_id, result in zip(self._agents.keys(), initialization_results, strict=False):
+        for agent_id, result in zip(
+            self._agents.keys(), initialization_results, strict=False
+        ):
             if isinstance(result, Exception):
                 logger.error(f"Agent {agent_id} initialization failed: {result}")
                 results[agent_id] = False
@@ -158,7 +160,7 @@ class AgentRegistry:
         self,
         tier: int | None = None,
         state: AgentState | None = None,
-        domain: str | None = None
+        domain: str | None = None,
     ) -> list[dict]:
         """
         List agents with optional filters.
@@ -197,8 +199,7 @@ class AgentRegistry:
             List of agents in that tier
         """
         return [
-            agent for agent in self._agents.values()
-            if agent.capability.tier == tier
+            agent for agent in self._agents.values() if agent.capability.tier == tier
         ]
 
     def get_agents_by_domain(self, domain: str) -> list[BaseAgent]:
@@ -212,7 +213,8 @@ class AgentRegistry:
             List of agents with that domain expertise
         """
         return [
-            agent for agent in self._agents.values()
+            agent
+            for agent in self._agents.values()
             if domain in agent.capability.domains
         ]
 
@@ -227,15 +229,10 @@ class AgentRegistry:
             List of agents with that skill
         """
         return [
-            agent for agent in self._agents.values()
-            if skill in agent.capability.skills
+            agent for agent in self._agents.values() if skill in agent.capability.skills
         ]
 
-    async def dispatch_task(
-        self,
-        agent_id: str,
-        task: AgentTask
-    ) -> bool:
+    async def dispatch_task(self, agent_id: str, task: AgentTask) -> bool:
         """
         Dispatch task to specific agent.
 
@@ -291,7 +288,7 @@ class AgentRegistry:
                 "overall_success_rate": (
                     total_success / total_tasks if total_tasks > 0 else 0.0
                 ),
-            }
+            },
         }
 
     def __len__(self) -> int:

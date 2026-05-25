@@ -653,9 +653,13 @@ func TestConcurrentSwarmOperations(t *testing.T) {
 			concurrent := atomic.AddInt64(&concurrentRequests, 1)
 			defer atomic.AddInt64(&concurrentRequests, -1)
 
-			// Track max concurrent
-			for concurrent > maxConcurrentRequests {
-				if !atomic.CompareAndSwapInt64(&maxConcurrentRequests, maxConcurrentRequests, concurrent) {
+			// Track max concurrent (lock-free CAS loop)
+			for {
+				prev := atomic.LoadInt64(&maxConcurrentRequests)
+				if concurrent <= prev {
+					break
+				}
+				if atomic.CompareAndSwapInt64(&maxConcurrentRequests, prev, concurrent) {
 					break
 				}
 			}

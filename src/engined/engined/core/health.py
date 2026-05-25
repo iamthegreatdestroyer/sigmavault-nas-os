@@ -164,9 +164,7 @@ class HealthCheckManager:
 
         try:
             # Run check with timeout
-            result = await asyncio.wait_for(
-                config.check_fn(), timeout=config.timeout
-            )
+            result = await asyncio.wait_for(config.check_fn(), timeout=config.timeout)
 
             result.duration_ms = (time.time() - start_time) * 1000
 
@@ -221,9 +219,7 @@ class HealthCheckManager:
 
         except Exception as e:
             duration_ms = (time.time() - start_time) * 1000
-            logger.error(
-                f"Health check '{config.name}' failed: {e}", exc_info=True
-            )
+            logger.error(f"Health check '{config.name}' failed: {e}", exc_info=True)
             return HealthCheckResult(
                 component=config.name,
                 component_type=config.component_type,
@@ -241,9 +237,7 @@ class HealthCheckManager:
             Dictionary mapping component names to results
         """
         enabled_checks = {
-            name: config
-            for name, config in self.checks.items()
-            if config.enabled
+            name: config for name, config in self.checks.items() if config.enabled
         }
 
         if not enabled_checks:
@@ -260,9 +254,7 @@ class HealthCheckManager:
         async with self._lock:
             for name, result in zip(tasks.keys(), results, strict=False):
                 if isinstance(result, Exception):
-                    logger.error(
-                        f"Health check '{name}' raised exception: {result}"
-                    )
+                    logger.error(f"Health check '{name}' raised exception: {result}")
                     self.last_results[name] = HealthCheckResult(
                         component=name,
                         component_type=self.checks[name].component_type,
@@ -275,9 +267,7 @@ class HealthCheckManager:
 
         return self.last_results.copy()
 
-    def calculate_health_score(
-        self, results: dict[str, HealthCheckResult]
-    ) -> float:
+    def calculate_health_score(self, results: dict[str, HealthCheckResult]) -> float:
         """
         Calculate overall health score (0.0 to 100.0).
 
@@ -306,9 +296,7 @@ class HealthCheckManager:
         total_score = sum(score_map[result.status] for result in results.values())
         return total_score / len(results)
 
-    def get_overall_status(
-        self, results: dict[str, HealthCheckResult]
-    ) -> HealthStatus:
+    def get_overall_status(self, results: dict[str, HealthCheckResult]) -> HealthStatus:
         """
         Determine overall system health status.
 
@@ -427,6 +415,7 @@ class HealthCheckManager:
 
 
 # Built-in health checks
+
 
 async def check_system_resources() -> HealthCheckResult:
     """Check system CPU and memory usage."""

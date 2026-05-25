@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 
 class AgentTier(str, Enum):
     """Agent tier classification."""
+
     CORE = "core"
     SPECIALIST = "specialist"
     SUPPORT = "support"
@@ -29,6 +30,7 @@ class AgentTier(str, Enum):
 
 class AgentStatus(str, Enum):
     """Agent operational status."""
+
     IDLE = "idle"
     BUSY = "busy"
     ERROR = "error"
@@ -38,6 +40,7 @@ class AgentStatus(str, Enum):
 @dataclass
 class Agent:
     """Represents a single AI agent in the swarm."""
+
     agent_id: str
     name: str
     tier: AgentTier
@@ -65,7 +68,9 @@ class Agent:
         # Keep last 100 measurements
         if len(self._response_times) > 100:
             self._response_times = self._response_times[-100:]
-        self.avg_response_time_ms = sum(self._response_times) / len(self._response_times)
+        self.avg_response_time_ms = sum(self._response_times) / len(
+            self._response_times
+        )
 
     def to_dict(self) -> dict[str, Any]:
         """Convert agent to dictionary for API responses."""
@@ -86,6 +91,7 @@ class Agent:
 @dataclass
 class Task:
     """Represents a task submitted to the swarm."""
+
     task_id: str
     task_type: str
     payload: dict[str, Any]
@@ -102,31 +108,81 @@ class Task:
 # 40-Agent Collective Definition
 AGENT_DEFINITIONS = [
     # Tier 1: Core Compression Agents (1-10)
-    {"name": "TENSOR", "tier": AgentTier.CORE, "specialty": "Deep learning compression models"},
-    {"name": "VELOCITY", "tier": AgentTier.CORE, "specialty": "Performance optimization"},
-    {"name": "AXIOM", "tier": AgentTier.CORE, "specialty": "Mathematical compression analysis"},
+    {
+        "name": "TENSOR",
+        "tier": AgentTier.CORE,
+        "specialty": "Deep learning compression models",
+    },
+    {
+        "name": "VELOCITY",
+        "tier": AgentTier.CORE,
+        "specialty": "Performance optimization",
+    },
+    {
+        "name": "AXIOM",
+        "tier": AgentTier.CORE,
+        "specialty": "Mathematical compression analysis",
+    },
     {"name": "PRISM", "tier": AgentTier.CORE, "specialty": "Data pattern recognition"},
-    {"name": "FLUX", "tier": AgentTier.CORE, "specialty": "Adaptive algorithm selection"},
+    {
+        "name": "FLUX",
+        "tier": AgentTier.CORE,
+        "specialty": "Adaptive algorithm selection",
+    },
     {"name": "DELTA", "tier": AgentTier.CORE, "specialty": "Differential compression"},
-    {"name": "SPARK", "tier": AgentTier.CORE, "specialty": "GPU-accelerated processing"},
-    {"name": "WAVE", "tier": AgentTier.CORE, "specialty": "Signal processing compression"},
+    {
+        "name": "SPARK",
+        "tier": AgentTier.CORE,
+        "specialty": "GPU-accelerated processing",
+    },
+    {
+        "name": "WAVE",
+        "tier": AgentTier.CORE,
+        "specialty": "Signal processing compression",
+    },
     {"name": "NEXUS", "tier": AgentTier.CORE, "specialty": "Cross-domain optimization"},
     {"name": "PULSE", "tier": AgentTier.CORE, "specialty": "Real-time compression"},
-
     # Tier 2: Security & Encryption Agents (11-20)
-    {"name": "CIPHER", "tier": AgentTier.SPECIALIST, "specialty": "Cryptographic operations"},
-    {"name": "FORTRESS", "tier": AgentTier.SPECIALIST, "specialty": "Security hardening"},
-    {"name": "QUANTUM", "tier": AgentTier.SPECIALIST, "specialty": "Post-quantum cryptography"},
+    {
+        "name": "CIPHER",
+        "tier": AgentTier.SPECIALIST,
+        "specialty": "Cryptographic operations",
+    },
+    {
+        "name": "FORTRESS",
+        "tier": AgentTier.SPECIALIST,
+        "specialty": "Security hardening",
+    },
+    {
+        "name": "QUANTUM",
+        "tier": AgentTier.SPECIALIST,
+        "specialty": "Post-quantum cryptography",
+    },
     {"name": "SENTINEL", "tier": AgentTier.SPECIALIST, "specialty": "Threat detection"},
     {"name": "VAULT", "tier": AgentTier.SPECIALIST, "specialty": "Key management"},
-    {"name": "SHIELD", "tier": AgentTier.SPECIALIST, "specialty": "Data integrity verification"},
+    {
+        "name": "SHIELD",
+        "tier": AgentTier.SPECIALIST,
+        "specialty": "Data integrity verification",
+    },
     {"name": "GUARDIAN", "tier": AgentTier.SPECIALIST, "specialty": "Access control"},
     {"name": "PHANTOM", "tier": AgentTier.SPECIALIST, "specialty": "Secure erasure"},
-    {"name": "AEGIS", "tier": AgentTier.SPECIALIST, "specialty": "Defense coordination"},
-    {"name": "ORACLE", "tier": AgentTier.SPECIALIST, "specialty": "Security prediction"},
-
+    {
+        "name": "AEGIS",
+        "tier": AgentTier.SPECIALIST,
+        "specialty": "Defense coordination",
+    },
+    {
+        "name": "ORACLE",
+        "tier": AgentTier.SPECIALIST,
+        "specialty": "Security prediction",
+    },
     # Tier 3: Storage & Analytics Agents (21-30)
-    {"name": "ARCHITECT", "tier": AgentTier.SPECIALIST, "specialty": "Storage architecture"},
+    {
+        "name": "ARCHITECT",
+        "tier": AgentTier.SPECIALIST,
+        "specialty": "Storage architecture",
+    },
     {"name": "LATTICE", "tier": AgentTier.SPECIALIST, "specialty": "ZFS optimization"},
     {"name": "STREAM", "tier": AgentTier.SPECIALIST, "specialty": "Data streaming"},
     {"name": "VERTEX", "tier": AgentTier.SPECIALIST, "specialty": "Graph analytics"},
@@ -136,7 +192,6 @@ AGENT_DEFINITIONS = [
     {"name": "ATLAS", "tier": AgentTier.SPECIALIST, "specialty": "Storage mapping"},
     {"name": "CHRONICLE", "tier": AgentTier.SPECIALIST, "specialty": "Audit logging"},
     {"name": "BEACON", "tier": AgentTier.SPECIALIST, "specialty": "Discovery services"},
-
     # Tier 4: Network & Integration Agents (31-40)
     {"name": "SYNAPSE", "tier": AgentTier.SUPPORT, "specialty": "API orchestration"},
     {"name": "CRYPTO", "tier": AgentTier.SUPPORT, "specialty": "Network encryption"},
@@ -147,7 +202,11 @@ AGENT_DEFINITIONS = [
     {"name": "HARBOR", "tier": AgentTier.SUPPORT, "specialty": "Connection pooling"},
     {"name": "CONDUIT", "tier": AgentTier.SUPPORT, "specialty": "Data pipeline"},
     {"name": "HELIX", "tier": AgentTier.SUPPORT, "specialty": "Federation services"},
-    {"name": "OMNISCIENT", "tier": AgentTier.SUPPORT, "specialty": "Swarm coordination"},
+    {
+        "name": "OMNISCIENT",
+        "tier": AgentTier.SUPPORT,
+        "specialty": "Swarm coordination",
+    },
 ]
 
 
@@ -228,10 +287,18 @@ class AgentSwarm:
         self._start_time = time.time()
         self._is_initialized = True
 
-        logger.info(f"Elite Agent Collective initialized: {len(self.agents)} agents active")
-        logger.info(f"  - Core agents: {sum(1 for a in self.agents.values() if a.tier == AgentTier.CORE)}")
-        logger.info(f"  - Specialist agents: {sum(1 for a in self.agents.values() if a.tier == AgentTier.SPECIALIST)}")
-        logger.info(f"  - Support agents: {sum(1 for a in self.agents.values() if a.tier == AgentTier.SUPPORT)}")
+        logger.info(
+            f"Elite Agent Collective initialized: {len(self.agents)} agents active"
+        )
+        logger.info(
+            f"  - Core agents: {sum(1 for a in self.agents.values() if a.tier == AgentTier.CORE)}"
+        )
+        logger.info(
+            f"  - Specialist agents: {sum(1 for a in self.agents.values() if a.tier == AgentTier.SPECIALIST)}"
+        )
+        logger.info(
+            f"  - Support agents: {sum(1 for a in self.agents.values() if a.tier == AgentTier.SUPPORT)}"
+        )
 
         await self.start()
 
@@ -308,8 +375,12 @@ class AgentSwarm:
             "active_agents": self.available_agents + self.busy_agents,
             "idle_agents": self.available_agents,
             "busy_agents": self.busy_agents,
-            "error_agents": sum(1 for a in self.agents.values() if a.status == AgentStatus.ERROR),
-            "offline_agents": sum(1 for a in self.agents.values() if a.status == AgentStatus.OFFLINE),
+            "error_agents": sum(
+                1 for a in self.agents.values() if a.status == AgentStatus.ERROR
+            ),
+            "offline_agents": sum(
+                1 for a in self.agents.values() if a.status == AgentStatus.OFFLINE
+            ),
             "total_tasks_queued": self.queued_tasks,
             "total_tasks_completed": self._completed_tasks,
             "uptime_seconds": self.uptime_seconds,
@@ -348,7 +419,9 @@ class AgentSwarm:
             self.tasks[task_id] = task
             await self.task_queue.put(task_id)
 
-        logger.info(f"Task {task_id} queued (type={task_type}, priority={priority}, agent={task.assigned_agent})")
+        logger.info(
+            f"Task {task_id} queued (type={task_type}, priority={priority}, agent={task.assigned_agent})"
+        )
         return task.assigned_agent
 
     def _select_agent_for_task(self, task_type: str) -> Agent | None:
@@ -457,7 +530,9 @@ class AgentSwarm:
             agent.status = AgentStatus.IDLE
             agent.current_task_id = None
 
-    async def execute_task(self, agent_type: str, task: dict[str, Any]) -> dict[str, Any]:
+    async def execute_task(
+        self, agent_type: str, task: dict[str, Any]
+    ) -> dict[str, Any]:
         """
         Execute a task using the specified agent type.
 
@@ -471,6 +546,10 @@ class AgentSwarm:
         )
 
         if not assigned:
-            return {"status": "queued", "task_id": task_id, "message": "No agent immediately available"}
+            return {
+                "status": "queued",
+                "task_id": task_id,
+                "message": "No agent immediately available",
+            }
 
         return {"status": "assigned", "task_id": task_id, "agent": assigned}

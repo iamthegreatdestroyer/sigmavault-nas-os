@@ -19,11 +19,11 @@ logger = logging.getLogger(__name__)
 class AgentState(Enum):
     """Agent lifecycle states."""
 
-    STUB = "stub"           # Not initialized
-    IDLE = "idle"           # Ready for tasks
-    BUSY = "busy"           # Executing task
-    ERROR = "error"         # Failed state
-    SHUTDOWN = "shutdown"   # Gracefully stopped
+    STUB = "stub"  # Not initialized
+    IDLE = "idle"  # Ready for tasks
+    BUSY = "busy"  # Executing task
+    ERROR = "error"  # Failed state
+    SHUTDOWN = "shutdown"  # Gracefully stopped
 
 
 class TaskPriority(Enum):
@@ -136,7 +136,9 @@ class BaseAgent(ABC):
         try:
             async with self._state_lock:
                 if self.state != AgentState.STUB:
-                    logger.warning(f"{self.agent_id}: Already initialized (state={self.state})")
+                    logger.warning(
+                        f"{self.agent_id}: Already initialized (state={self.state})"
+                    )
                     return False
 
                 # Perform initialization
@@ -214,8 +216,7 @@ class BaseAgent(ABC):
 
             # Execute with timeout
             result = await asyncio.wait_for(
-                self.execute_task(task),
-                timeout=task.timeout
+                self.execute_task(task), timeout=task.timeout
             )
 
             # Update metrics
@@ -225,31 +226,37 @@ class BaseAgent(ABC):
 
             if result.success:
                 self.success_count += 1
-                logger.info(f"{self.agent_id}: Task {task.task_id} completed successfully")
+                logger.info(
+                    f"{self.agent_id}: Task {task.task_id} completed successfully"
+                )
             else:
                 self.error_count += 1
-                logger.warning(f"{self.agent_id}: Task {task.task_id} failed - {result.error}")
+                logger.warning(
+                    f"{self.agent_id}: Task {task.task_id} failed - {result.error}"
+                )
 
             return result
 
         except TimeoutError:
             self.error_count += 1
-            logger.error(f"{self.agent_id}: Task {task.task_id} timed out after {task.timeout}s")
+            logger.error(
+                f"{self.agent_id}: Task {task.task_id} timed out after {task.timeout}s"
+            )
             return TaskResult(
                 task_id=task.task_id,
                 success=False,
                 output=None,
-                error=f"Task timed out after {task.timeout} seconds"
+                error=f"Task timed out after {task.timeout} seconds",
             )
 
         except Exception as e:
             self.error_count += 1
-            logger.error(f"{self.agent_id}: Task {task.task_id} failed with exception - {e}", exc_info=True)
+            logger.error(
+                f"{self.agent_id}: Task {task.task_id} failed with exception - {e}",
+                exc_info=True,
+            )
             return TaskResult(
-                task_id=task.task_id,
-                success=False,
-                output=None,
-                error=str(e)
+                task_id=task.task_id, success=False, output=None, error=str(e)
             )
 
         finally:
@@ -269,10 +276,7 @@ class BaseAgent(ABC):
         while not self._shutdown_event.is_set():
             try:
                 # Wait for task with timeout to check shutdown periodically
-                task = await asyncio.wait_for(
-                    self._task_queue.get(),
-                    timeout=1.0
-                )
+                task = await asyncio.wait_for(self._task_queue.get(), timeout=1.0)
 
                 # Execute task
                 await self._execute_with_lifecycle(task)
@@ -284,7 +288,9 @@ class BaseAgent(ABC):
                 # No task available, continue loop
                 continue
             except Exception as e:
-                logger.error(f"{self.agent_id}: Error in agent loop - {e}", exc_info=True)
+                logger.error(
+                    f"{self.agent_id}: Error in agent loop - {e}", exc_info=True
+                )
                 await asyncio.sleep(1.0)
 
         logger.info(f"{self.agent_id}: Agent loop stopped")
@@ -339,11 +345,15 @@ class BaseAgent(ABC):
                     self.success_count / self.task_count if self.task_count > 0 else 0.0
                 ),
                 "avg_execution_time": (
-                    self.total_execution_time / self.task_count if self.task_count > 0 else 0.0
+                    self.total_execution_time / self.task_count
+                    if self.task_count > 0
+                    else 0.0
                 ),
-            }
+            },
         }
 
     def __repr__(self) -> str:
         """String representation of agent."""
-        return f"{self.__class__.__name__}(id={self.agent_id}, state={self.state.value})"
+        return (
+            f"{self.__class__.__name__}(id={self.agent_id}, state={self.state.value})"
+        )

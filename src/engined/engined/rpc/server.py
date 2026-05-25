@@ -19,6 +19,7 @@ try:
         SystemServiceServicer,
         add_SystemServiceServicer_to_server,
     )
+
     _GRPC_AVAILABLE = True
 except ImportError:
     _GRPC_AVAILABLE = False
@@ -35,9 +36,14 @@ class _SigmaVaultServicer:
     async def GetSystemStatus(self, _request, _context):
         try:
             import psutil
+
             cpu = psutil.cpu_percent(interval=0.1)
             vm = psutil.virtual_memory()
-            load = list(psutil.getloadavg()) if hasattr(psutil, "getloadavg") else [0.0, 0.0, 0.0]
+            load = (
+                list(psutil.getloadavg())
+                if hasattr(psutil, "getloadavg")
+                else [0.0, 0.0, 0.0]
+            )
             mem = MemoryUsage(
                 used=vm.used,
                 total=vm.total,
@@ -62,8 +68,10 @@ class _SigmaVaultServicer:
 
 # Mix-in the generated servicer base when grpcio is available
 if _GRPC_AVAILABLE:
+
     class SigmaVaultServicer(SystemServiceServicer, _SigmaVaultServicer):
         pass
+
 else:
     SigmaVaultServicer = _SigmaVaultServicer
 

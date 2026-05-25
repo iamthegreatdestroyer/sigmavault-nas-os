@@ -70,10 +70,16 @@ class SwarmStatus(BaseModel):
 class TaskRequest(BaseModel):
     """Request to submit a task to the swarm."""
 
-    task_type: str = Field(description="Type of task (compression, encryption, analysis)")
+    task_type: str = Field(
+        description="Type of task (compression, encryption, analysis)"
+    )
     payload: dict = Field(description="Task-specific payload")
-    priority: int = Field(default=5, ge=1, le=10, description="Task priority (1=low, 10=high)")
-    timeout_seconds: int = Field(default=300, ge=30, le=3600, description="Task timeout")
+    priority: int = Field(
+        default=5, ge=1, le=10, description="Task priority (1=low, 10=high)"
+    )
+    timeout_seconds: int = Field(
+        default=300, ge=30, le=3600, description="Task timeout"
+    )
 
 
 class TaskResponse(BaseModel):
@@ -89,31 +95,81 @@ class TaskResponse(BaseModel):
 # Agent definitions based on Master Execution Prompt
 AGENT_DEFINITIONS = [
     # Tier 1: Core Compression Agents (1-10)
-    {"name": "TENSOR", "tier": AgentTier.CORE, "specialty": "Deep learning compression models"},
-    {"name": "VELOCITY", "tier": AgentTier.CORE, "specialty": "Performance optimization"},
-    {"name": "AXIOM", "tier": AgentTier.CORE, "specialty": "Mathematical compression analysis"},
+    {
+        "name": "TENSOR",
+        "tier": AgentTier.CORE,
+        "specialty": "Deep learning compression models",
+    },
+    {
+        "name": "VELOCITY",
+        "tier": AgentTier.CORE,
+        "specialty": "Performance optimization",
+    },
+    {
+        "name": "AXIOM",
+        "tier": AgentTier.CORE,
+        "specialty": "Mathematical compression analysis",
+    },
     {"name": "PRISM", "tier": AgentTier.CORE, "specialty": "Data pattern recognition"},
-    {"name": "FLUX", "tier": AgentTier.CORE, "specialty": "Adaptive algorithm selection"},
+    {
+        "name": "FLUX",
+        "tier": AgentTier.CORE,
+        "specialty": "Adaptive algorithm selection",
+    },
     {"name": "DELTA", "tier": AgentTier.CORE, "specialty": "Differential compression"},
-    {"name": "SPARK", "tier": AgentTier.CORE, "specialty": "GPU-accelerated processing"},
-    {"name": "WAVE", "tier": AgentTier.CORE, "specialty": "Signal processing compression"},
+    {
+        "name": "SPARK",
+        "tier": AgentTier.CORE,
+        "specialty": "GPU-accelerated processing",
+    },
+    {
+        "name": "WAVE",
+        "tier": AgentTier.CORE,
+        "specialty": "Signal processing compression",
+    },
     {"name": "NEXUS", "tier": AgentTier.CORE, "specialty": "Cross-domain optimization"},
     {"name": "PULSE", "tier": AgentTier.CORE, "specialty": "Real-time compression"},
-
     # Tier 2: Security & Encryption Agents (11-20)
-    {"name": "CIPHER", "tier": AgentTier.SPECIALIST, "specialty": "Cryptographic operations"},
-    {"name": "FORTRESS", "tier": AgentTier.SPECIALIST, "specialty": "Security hardening"},
-    {"name": "QUANTUM", "tier": AgentTier.SPECIALIST, "specialty": "Post-quantum cryptography"},
+    {
+        "name": "CIPHER",
+        "tier": AgentTier.SPECIALIST,
+        "specialty": "Cryptographic operations",
+    },
+    {
+        "name": "FORTRESS",
+        "tier": AgentTier.SPECIALIST,
+        "specialty": "Security hardening",
+    },
+    {
+        "name": "QUANTUM",
+        "tier": AgentTier.SPECIALIST,
+        "specialty": "Post-quantum cryptography",
+    },
     {"name": "SENTINEL", "tier": AgentTier.SPECIALIST, "specialty": "Threat detection"},
     {"name": "VAULT", "tier": AgentTier.SPECIALIST, "specialty": "Key management"},
-    {"name": "SHIELD", "tier": AgentTier.SPECIALIST, "specialty": "Data integrity verification"},
+    {
+        "name": "SHIELD",
+        "tier": AgentTier.SPECIALIST,
+        "specialty": "Data integrity verification",
+    },
     {"name": "GUARDIAN", "tier": AgentTier.SPECIALIST, "specialty": "Access control"},
     {"name": "PHANTOM", "tier": AgentTier.SPECIALIST, "specialty": "Secure erasure"},
-    {"name": "AEGIS", "tier": AgentTier.SPECIALIST, "specialty": "Defense coordination"},
-    {"name": "ORACLE", "tier": AgentTier.SPECIALIST, "specialty": "Security prediction"},
-
+    {
+        "name": "AEGIS",
+        "tier": AgentTier.SPECIALIST,
+        "specialty": "Defense coordination",
+    },
+    {
+        "name": "ORACLE",
+        "tier": AgentTier.SPECIALIST,
+        "specialty": "Security prediction",
+    },
     # Tier 3: Storage & Analytics Agents (21-30)
-    {"name": "ARCHITECT", "tier": AgentTier.SPECIALIST, "specialty": "Storage architecture"},
+    {
+        "name": "ARCHITECT",
+        "tier": AgentTier.SPECIALIST,
+        "specialty": "Storage architecture",
+    },
     {"name": "LATTICE", "tier": AgentTier.SPECIALIST, "specialty": "ZFS optimization"},
     {"name": "STREAM", "tier": AgentTier.SPECIALIST, "specialty": "Data streaming"},
     {"name": "VERTEX", "tier": AgentTier.SPECIALIST, "specialty": "Graph analytics"},
@@ -123,7 +179,6 @@ AGENT_DEFINITIONS = [
     {"name": "ATLAS", "tier": AgentTier.SPECIALIST, "specialty": "Storage mapping"},
     {"name": "CHRONICLE", "tier": AgentTier.SPECIALIST, "specialty": "Audit logging"},
     {"name": "BEACON", "tier": AgentTier.SPECIALIST, "specialty": "Discovery services"},
-
     # Tier 4: Network & Integration Agents (31-40)
     {"name": "SYNAPSE", "tier": AgentTier.SUPPORT, "specialty": "API orchestration"},
     {"name": "CRYPTO", "tier": AgentTier.SUPPORT, "specialty": "Network encryption"},
@@ -134,7 +189,11 @@ AGENT_DEFINITIONS = [
     {"name": "HARBOR", "tier": AgentTier.SUPPORT, "specialty": "Connection pooling"},
     {"name": "CONDUIT", "tier": AgentTier.SUPPORT, "specialty": "Data pipeline"},
     {"name": "HELIX", "tier": AgentTier.SUPPORT, "specialty": "Federation services"},
-    {"name": "OMNISCIENT", "tier": AgentTier.SUPPORT, "specialty": "Swarm coordination"},
+    {
+        "name": "OMNISCIENT",
+        "tier": AgentTier.SUPPORT,
+        "specialty": "Swarm coordination",
+    },
 ]
 
 
@@ -159,7 +218,11 @@ async def list_agents(
             agent_id=f"agent-{i+1:03d}",
             name=agent_def["name"],
             tier=agent_def["tier"],
-            status=AgentStatus.IDLE if swarm and swarm.is_initialized else AgentStatus.OFFLINE,
+            status=(
+                AgentStatus.IDLE
+                if swarm and swarm.is_initialized
+                else AgentStatus.OFFLINE
+            ),
             specialty=agent_def["specialty"],
             tasks_completed=0,
             success_rate=1.0,
@@ -229,7 +292,9 @@ async def get_agent(request: Request, agent_id: str) -> AgentInfo:
         agent_id=agent_id,
         name=agent_def["name"],
         tier=agent_def["tier"],
-        status=AgentStatus.IDLE if swarm and swarm.is_initialized else AgentStatus.OFFLINE,
+        status=(
+            AgentStatus.IDLE if swarm and swarm.is_initialized else AgentStatus.OFFLINE
+        ),
         specialty=agent_def["specialty"],
         tasks_completed=0,
         success_rate=1.0,
@@ -239,7 +304,9 @@ async def get_agent(request: Request, agent_id: str) -> AgentInfo:
     )
 
 
-@router.post("/tasks", response_model=TaskResponse, status_code=status.HTTP_202_ACCEPTED)
+@router.post(
+    "/tasks", response_model=TaskResponse, status_code=status.HTTP_202_ACCEPTED
+)
 async def submit_task(
     request: Request,
     task_request: TaskRequest,
@@ -297,10 +364,12 @@ async def list_specialties() -> dict:
 
     for agent_def in AGENT_DEFINITIONS:
         tier_key = agent_def["tier"].value
-        specialties[tier_key].append({
-            "name": agent_def["name"],
-            "specialty": agent_def["specialty"],
-        })
+        specialties[tier_key].append(
+            {
+                "name": agent_def["name"],
+                "specialty": agent_def["specialty"],
+            }
+        )
 
     return specialties
 
@@ -308,9 +377,14 @@ async def list_specialties() -> dict:
 class DispatchRequest(BaseModel):
     """Request to dispatch a task via the scheduler."""
 
-    task_type: str = Field(description="Type of task (compression, encryption, analysis, storage, network)")
+    task_type: str = Field(
+        description="Type of task (compression, encryption, analysis, storage, network)"
+    )
     payload: dict = Field(description="Task-specific payload")
-    priority: str = Field(default="NORMAL", description="Task priority: CRITICAL, HIGH, NORMAL, LOW, BACKGROUND")
+    priority: str = Field(
+        default="NORMAL",
+        description="Task priority: CRITICAL, HIGH, NORMAL, LOW, BACKGROUND",
+    )
     callback_url: str | None = Field(default=None, description="URL to POST results to")
 
 
@@ -350,7 +424,9 @@ class RecoveryStatus(BaseModel):
     dead_letter_queue_size: int
 
 
-@router.post("/dispatch", response_model=DispatchResponse, status_code=status.HTTP_202_ACCEPTED)
+@router.post(
+    "/dispatch", response_model=DispatchResponse, status_code=status.HTTP_202_ACCEPTED
+)
 async def dispatch_task(
     request: Request,
     dispatch_request: DispatchRequest,
@@ -526,7 +602,9 @@ class MemorySystemStatus(BaseModel):
 
     total_memories: int = Field(description="Total memories stored")
     total_stored: int = Field(description="Total memories ever stored")
-    total_forgotten: int = Field(description="Total memories forgotten (decayed/evicted)")
+    total_forgotten: int = Field(
+        description="Total memories forgotten (decayed/evicted)"
+    )
     total_retrieved: int = Field(description="Total memory retrievals")
     consolidation_runs: int = Field(description="Memory consolidation cycles run")
     by_type: dict = Field(description="Memory counts by type")

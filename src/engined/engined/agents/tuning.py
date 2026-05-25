@@ -34,22 +34,25 @@ logger = logging.getLogger(__name__)
 
 class TuningStrategy(str, Enum):
     """Strategies for parameter tuning."""
-    GRADIENT_FREE = "gradient_free"   # Evolutionary, no gradients needed
-    BAYESIAN = "bayesian"              # Bayesian optimization
-    ADAPTIVE = "adaptive"              # Rule-based adaptive
-    MANUAL = "manual"                  # Manual tuning only
+
+    GRADIENT_FREE = "gradient_free"  # Evolutionary, no gradients needed
+    BAYESIAN = "bayesian"  # Bayesian optimization
+    ADAPTIVE = "adaptive"  # Rule-based adaptive
+    MANUAL = "manual"  # Manual tuning only
 
 
 class ParameterType(str, Enum):
     """Types of tunable parameters."""
+
     CONTINUOUS = "continuous"  # Float values
-    DISCRETE = "discrete"      # Integer values
+    DISCRETE = "discrete"  # Integer values
     CATEGORICAL = "categorical"  # Enum/choice values
 
 
 @dataclass
 class TunableParameter:
     """A parameter that can be tuned by the self-tuning system."""
+
     name: str
     param_type: ParameterType
     current_value: Any
@@ -110,6 +113,7 @@ class TunableParameter:
 @dataclass
 class PerformanceSnapshot:
     """Snapshot of performance metrics at a point in time."""
+
     timestamp: datetime
     parameters: dict[str, Any]
     metrics: dict[str, float]
@@ -119,6 +123,7 @@ class PerformanceSnapshot:
 @dataclass
 class TuningSession:
     """A tuning session with exploration results."""
+
     session_id: str
     started_at: datetime
     ended_at: datetime | None = None
@@ -155,12 +160,14 @@ class PerformanceTracker:
         score: float,
     ) -> None:
         """Record a performance snapshot."""
-        self._snapshots.append(PerformanceSnapshot(
-            timestamp=datetime.now(),
-            parameters=parameters.copy(),
-            metrics=metrics.copy(),
-            score=score,
-        ))
+        self._snapshots.append(
+            PerformanceSnapshot(
+                timestamp=datetime.now(),
+                parameters=parameters.copy(),
+                metrics=metrics.copy(),
+                score=score,
+            )
+        )
 
     def get_recent_average(self, metric_name: str) -> float | None:
         """Get recent average for a metric."""
@@ -238,7 +245,9 @@ class PerformanceTracker:
             avg = self.get_recent_average(metric)
             if avg is not None:
                 # Normalize: positive contribution for higher_is_better
-                contribution = avg if higher_is_better.get(metric, True) else (1 / (1 + avg))
+                contribution = (
+                    avg if higher_is_better.get(metric, True) else (1 / (1 + avg))
+                )
                 score += abs(weight) * contribution
                 total_weight += abs(weight)
 
@@ -287,87 +296,103 @@ class SelfTuner:
     def _init_default_parameters(self) -> None:
         """Initialize default tunable parameters for the autonomy system."""
         # Scheduler parameters
-        self.register_parameter(TunableParameter(
-            name="scheduler.max_workers",
-            param_type=ParameterType.DISCRETE,
-            current_value=10,
-            default_value=10,
-            min_value=2,
-            max_value=50,
-            description="Maximum concurrent worker tasks",
-        ))
-        self.register_parameter(TunableParameter(
-            name="scheduler.rate_limit",
-            param_type=ParameterType.CONTINUOUS,
-            current_value=100.0,
-            default_value=100.0,
-            min_value=10.0,
-            max_value=1000.0,
-            step_size=0.1,
-            description="Task dispatch rate limit per second",
-        ))
-        self.register_parameter(TunableParameter(
-            name="scheduler.queue_size",
-            param_type=ParameterType.DISCRETE,
-            current_value=1000,
-            default_value=1000,
-            min_value=100,
-            max_value=10000,
-            description="Maximum task queue size",
-        ))
+        self.register_parameter(
+            TunableParameter(
+                name="scheduler.max_workers",
+                param_type=ParameterType.DISCRETE,
+                current_value=10,
+                default_value=10,
+                min_value=2,
+                max_value=50,
+                description="Maximum concurrent worker tasks",
+            )
+        )
+        self.register_parameter(
+            TunableParameter(
+                name="scheduler.rate_limit",
+                param_type=ParameterType.CONTINUOUS,
+                current_value=100.0,
+                default_value=100.0,
+                min_value=10.0,
+                max_value=1000.0,
+                step_size=0.1,
+                description="Task dispatch rate limit per second",
+            )
+        )
+        self.register_parameter(
+            TunableParameter(
+                name="scheduler.queue_size",
+                param_type=ParameterType.DISCRETE,
+                current_value=1000,
+                default_value=1000,
+                min_value=100,
+                max_value=10000,
+                description="Maximum task queue size",
+            )
+        )
 
         # Recovery parameters
-        self.register_parameter(TunableParameter(
-            name="recovery.health_check_interval",
-            param_type=ParameterType.CONTINUOUS,
-            current_value=30.0,
-            default_value=30.0,
-            min_value=5.0,
-            max_value=300.0,
-            step_size=0.1,
-            description="Health check interval in seconds",
-        ))
-        self.register_parameter(TunableParameter(
-            name="recovery.restart_cooldown",
-            param_type=ParameterType.CONTINUOUS,
-            current_value=60.0,
-            default_value=60.0,
-            min_value=10.0,
-            max_value=600.0,
-            step_size=0.1,
-            description="Cooldown between restart attempts",
-        ))
-        self.register_parameter(TunableParameter(
-            name="recovery.max_restart_attempts",
-            param_type=ParameterType.DISCRETE,
-            current_value=3,
-            default_value=3,
-            min_value=1,
-            max_value=10,
-            description="Maximum restart attempts before circuit breaker",
-        ))
+        self.register_parameter(
+            TunableParameter(
+                name="recovery.health_check_interval",
+                param_type=ParameterType.CONTINUOUS,
+                current_value=30.0,
+                default_value=30.0,
+                min_value=5.0,
+                max_value=300.0,
+                step_size=0.1,
+                description="Health check interval in seconds",
+            )
+        )
+        self.register_parameter(
+            TunableParameter(
+                name="recovery.restart_cooldown",
+                param_type=ParameterType.CONTINUOUS,
+                current_value=60.0,
+                default_value=60.0,
+                min_value=10.0,
+                max_value=600.0,
+                step_size=0.1,
+                description="Cooldown between restart attempts",
+            )
+        )
+        self.register_parameter(
+            TunableParameter(
+                name="recovery.max_restart_attempts",
+                param_type=ParameterType.DISCRETE,
+                current_value=3,
+                default_value=3,
+                min_value=1,
+                max_value=10,
+                description="Maximum restart attempts before circuit breaker",
+            )
+        )
 
         # Memory parameters
-        self.register_parameter(TunableParameter(
-            name="memory.consolidation_interval",
-            param_type=ParameterType.CONTINUOUS,
-            current_value=300.0,
-            default_value=300.0,
-            min_value=60.0,
-            max_value=3600.0,
-            step_size=0.1,
-            description="Memory consolidation interval in seconds",
-        ))
-        self.register_parameter(TunableParameter(
-            name="memory.decay_interval",
-            param_type=ParameterType.CONTINUOUS,
-            current_value=3600.0,
-            default_value=3600.0,
-            min_value=300.0,
-            max_value=86400.0,
-            step_size=0.1,
-            description="Memory decay interval in seconds",
-        ))
+        self.register_parameter(
+            TunableParameter(
+                name="memory.consolidation_interval",
+                param_type=ParameterType.CONTINUOUS,
+                current_value=300.0,
+                default_value=300.0,
+                min_value=60.0,
+                max_value=3600.0,
+                step_size=0.1,
+                description="Memory consolidation interval in seconds",
+            )
+        )
+        self.register_parameter(
+            TunableParameter(
+                name="memory.decay_interval",
+                param_type=ParameterType.CONTINUOUS,
+                current_value=3600.0,
+                default_value=3600.0,
+                min_value=300.0,
+                max_value=86400.0,
+                step_size=0.1,
+                description="Memory decay interval in seconds",
+            )
+        )
 
     def register_parameter(self, param: TunableParameter) -> None:
         """Register a tunable parameter."""
@@ -443,7 +468,10 @@ class SelfTuner:
                 )
 
                 # Check if we need to rollback
-                if self._best_score > 0 and current_score < self._rollback_threshold * self._best_score:
+                if (
+                    self._best_score > 0
+                    and current_score < self._rollback_threshold * self._best_score
+                ):
                     await self._rollback_to_best()
                     continue
 
@@ -513,16 +541,22 @@ class SelfTuner:
             if rate_param:
                 new_rate = max(rate_param.min_value, rate_param.current_value * 0.9)
                 rate_param.current_value = new_rate
-                logger.info(f"Adaptive: Reduced rate_limit to {new_rate} due to high error rate")
+                logger.info(
+                    f"Adaptive: Reduced rate_limit to {new_rate} due to high error rate"
+                )
 
         # If latency is high, increase workers
         latency_trend = self._tracker.get_trend("avg_latency_ms")
         if latency_trend is not None and latency_trend > 0.2:
             workers_param = self._parameters.get("scheduler.max_workers")
             if workers_param:
-                new_workers = min(workers_param.max_value, workers_param.current_value + 1)
+                new_workers = min(
+                    workers_param.max_value, workers_param.current_value + 1
+                )
                 workers_param.current_value = int(new_workers)
-                logger.info(f"Adaptive: Increased max_workers to {new_workers} due to high latency")
+                logger.info(
+                    f"Adaptive: Increased max_workers to {new_workers} due to high latency"
+                )
 
     async def _rollback_to_best(self) -> None:
         """Rollback all parameters to best known values."""
@@ -593,7 +627,9 @@ class SelfTuner:
             "best_score": self._best_score,
             "current_score": self._tracker.compute_score(),
             "sessions_completed": len(self._sessions),
-            "current_session": self._current_session.session_id if self._current_session else None,
+            "current_session": (
+                self._current_session.session_id if self._current_session else None
+            ),
             "exploration_rate": self._exploration_rate,
         }
 

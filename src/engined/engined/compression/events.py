@@ -19,6 +19,7 @@ logger = logging.getLogger(__name__)
 
 class CompressionEventType(Enum):
     """Types of compression events."""
+
     # Job lifecycle events
     JOB_QUEUED = "compression.job.queued"
     JOB_STARTED = "compression.job.started"
@@ -46,6 +47,7 @@ class CompressionEvent:
 
     Events are emitted for real-time monitoring and WebSocket streaming.
     """
+
     event_type: CompressionEventType
     job_id: str | None
     timestamp: datetime
@@ -136,7 +138,7 @@ class CompressionEventEmitter:
     ) -> None:
         """Remove handler for specific event type."""
         if event_type in self._handlers and handler in self._handlers[event_type]:
-                self._handlers[event_type].remove(handler)
+            self._handlers[event_type].remove(handler)
 
     def off_all(self, handler: EventHandler) -> None:
         """Remove global handler."""
@@ -181,7 +183,7 @@ class CompressionEventEmitter:
         async with self._lock:
             self._history.append(event)
             if len(self._history) > self._history_size:
-                self._history = self._history[-self._history_size:]
+                self._history = self._history[-self._history_size :]
 
         # Call type-specific handlers
         handlers = self._handlers.get(event_type, [])

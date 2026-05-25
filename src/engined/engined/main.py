@@ -91,9 +91,7 @@ class EngineState:
 
         logger.info("Initializing task scheduler")
         self.scheduler = TaskScheduler(
-            swarm=self.swarm,
-            max_concurrent=10,
-            rate_limit_per_second=100.0
+            swarm=self.swarm, max_concurrent=10, rate_limit_per_second=100.0
         )
         await self.scheduler.start(num_workers=4)
 
@@ -102,7 +100,7 @@ class EngineState:
             swarm=self.swarm,
             check_interval=30.0,
             max_restart_attempts=3,
-            restart_cooldown=60.0
+            restart_cooldown=60.0,
         )
         await self.recovery.start_monitoring()
 
@@ -270,13 +268,17 @@ def create_app() -> FastAPI:
         print(f"ERROR including health_router: {e}")
 
     try:
-        app.include_router(compression_router, prefix="/api/v1/compression", tags=["Compression"])
+        app.include_router(
+            compression_router, prefix="/api/v1/compression", tags=["Compression"]
+        )
         print("DEBUG: compression_router included")
     except Exception as e:
         print(f"ERROR including compression_router: {e}")
 
     try:
-        app.include_router(encryption_router, prefix="/api/v1/encryption", tags=["Encryption"])
+        app.include_router(
+            encryption_router, prefix="/api/v1/encryption", tags=["Encryption"]
+        )
         print("DEBUG: encryption_router included")
     except Exception as e:
         print(f"ERROR including encryption_router: {e}")
@@ -303,8 +305,8 @@ def create_app() -> FastAPI:
     print("DEBUG: Printing registered routes:")
     logger.info("Registered routes:")
     for route in app.routes:
-        if hasattr(route, 'path'):
-            methods = getattr(route, 'methods', 'MOUNT')
+        if hasattr(route, "path"):
+            methods = getattr(route, "methods", "MOUNT")
             route_str = f"  {route.path} - {methods}"
             print(f"DEBUG: {route_str}")
             logger.info(route_str)
@@ -318,6 +320,7 @@ def create_app() -> FastAPI:
 
 def setup_signal_handlers() -> None:
     """Setup signal handlers for graceful shutdown."""
+
     def handle_signal(signum: int, _frame: object) -> None:
         logger.info("Received shutdown signal", signal=signal.Signals(signum).name)
         engine_state.request_shutdown()
@@ -368,10 +371,17 @@ async def run_server() -> None:
             "method": request.method,
             "scheme": request.scheme,
             "path": request.path,
-            "query_string": request.query_string.encode() if request.query_string else b"",
+            "query_string": (
+                request.query_string.encode() if request.query_string else b""
+            ),
             "root_path": "",
-            "headers": [(k.lower().encode(), v.encode()) for k, v in request.headers.items()],
-            "server": (request.host.split(":")[0], int(request.host.split(":")[1]) if ":" in request.host else 80),
+            "headers": [
+                (k.lower().encode(), v.encode()) for k, v in request.headers.items()
+            ],
+            "server": (
+                request.host.split(":")[0],
+                int(request.host.split(":")[1]) if ":" in request.host else 80,
+            ),
             "client": (request.remote, 0) if request.remote else ("unknown", 0),
             "state": {},
         }
@@ -404,14 +414,14 @@ async def run_server() -> None:
         return web.Response(
             status=status,
             headers={k.decode(): v.decode() for k, v in headers},
-            body=b"".join(response_body)
+            body=b"".join(response_body),
         )
 
     # Create aiohttp application
     aiohttp_app = web.Application()
 
     # Mount FastAPI at all paths
-    aiohttp_app.router.add_route('*', '/{path_info:.*}', handle_fastapi)
+    aiohttp_app.router.add_route("*", "/{path_info:.*}", handle_fastapi)
 
     # Create runner and start server
     runner = web.AppRunner(aiohttp_app)
@@ -423,7 +433,7 @@ async def run_server() -> None:
         "Server started on aiohttp",
         host=settings.host,
         port=settings.port,
-        url=f"http://{settings.host}:{settings.port}"
+        url=f"http://{settings.host}:{settings.port}",
     )
     print(f"Server started on http://{settings.host}:{settings.port}")
 
