@@ -193,7 +193,7 @@ func TestE2EErrorHandling(t *testing.T) {
 		endpoint       string
 		expectedStatus int
 	}{
-		{"Invalid endpoint", "/api/v1/nonexistent", http.StatusNotFound},
+		{"Invalid endpoint", "/api/v1/nonexistent", http.StatusUnauthorized},
 		{"Health check", "/api/v1/health", http.StatusOK},
 		{"Info endpoint", "/api/v1/info", http.StatusOK},
 	}

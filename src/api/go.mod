@@ -1,6 +1,6 @@
 module sigmavault-nas-os/api
 
-go 1.25.10
+go 1.24.0
 
 require (
 	github.com/gofiber/contrib/jwt v1.1.2
@@ -12,6 +12,7 @@ require (
 	github.com/joho/godotenv v1.5.1
 	github.com/rs/zerolog v1.34.0
 	github.com/stretchr/testify v1.11.1
+	nhooyr.io/websocket v1.8.17
 )
 
 require (
@@ -33,5 +34,4 @@ require (
 	golang.org/x/net v0.49.0 // indirect
 	golang.org/x/sys v0.41.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	nhooyr.io/websocket v1.8.17 // indirect
 )

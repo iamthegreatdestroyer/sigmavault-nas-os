@@ -388,8 +388,6 @@ func (c *Client) writePump() {
 		select {
 		case message, ok := <-c.Send:
 			if !ok {
-				// Channel closed
-				_ = c.Conn.WriteMessage(websocket.CloseMessage, []byte{}) // Best effort close
 				return
 			}
 
