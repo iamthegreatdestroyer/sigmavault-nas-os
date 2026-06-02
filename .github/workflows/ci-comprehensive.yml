@@ -11,7 +11,7 @@ on:
     workflow_dispatch:
 
 env:
-    GO_VERSION: "1.22"
+    GO_VERSION: "1.25"
     PYTHON_VERSION: "3.12"
     NODE_VERSION: "20"
 
@@ -43,7 +43,7 @@ jobs:
 
             # Go Linting
             - name: Go Lint
-              uses: golangci/golangci-lint-action@v4
+              uses: golangci/golangci-lint-action@v6
               with:
                   version: latest
                   working-directory: src/api

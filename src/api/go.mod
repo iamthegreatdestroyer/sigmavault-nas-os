@@ -1,6 +1,6 @@
 module sigmavault-nas-os/api
 
-go 1.24.0
+go 1.25.0
 
 require (
 	github.com/gofiber/contrib/jwt v1.1.2
@@ -31,7 +31,7 @@ require (
 	github.com/tinylib/msgp v1.6.3 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasthttp v1.69.0 // indirect
-	golang.org/x/net v0.49.0 // indirect
-	golang.org/x/sys v0.41.0 // indirect
+	golang.org/x/net v0.53.0 // indirect
+	golang.org/x/sys v0.43.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

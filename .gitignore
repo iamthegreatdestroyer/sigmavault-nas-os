@@ -77,3 +77,11 @@ local.settings.json
 
 # Ignore generated TypeScript build info
 **/node_modules/.tmp
+
+# Debian build artifacts
+debian/*.debhelper
+debian/*.substvars
+debian/debhelper-build-stamp
+debian/files
+debian/sigmavault-desktop/
+debian/.debhelper/
