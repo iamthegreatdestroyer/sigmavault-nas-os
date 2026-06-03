@@ -1,0 +1,54 @@
+services:
+  engined:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.engined
+    ports:
+      - "6100:5000"
+      - "6151:50051"
+    environment:
+      - SIGMAVAULT_HOST=0.0.0.0
+      - SIGMAVAULT_PORT=5000
+      - SIGMAVAULT_GRPC_HOST=0.0.0.0
+      - SIGMAVAULT_GRPC_PORT=50051
+      - SIGMAVAULT_ENVIRONMENT=development
+      - SIGMAVAULT_DEBUG=true
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/health/live')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  api:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.api
+    ports:
+      - "12080:12080"
+    depends_on:
+      engined:
+        condition: service_healthy
+    environment:
+      - SIGMAVAULT_PORT=12080
+      - SIGMAVAULT_RPC_URL=http://engined:5000/api/v1
+      - SIGMAVAULT_JWT_SECRET=dev-secret-key-change-in-production-32ch
+      - SIGMAVAULT_ENVIRONMENT=development
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:12080/api/v1/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  webui:
+    build:
+      context: src/webui
+      dockerfile: Dockerfile
+    ports:
+      - "5173:5173"
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      - VITE_API_BASE_URL=http://localhost:12080
