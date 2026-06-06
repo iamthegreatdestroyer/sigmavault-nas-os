@@ -7,9 +7,10 @@ After=network.target
 Type=simple
 User=sigmavault
 Group=sigmavault
-Environment=PYTHONPATH=/opt/sigmavault/lib/python
+Environment=PYTHONPATH=/opt/sigmavault/src/engined
 Environment=SIGMAVAULT_CONFIG=/etc/sigmavault/config.yaml
-ExecStart=/usr/bin/python3 -m engined.rpc.server --host 127.0.0.1 --port 8002
+Environment=SIGMAVAULT_PORT=5000
+ExecStart=/usr/bin/python3 -m engined.main
 Restart=always
 RestartSec=5
 StandardOutput=journal

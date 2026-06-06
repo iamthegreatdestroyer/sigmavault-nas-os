@@ -9,8 +9,8 @@ Type=simple
 User=sigmavault
 Group=sigmavault
 Environment=SIGMAVAULT_CONFIG=/etc/sigmavault/config.yaml
-Environment=SIGMAVAULT_RPC_HOST=127.0.0.1
-Environment=SIGMAVAULT_RPC_PORT=8002
+Environment=SIGMAVAULT_PORT=12080
+Environment=SIGMAVAULT_RPC_URL=http://127.0.0.1:5000/api/v1
 ExecStart=/opt/sigmavault/bin/sigmavault-api
 Restart=always
 RestartSec=5
