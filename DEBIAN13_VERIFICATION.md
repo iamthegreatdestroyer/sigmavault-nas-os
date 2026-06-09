@@ -116,6 +116,18 @@ sigmavault-engined.service — RUNNING — alive (5000)
 
 ---
 
+## Model Pre-Cache Status (Task 3) ✅ COMPLETE
+
+| Model | Ollama Tag | Size | Completed |
+|-------|-----------|------|-----------|
+| Qwen3-30B (Q4_K_M) | `qwen3:30b` | 18 GB | 2026-06-09 18:32 UTC |
+| Gemma4-26B (A4B) | `gemma4:26b` | 17 GB | 2026-06-09 18:53 UTC |
+
+Disk after both models: 48G used / 56G total (5.2G free) on SigmaVault-NAS-Test VM.  
+For 1TB drive deployment: both models pre-cached, `scripts/precache-models.sh` handles fresh installs.
+
+---
+
 ## Verdict
 
-All 33 repos verified compatible with Debian 13.5 (trixie). One constraint fix applied (NLCI Node engine bound). No breaking changes between Debian 12→13 found. The ecosystem is **ready for 1TB drive deployment** pending Task 3 model pre-cache.
+All 33 repos verified compatible with Debian 13.5 (trixie). One constraint fix applied (NLCI Node engine bound). No breaking changes between Debian 12→13 found. Both inference models (qwen3:30b + gemma4:26b) pre-cached on VM. The ecosystem is **ready for 1TB drive deployment**.
