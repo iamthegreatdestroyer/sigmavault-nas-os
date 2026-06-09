@@ -10,11 +10,13 @@ ok()   { printf "  OK: %s\n" "$*"; }
 die()  { printf "  ERROR: %s\n" "$*" >&2; exit 1; }
 
 # --- Models to pre-cache ---
-# Qwen3-30B FP8: agentic coding, ~140 tok/s on CPU, ~30GB
-# Gemma4-27B A4B: 256K context, text+image, ~17GB
-QWEN_TAG="qwen3:30b-fp8"
-GEMMA_TAG="gemma4:27b-a4b"
-REQUIRED_GB=55  # FP8 Qwen + A4B Gemma combined, with headroom
+# Qwen3-30B (Q4_K_M): agentic coding, 256K context, ~19GB
+# Gemma4-26B (A4B default): 256K context, text+image, ~18GB
+# Note: Ollama does not currently offer qwen3:30b-fp8 or gemma4:26b-a4b as separate tags.
+# The default tags below ARE the optimal quantizations available in Ollama.
+QWEN_TAG="qwen3:30b"
+GEMMA_TAG="gemma4:26b"
+REQUIRED_GB=45  # Both models + headroom
 
 echo ""
 echo "======================================="
@@ -51,20 +53,12 @@ fi
 ok "Disk space: ${AVAIL_GB}GB available (need ${REQUIRED_GB}GB)"
 
 # 4. Pull models
-log "Pulling ${QWEN_TAG} (~30GB, this will take a while)..."
-ollama pull "${QWEN_TAG}" || {
-    log "FP8 tag not available, falling back to qwen3:30b (Q4_K_M ~19GB)..."
-    QWEN_TAG="qwen3:30b"
-    ollama pull "${QWEN_TAG}"
-}
+log "Pulling ${QWEN_TAG} (~19GB, agentic coding, 256K context)..."
+ollama pull "${QWEN_TAG}"
 ok "Pulled: ${QWEN_TAG}"
 
-log "Pulling ${GEMMA_TAG} (~17GB)..."
-ollama pull "${GEMMA_TAG}" || {
-    log "A4B tag not available, falling back to gemma4:27b (Q4 ~17GB)..."
-    GEMMA_TAG="gemma4:27b"
-    ollama pull "${GEMMA_TAG}"
-}
+log "Pulling ${GEMMA_TAG} (~18GB, multimodal, 256K context)..."
+ollama pull "${GEMMA_TAG}"
 ok "Pulled: ${GEMMA_TAG}"
 
 # 5. Verify
