@@ -104,6 +104,7 @@ class CompressionBridge:
         """Initialize compression bridge."""
         self.config = config or CompressionConfig()
         self._engine = None
+        self._ryot_engine = None
         self._codebook = None
         self._initialized = False
         self._progress_callbacks: list[
@@ -136,7 +137,15 @@ class CompressionBridge:
 
         except ImportError as e:
             logger.warning(f"EliteSigma-NAS not available: {e}")
-            # Fall back to stdlib zlib/lzma implementation
+            # Try Ryot fractal quantization for structured data, then zlib/lzma
+            try:
+                from .ryot_engine import RyotCompressionEngine, is_ryot_available
+
+                if is_ryot_available():
+                    self._ryot_engine = RyotCompressionEngine()
+                    logger.info("Ryot fractal quantization available as secondary engine")
+            except Exception as ryot_err:
+                logger.info(f"Ryot engine not available: {ryot_err}")
             self._engine = StubCompressionEngine(level=self.config.level)
             self._initialized = True
             return True
@@ -392,17 +401,19 @@ class CompressionBridge:
             )
 
     async def _compress_chunk(self, chunk: bytes) -> bytes:
-        """Compress a single chunk."""
+        """Compress a single chunk.  Tries Ryot for structured data first."""
         if self._engine is None:
             return chunk
 
-        # Run compression in thread pool to avoid blocking
         loop = asyncio.get_event_loop()
-        return await loop.run_in_executor(
-            None,
-            self._engine.compress,
-            chunk,
-        )
+
+        ryot = getattr(self, "_ryot_engine", None)
+        if ryot is not None:
+            result = await loop.run_in_executor(None, ryot.compress, chunk)
+            if result is not None and len(result) < len(chunk):
+                return result
+
+        return await loop.run_in_executor(None, self._engine.compress, chunk)
 
     async def decompress_file(
         self,
@@ -484,9 +495,17 @@ class CompressionBridge:
         compressed_size = len(data)
 
         try:
-            # Decompress
+            # Decompress — detect format from magic bytes
             if self._engine is None:
                 decompressed_data = data
+            elif data[:4] == b"RYOT":
+                ryot = getattr(self, "_ryot_engine", None)
+                if ryot is None:
+                    raise RuntimeError("RYOT-compressed data but Ryot engine not available")
+                loop = asyncio.get_event_loop()
+                decompressed_data = await loop.run_in_executor(
+                    None, ryot.decompress, data,
+                )
             else:
                 loop = asyncio.get_event_loop()
                 decompressed_data = await loop.run_in_executor(

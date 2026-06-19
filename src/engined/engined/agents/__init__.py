@@ -36,6 +36,18 @@ from .memory import (
 )
 from .recovery import AgentRecovery, CircuitBreaker, CircuitState
 from .registry import AgentRegistry
+from .safety import (
+    ApprovalGate,
+    ApprovalRequest,
+    ApprovalStatus,
+    AuditEntry,
+    AuditLog,
+    OperationClass,
+    RollbackCheckpoint,
+    RollbackManager,
+    SafetyGuard,
+    classify_operation,
+)
 from .scheduler import TaskScheduler
 
 # Legacy swarm management
@@ -68,6 +80,17 @@ __all__ = [
     # Legacy swarm
     "AgentSwarm",
     "AgentTask",
+    # Safety layer
+    "ApprovalGate",
+    "ApprovalRequest",
+    "ApprovalStatus",
+    "AuditEntry",
+    "AuditLog",
+    "OperationClass",
+    "RollbackCheckpoint",
+    "RollbackManager",
+    "SafetyGuard",
+    "classify_operation",
     # Core infrastructure
     "BaseAgent",
     "CircuitBreaker",

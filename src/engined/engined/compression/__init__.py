@@ -18,6 +18,7 @@ from .bridge import (
     CompressionResult,
     StubCompressionEngine,
 )
+from .ryot_engine import RyotCompressionEngine, is_ryot_available
 from .events import (
     CompressionEvent,
     CompressionEventEmitter,
@@ -52,6 +53,8 @@ __all__ = [
     "JobStatus",
     "JobType",
     "StubCompressionEngine",
+    "RyotCompressionEngine",
+    "is_ryot_available",
     "WebSocketEventBridge",
     "get_compression_emitter",
     "set_compression_emitter",

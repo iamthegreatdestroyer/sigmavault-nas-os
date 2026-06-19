@@ -711,3 +711,145 @@ async def get_tuning_parameters(_request: Request) -> dict:
         return {"parameters": {}}
 
     return {"parameters": tuner.get_all_parameters()}
+
+
+# ---------------------------------------------------------------------------
+# Safety Layer Endpoints
+# ---------------------------------------------------------------------------
+
+
+class ApprovalDecision(BaseModel):
+    """Request to approve or deny a pending operation."""
+
+    decided_by: str = Field(default="admin", description="Who made the decision")
+
+
+@router.get("/safety/status")
+async def get_safety_status(request: Request) -> dict:
+    """Get safety layer status: audit log stats, pending approvals, rollback checkpoints."""
+    from engined.agents.safety import SafetyGuard
+
+    guard: SafetyGuard | None = getattr(request.app.state, "safety_guard", None)
+    if not guard:
+        return {"active": False, "message": "Safety guard not initialized"}
+    return {"active": True, **guard.stats()}
+
+
+@router.get("/safety/approvals/pending")
+async def get_pending_approvals(request: Request) -> list[dict]:
+    """List all pending approval requests for destructive operations."""
+    from engined.agents.safety import SafetyGuard
+
+    guard: SafetyGuard | None = getattr(request.app.state, "safety_guard", None)
+    if not guard:
+        return []
+    return [
+        {
+            "request_id": r.request_id,
+            "agent_id": r.agent_id,
+            "task_id": r.task_id,
+            "task_type": r.task_type,
+            "description": r.description,
+            "payload_summary": r.payload_summary,
+            "created_at": r.created_at,
+            "expiry_seconds": r.expiry_seconds,
+        }
+        for r in guard.approvals.get_pending()
+    ]
+
+
+@router.post("/safety/approvals/{request_id}/approve")
+async def approve_operation(
+    request: Request,
+    request_id: str,
+    decision: ApprovalDecision,
+) -> dict:
+    """Approve a pending destructive operation."""
+    from engined.agents.safety import SafetyGuard
+
+    guard: SafetyGuard | None = getattr(request.app.state, "safety_guard", None)
+    if not guard:
+        raise HTTPException(status_code=503, detail="Safety guard not initialized")
+    ok = await guard.approvals.approve(request_id, decided_by=decision.decided_by)
+    if not ok:
+        raise HTTPException(status_code=404, detail="Request not found or already decided")
+    return {"status": "approved", "request_id": request_id}
+
+
+@router.post("/safety/approvals/{request_id}/deny")
+async def deny_operation(
+    request: Request,
+    request_id: str,
+    decision: ApprovalDecision,
+) -> dict:
+    """Deny a pending destructive operation."""
+    from engined.agents.safety import SafetyGuard
+
+    guard: SafetyGuard | None = getattr(request.app.state, "safety_guard", None)
+    if not guard:
+        raise HTTPException(status_code=503, detail="Safety guard not initialized")
+    ok = await guard.approvals.deny(request_id, decided_by=decision.decided_by)
+    if not ok:
+        raise HTTPException(status_code=404, detail="Request not found or already decided")
+    return {"status": "denied", "request_id": request_id}
+
+
+@router.get("/safety/rollbacks")
+async def list_rollback_checkpoints(request: Request) -> list[dict]:
+    """List all rollback checkpoints."""
+    from engined.agents.safety import SafetyGuard
+
+    guard: SafetyGuard | None = getattr(request.app.state, "safety_guard", None)
+    if not guard:
+        return []
+    return [
+        {
+            "checkpoint_id": cp.checkpoint_id,
+            "task_id": cp.task_id,
+            "agent_id": cp.agent_id,
+            "task_type": cp.task_type,
+            "created_at": cp.created_at,
+            "has_artifact": cp.artifact_path is not None,
+            "rolled_back": cp.rolled_back,
+        }
+        for cp in guard.rollbacks.get_checkpoints()
+    ]
+
+
+@router.post("/safety/rollbacks/{checkpoint_id}/rollback")
+async def execute_rollback(request: Request, checkpoint_id: str) -> dict:
+    """Execute a rollback to undo a destructive operation."""
+    from engined.agents.safety import SafetyGuard
+
+    guard: SafetyGuard | None = getattr(request.app.state, "safety_guard", None)
+    if not guard:
+        raise HTTPException(status_code=503, detail="Safety guard not initialized")
+    ok = await guard.rollbacks.rollback(checkpoint_id)
+    if not ok:
+        raise HTTPException(status_code=404, detail="Checkpoint not found or already rolled back")
+    return {"status": "rolled_back", "checkpoint_id": checkpoint_id}
+
+
+@router.get("/safety/audit/today")
+async def get_todays_audit_log(request: Request) -> list[dict]:
+    """Get today's audit log entries."""
+    from engined.agents.safety import SafetyGuard
+
+    guard: SafetyGuard | None = getattr(request.app.state, "safety_guard", None)
+    if not guard:
+        return []
+    entries = await guard.audit.read_today()
+    return [
+        {
+            "timestamp": e.timestamp,
+            "agent_id": e.agent_id,
+            "task_id": e.task_id,
+            "task_type": e.task_type,
+            "operation_class": e.operation_class,
+            "requires_approval": e.requires_approval,
+            "approved": e.approved,
+            "result_status": e.result_status,
+            "rollback_id": e.rollback_id,
+        }
+        for e in entries
+    ]
