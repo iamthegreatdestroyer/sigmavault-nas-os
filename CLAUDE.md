@@ -205,7 +205,7 @@ The `StubCompressionEngine` in `src/engined/engined/compression/bridge.py` just 
 
 ### SPRINT 6 — Debian Package (Installable artifact)
 
-- [ ] **S6-A**: Read `debian/control` and `debian/rules` — verify they reference the correct binary paths
+- [x] **S6-A** debian/ packaging verified
 - [x] **S6-B** deploy.sh works (validated): Run `cd S:/sigmavault-nas-os && dpkg-buildpackage -us -uc -b` in a Debian environment (WSL or Docker):
   ```bash
   docker run --rm -v $(pwd):/src debian:trixie bash -c "cd /src && apt-get install -y debhelper && dpkg-buildpackage -us -uc -b"
