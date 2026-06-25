@@ -73,6 +73,7 @@ type Client struct {
 	Hub           *Hub
 	Send          chan []byte
 	mu            sync.Mutex
+	closeOnce     sync.Once
 	Subscriptions map[MessageType]bool
 }
 
@@ -356,10 +357,18 @@ func (h *Handler) handleConnection(conn *websocket.Conn) {
 	h.hub.unregister <- client
 }
 
+
+// closeConn closes the WebSocket connection exactly once, preventing race conditions.
+func (c *Client) closeConn() {
+	c.closeOnce.Do(func() {
+		c.Conn.Close()
+	})
+}
+
 // readPump reads messages from the WebSocket connection.
 func (c *Client) readPump() {
 	defer func() {
-		c.Conn.Close()
+		c.closeConn()
 	}()
 
 	for {
@@ -381,7 +390,7 @@ func (c *Client) writePump() {
 	ticker := time.NewTicker(30 * time.Second)
 	defer func() {
 		ticker.Stop()
-		c.Conn.Close()
+		c.closeConn()
 	}()
 
 	for {
