@@ -9,6 +9,7 @@ encryption, and intelligent storage management.
 from __future__ import annotations
 
 import asyncio
+import functools
 import logging
 import time
 import uuid
@@ -16,6 +17,8 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from enum import StrEnum
 from typing import Any
+
+from engined.crypto.bridge import CryptoBridge
 
 logger = logging.getLogger(__name__)
 
@@ -231,6 +234,7 @@ class AgentSwarm:
         self._start_time: float | None = None
         self._completed_tasks: int = 0
         self._lock = asyncio.Lock()
+        self._crypto = CryptoBridge()
         logger.info("AgentSwarm instance created")
 
     @property
@@ -553,3 +557,49 @@ class AgentSwarm:
             }
 
         return {"status": "assigned", "task_id": task_id, "agent": assigned}
+
+    async def generate_encryption_key(
+        self, key_id: str, algorithm: str, key_type: str = "hybrid"
+    ) -> dict[str, Any]:
+        """
+        Generate real encryption key material.
+
+        Kyber-1024 KEM + AES-256-GCM via sigmavault for the PQC-involving
+        algorithms, or a raw key for standalone ChaCha20-Poly1305.
+        `key_type` is caller-supplied descriptive metadata only (symmetric/
+        asymmetric/hybrid label) -- it does not change what gets generated,
+        which is fully determined by `algorithm`.
+        """
+        return self._crypto.generate_key(key_id, algorithm)
+
+    async def submit_encryption_task(
+        self,
+        source_path: str,
+        operation: str,
+        algorithm: str,
+        key_id: str | None,
+        compress_first: bool,
+        destination_path: str | None = None,
+        shred_original: bool = False,
+    ) -> dict[str, Any]:
+        """
+        Encrypt or decrypt a file for real via CryptoBridge.
+
+        Runs in the default executor since file I/O + crypto is a blocking,
+        potentially long-running operation on what may be large files (this
+        is a NAS OS) -- must not block the swarm's event loop.
+        """
+        loop = asyncio.get_running_loop()
+        return await loop.run_in_executor(
+            None,
+            functools.partial(
+                self._crypto.run_task,
+                source_path=source_path,
+                operation=operation,
+                algorithm=algorithm,
+                key_id=key_id,
+                compress_first=compress_first,
+                destination_path=destination_path,
+                shred_original=shred_original,
+            ),
+        )

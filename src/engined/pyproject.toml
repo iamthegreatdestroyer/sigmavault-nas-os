@@ -58,7 +58,14 @@ dependencies = [
     "cryptography>=46.0.5",
     "pynacl>=1.5.0",
     "liboqs-python>=0.11.0",
-    
+    # Sibling repo, same Castle Layer 3 deployment: real Kyber-1024 KEM +
+    # AES-256-GCM + Dilithium-3 signing backing engined's encryption API.
+    # Path dependency matches this ecosystem's fixed deploy convention
+    # (/opt/sigmavault/repos/<name> on every deployed box) -- switch to a
+    # version-pinned dependency on the internal registry once that's
+    # actually running (it's currently down; see CLAUDE.md).
+    "sigmavault @ file:///opt/sigmavault/repos/Layer-3-Security-sigmavault",
+
     # Storage & ZFS
     "pyudev>=0.24.0",
     
@@ -116,6 +123,12 @@ sigmavault-agent = "engined.cli:agent_cli"
 [build-system]
 requires = ["hatchling>=1.25.0"]
 build-backend = "hatchling.build"
+
+[tool.hatch.metadata]
+# Required for the sigmavault path dependency above (a direct file:// URL
+# reference, since it's not published to a registry -- see the comment
+# next to that dependency).
+allow-direct-references = true
 
 [tool.hatch.build.targets.wheel]
 packages = ["engined"]

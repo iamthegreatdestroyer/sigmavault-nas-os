@@ -211,6 +211,8 @@ async def process_encryption_job(
             algorithm=request.algorithm.value,
             key_id=request.key_id,
             compress_first=request.compress_first,
+            destination_path=request.destination_path,
+            shred_original=request.shred_original,
         )
 
         job.status = JobStatus.COMPLETED
@@ -280,10 +282,17 @@ async def generate_key(
     now = datetime.now(UTC)
 
     # Generate key via crypto agent
-    key_result = await swarm.generate_encryption_key(
-        algorithm=key_request.algorithm.value,
-        key_type=key_request.key_type.value,
-    )
+    try:
+        key_result = await swarm.generate_encryption_key(
+            key_id=key_id,
+            algorithm=key_request.algorithm.value,
+            key_type=key_request.key_type.value,
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Key generation failed: {e}",
+        ) from e
 
     from datetime import timedelta
 
