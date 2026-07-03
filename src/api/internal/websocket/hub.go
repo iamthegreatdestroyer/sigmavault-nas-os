@@ -337,23 +337,39 @@ func (h *Handler) handleConnection(conn *websocket.Conn) {
 		}
 	}
 
-	// Channel to signal when connection is closed
-	done := make(chan struct{})
-
-	// Start both reader and writer as concurrent goroutines
-	go client.writePump()
+	// Start both reader and writer as concurrent goroutines, and wait for
+	// BOTH to finish before returning. Previously this function returned as
+	// soon as readPump finished, while writePump kept running in the
+	// background -- the caller's deferred cleanup then released/reused the
+	// underlying *websocket.Conn (via the fiber/websocket wrapper's
+	// releaseConn) while writePump could still be reading or closing that
+	// same *Conn. Confirmed as a real data race via `go test -race`
+	// (TestE2EWebSocketConnection). client.Send is closed by the Hub itself
+	// (on unregister, on dead-client cleanup, and on shutdown) -- that close
+	// is what makes writePump's `<-c.Send` select return ok == false, so we
+	// only need to wait for writePump to observe it and exit, not signal it
+	// ourselves here.
+	var wg sync.WaitGroup
+	wg.Add(2)
 
 	go func() {
-		client.readPump()
-		log.Info().Str("client_id", client.ID).Msg("WebSocket connection read pump ended")
-		done <- struct{}{}
+		defer wg.Done()
+		client.writePump()
 	}()
 
-	// Wait for read pump to finish (indicates connection closed)
-	<-done
+	go func() {
+		defer wg.Done()
+		client.readPump()
+		log.Info().Str("client_id", client.ID).Msg("WebSocket connection read pump ended")
 
-	// Unregister client when done
-	h.hub.unregister <- client
+		// Unregister immediately so the Hub closes client.Send, which
+		// signals writePump to stop.
+		h.hub.unregister <- client
+	}()
+
+	// Wait for both pumps to finish (indicates connection fully closed)
+	// before returning, so the caller doesn't release/reuse conn early.
+	wg.Wait()
 }
 
 // readPump reads messages from the WebSocket connection.
