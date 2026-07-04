@@ -11,9 +11,11 @@ import (
 	"sigmavault-nas-os/api/internal/rpc"
 	"sigmavault-nas-os/api/internal/websocket"
 
+	"github.com/gofiber/adaptor/v2"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/recover"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/zerolog/log"
 )
 
@@ -74,6 +76,9 @@ func Setup(app *fiber.App, cfg *config.Config) {
 	api.Get("/health", healthHandler.Check)
 	api.Get("/ready", handlers.ReadyCheck)
 	api.Get("/info", handlers.SystemInfo)
+
+	// Prometheus metrics endpoint (public, top-level for standard scrape convention)
+	app.Get("/metrics", adaptor.HTTPHandler(promhttp.Handler()))
 
 	// Authentication endpoints
 	auth := api.Group("/auth")
