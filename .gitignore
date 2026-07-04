@@ -85,3 +85,4 @@ debian/debhelper-build-stamp
 debian/files
 debian/sigmavault-desktop/
 debian/.debhelper/
+sigmavault-api
