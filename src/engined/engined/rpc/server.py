@@ -84,8 +84,15 @@ async def create_grpc_server(_settings=None, _swarm=None):
     server = grpc_aio.server()
     add_SystemServiceServicer_to_server(SigmaVaultServicer(_swarm), server)
     port = getattr(_settings, "rpc_port", 50051) if _settings else 50051
-    server.add_insecure_port(f"[::]:{port}")
-    logger.info("gRPC server configured on port %d", port)
+    # Loopback-only 2026-07-04 security review: "insecure" here means
+    # plaintext/no-TLS, and there's no auth/interceptor on top of that either.
+    # No evidenced consumer anywhere in the sigmavault-nas-os Go API gateway
+    # (no grpc client code found referencing this port) — the Go side's own
+    # RPC_URL env var already targets the separate REST path on
+    # 127.0.0.1:5000. Restore to "[::]:{port}" if a real external/LAN gRPC
+    # consumer is confirmed.
+    server.add_insecure_port(f"127.0.0.1:{port}")
+    logger.info("gRPC server configured on port %d (loopback-only)", port)
     return server
 
 
