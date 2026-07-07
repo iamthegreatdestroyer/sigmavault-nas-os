@@ -1,6 +1,6 @@
 module sigmavault-nas-os/api
 
-go 1.25.0
+go 1.25.11
 
 require (
 	github.com/gofiber/adaptor/v2 v2.2.1
