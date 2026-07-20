@@ -412,14 +412,37 @@ cmd_restore_backup() {
     log "OK: restored ${WG_CONF} from $pick"
 }
 
+usage() {
+    cat <<'USAGE'
+sigma-enroll — race-free wg0 peer enrollment for the Sigma mesh (hub-side)
+
+USAGE:
+  sigma-enroll add <hostname> <role> <pubkey>   Enroll or re-key a peer (idempotent)
+  sigma-enroll list                             Show current allocations
+  sigma-enroll remove <hostname>                Remove a peer (stanza + allocation + live peer)
+  sigma-enroll restore-backup [file]            Restore wg0.conf from a backup (latest if omitted)
+  sigma-enroll help | -h | --help               Show this help
+
+NOTES:
+  - Never runs 'wg-quick save' (it strips the # sigma-enroll: markers used for idempotency/removal).
+  - Static reservations: sigma-box=.1 pi=.2 windows=.3 forge=.5 infer=.6 studio=.7; dynamic pool .8-.254.
+  - Every wg0.conf write is validated before+after and backed up first; add/remove are flock-serialized.
+  - Needs root on the hub for the live 'wg set' apply; conf edits + validation run unprivileged.
+
+ENV OVERRIDES: WG_IFACE WG_CONF STATE_DIR WG_BIN HUB_ENDPOINT SUBNET_PREFIX SUBNET_CIDR DYNAMIC_START DYNAMIC_END QRENCODE_BIN
+USAGE
+}
+
 main() {
     local cmd="${1:-}"; shift || true
     case "$cmd" in
         add)             cmd_add "$@" ;;
-        list)             cmd_list "$@" ;;
-        remove)           cmd_remove "$@" ;;
-        restore-backup)   cmd_restore_backup "$@" ;;
-        *) die "usage: sigma-enroll {add|list|remove|restore-backup} ..." ;;
+        list)            cmd_list "$@" ;;
+        remove)          cmd_remove "$@" ;;
+        restore-backup)  cmd_restore_backup "$@" ;;
+        help|-h|--help)  usage ;;
+        "")              usage >&2; exit 1 ;;
+        *) usage >&2; die "unknown command: $cmd" ;;
     esac
 }
 
