@@ -1,0 +1,21 @@
+[Unit]
+Description=Sigma mesh first-boot enrollment (wait for hub, bring up wg0, force update check)
+# Only meaningful once — after wg0.conf exists, this unit's own ConditionPathExists
+# keeps it from re-running on every boot.
+ConditionPathExists=!/etc/wireguard/wg0.conf
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/sigma-firstboot
+RemainAfterExit=yes
+# The wait loop inside sigma-firstboot has its own MAX_WAIT_SECONDS timeout
+# (default 1h) so this doesn't hang the boot sequence indefinitely; systemd's
+# own timeout is set generously beyond that as a backstop.
+TimeoutStartSec=4200
+StandardOutput=journal+console
+StandardError=journal+console
+
+[Install]
+WantedBy=multi-user.target

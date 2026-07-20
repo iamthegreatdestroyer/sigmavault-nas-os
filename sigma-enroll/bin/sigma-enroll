@@ -1,0 +1,426 @@
+#!/usr/bin/env bash
+# sigma-enroll — race-free wg0 peer enrollment for the Sigma mesh (hub-side).
+# Usage:
+#   sigma-enroll add <hostname> <role> <pubkey>
+#   sigma-enroll list
+#   sigma-enroll remove <hostname>
+#   sigma-enroll restore-backup [backup-file]
+#
+# Never calls `wg-quick save` — that strips the `# sigma-enroll:` comments
+# this tool relies on for idempotency. All wg0.conf edits are direct,
+# atomic (write-temp + mv), and self-validated before being kept.
+set -euo pipefail
+
+# --- Configuration (env-overridable for tests) ---------------------------
+WG_IFACE="${WG_IFACE:-wg0}"
+WG_CONF="${WG_CONF:-/etc/wireguard/${WG_IFACE}.conf}"
+STATE_DIR="${STATE_DIR:-/etc/sigma-enroll}"
+WG_BIN="${WG_BIN:-wg}"
+HUB_ENDPOINT="${HUB_ENDPOINT:-192.168.1.170:51820}"
+SUBNET_PREFIX="${SUBNET_PREFIX:-10.88.0}"       # first 3 octets
+SUBNET_CIDR="${SUBNET_CIDR:-10.88.0.0/24}"
+DYNAMIC_START="${DYNAMIC_START:-8}"             # .8 .. .254
+DYNAMIC_END="${DYNAMIC_END:-254}"
+QRENCODE_BIN="${QRENCODE_BIN:-qrencode}"
+
+ALLOC_FILE="${STATE_DIR}/allocations.tsv"
+LOCK_FILE="${STATE_DIR}/allocations.lock"
+BACKUP_DIR="${STATE_DIR}/backups"
+NODES_DIR="${STATE_DIR}/nodes"
+RESERVATIONS_FILE="${STATE_DIR}/reservations.tsv"
+
+# --- Static reservations (seeded on first run if reservations.tsv absent) -
+# hostname<TAB>ip-last-octet
+DEFAULT_RESERVATIONS="sigma-box\t1
+sigma-pi\t2
+sigma-windows\t3
+sigma-forge\t5
+sigma-infer\t6
+sigma-studio\t7"
+
+log()  { printf '[sigma-enroll] %s\n' "$*" >&2; }
+die()  { printf '[sigma-enroll] ERROR: %s\n' "$*" >&2; exit 1; }
+
+# --- Setup -----------------------------------------------------------------
+_ensure_state_dir() {
+    mkdir -p "$STATE_DIR" "$BACKUP_DIR" "$NODES_DIR"
+    [ -f "$ALLOC_FILE" ] || printf 'hostname\trole\tip\tpubkey\tenrolled_at\n' > "$ALLOC_FILE"
+    if [ ! -f "$RESERVATIONS_FILE" ]; then
+        printf '%b\n' "$DEFAULT_RESERVATIONS" > "$RESERVATIONS_FILE"
+    fi
+    touch "$LOCK_FILE"
+}
+
+# --- Validation --------------------------------------------------------
+_valid_hostname() { [[ "$1" =~ ^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$ ]]; }
+_valid_role()     { [[ "$1" =~ ^[a-zA-Z0-9_-]{1,32}$ ]]; }
+
+_valid_pubkey() {
+    local key="$1"
+    [[ "$key" =~ ^[A-Za-z0-9+/]{42,43}=$ ]] || return 1
+    # a real curve25519 key decodes to exactly 32 bytes
+    local len
+    len=$(printf '%s' "$key" | base64 -d 2>/dev/null | wc -c) || return 1
+    [ "$len" -eq 32 ]
+}
+
+# Structural validator for wg0.conf — does NOT require root or wg-quick
+# (wg-quick re-execs itself via sudo even for `strip`, so it can't be used
+# here). Catches truncation, malformed lines, and duplicate/missing sections.
+_validate_wg_conf() {
+    local conf="$1"
+    [ -s "$conf" ] || { log "conf validation failed: file empty or missing"; return 1; }
+
+    local iface_count=0 in_peer=0 peer_has_pubkey=0 line_no=0
+    while IFS= read -r line || [ -n "$line" ]; do
+        line_no=$((line_no + 1))
+        # blank or comment
+        [[ -z "${line// /}" ]] && continue
+        [[ "$line" =~ ^[[:space:]]*# ]] && continue
+        if [[ "$line" == "[Interface]" ]]; then
+            if [ "$in_peer" -eq 1 ] && [ "$peer_has_pubkey" -eq 0 ]; then
+                log "conf validation failed: [Peer] block before line $line_no missing PublicKey"
+                return 1
+            fi
+            iface_count=$((iface_count + 1))
+            in_peer=0
+            continue
+        fi
+        if [[ "$line" == "[Peer]" ]]; then
+            if [ "$in_peer" -eq 1 ] && [ "$peer_has_pubkey" -eq 0 ]; then
+                log "conf validation failed: [Peer] block before line $line_no missing PublicKey"
+                return 1
+            fi
+            in_peer=1
+            peer_has_pubkey=0
+            continue
+        fi
+        if ! [[ "$line" =~ ^[A-Za-z][A-Za-z0-9]*[[:space:]]*=[[:space:]]*.+$ ]]; then
+            log "conf validation failed: malformed line $line_no: '$line'"
+            return 1
+        fi
+        if [ "$in_peer" -eq 1 ] && [[ "$line" =~ ^PublicKey[[:space:]]*=[[:space:]]*(.+)$ ]]; then
+            local pk="${BASH_REMATCH[1]}"
+            pk="${pk%% *}"
+            _valid_pubkey "$pk" || { log "conf validation failed: bad PublicKey on line $line_no"; return 1; }
+            peer_has_pubkey=1
+        fi
+    done < "$conf"
+
+    if [ "$in_peer" -eq 1 ] && [ "$peer_has_pubkey" -eq 0 ]; then
+        log "conf validation failed: trailing [Peer] block missing PublicKey"
+        return 1
+    fi
+    if [ "$iface_count" -ne 1 ]; then
+        log "conf validation failed: expected exactly 1 [Interface] block, found $iface_count"
+        return 1
+    fi
+    return 0
+}
+
+_backup_conf() {
+    [ -f "$WG_CONF" ] || return 0
+    local ts
+    ts=$(date -u +%Y%m%dT%H%M%SZ)
+    local dest="${BACKUP_DIR}/$(basename "$WG_CONF").${ts}"
+    cp -p "$WG_CONF" "$dest"
+    # keep last 30 backups
+    ls -1t "${BACKUP_DIR}/$(basename "$WG_CONF")".* 2>/dev/null | tail -n +31 | xargs -r rm -f
+    printf '%s\n' "$dest"
+}
+
+# --- IP allocation -----------------------------------------------------
+_reserved_ip_for() {
+    local host="$1"
+    awk -F'\t' -v h="$host" '$1==h{print $2; found=1} END{if(!found) exit 1}' "$RESERVATIONS_FILE" 2>/dev/null
+}
+
+_ip_in_use() {
+    # true if last-octet is already recorded in allocations.tsv
+    local octet="$1"
+    awk -F'\t' -v ip="${SUBNET_PREFIX}.${octet}" 'NR>1 && $3==ip {found=1} END{exit !found}' "$ALLOC_FILE"
+}
+
+_allocate_ip() {
+    local host="$1"
+    local reserved
+    if reserved=$(_reserved_ip_for "$host"); then
+        if _ip_in_use "$reserved"; then
+            # already-recorded reserved IP for this host is fine (caller checks
+            # idempotency separately); if it belongs to someone else, that's a
+            # conflict the caller must not hit because reservations are 1:1.
+            :
+        fi
+        printf '%s.%s\n' "$SUBNET_PREFIX" "$reserved"
+        return 0
+    fi
+    local o
+    for (( o=DYNAMIC_START; o<=DYNAMIC_END; o++ )); do
+        if ! _ip_in_use "$o"; then
+            printf '%s.%s\n' "$SUBNET_PREFIX" "$o"
+            return 0
+        fi
+    done
+    die "dynamic IP pool exhausted (${SUBNET_PREFIX}.${DYNAMIC_START}-${DYNAMIC_END})"
+}
+
+# --- wg0.conf editing ----------------------------------------------------
+_append_peer_stanza() {
+    local hostname="$1" role="$2" ip="$3" pubkey="$4"
+    local tmp
+    tmp=$(mktemp "${WG_CONF}.XXXXXX")
+    cp -p "$WG_CONF" "$tmp" 2>/dev/null || : > "$tmp"
+    {
+        printf '\n[Peer]\n'
+        printf '# sigma-enroll: %s (%s) enrolled %s\n' "$hostname" "$role" "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+        printf 'PublicKey = %s\n' "$pubkey"
+        printf 'AllowedIPs = %s/32\n' "$ip"
+    } >> "$tmp"
+    printf '%s\n' "$tmp"
+}
+
+_peer_marker_exists() {
+    local hostname="$1"
+    grep -q "^# sigma-enroll: ${hostname} " "$WG_CONF" 2>/dev/null
+}
+
+# Drop the whole [Peer] block containing this hostname's marker (from its
+# own "[Peer]" line up to, but not including, the next "[Peer]"/EOF). Used
+# by both the re-key and remove paths. Writes result to a fresh temp file
+# and prints its path; does not touch $WG_CONF.
+_remove_peer_stanza() {
+    local src="$1" hostname="$2"
+    local tmp
+    tmp=$(mktemp "${WG_CONF}.XXXXXX")
+    awk -v marker="# sigma-enroll: ${hostname} " '
+        /^\[Peer\]/ {
+            if (inpeer && !drop) printf "%s", buf
+            buf=$0"\n"; inpeer=1; drop=0; next
+        }
+        inpeer {
+            buf = buf $0"\n"
+            if ($0 ~ ("^" marker)) drop=1
+            next
+        }
+        { print }
+        END { if (inpeer && !drop) printf "%s", buf }
+    ' "$src" > "$tmp"
+    printf '%s\n' "$tmp"
+}
+
+# --- Live apply ----------------------------------------------------------
+_iface_is_up() {
+    "$WG_BIN" show "$WG_IFACE" >/dev/null 2>&1
+}
+
+_live_apply_peer() {
+    local pubkey="$1" ip="$2"
+    if _iface_is_up; then
+        "$WG_BIN" set "$WG_IFACE" peer "$pubkey" allowed-ips "${ip}/32"
+        log "live-applied peer via 'wg set' (no restart needed)"
+    else
+        log "interface ${WG_IFACE} not up here — conf written, will apply on next 'wg-quick up'"
+    fi
+}
+
+# --- Node-side conf + QR emission ----------------------------------------
+_emit_node_conf() {
+    local hostname="$1" ip="$2"
+    local hub_pubkey_file="${STATE_DIR}/hub.pubkey"
+    local hub_pubkey="<HUB_PUBKEY: put contents of ${hub_pubkey_file} here>"
+    [ -f "$hub_pubkey_file" ] && hub_pubkey="$(cat "$hub_pubkey_file")"
+
+    local out="${NODES_DIR}/${hostname}.conf"
+    cat > "$out" <<EOF
+# sigma-enroll node snippet for ${hostname}
+# Generate your OWN keypair on the node (private key never leaves it):
+#   wg genkey | tee privatekey | wg pubkey > publickey
+# Then build /etc/wireguard/${WG_IFACE}.conf as:
+[Interface]
+Address = ${ip}/24
+PrivateKey = <PASTE THE NODE'S OWN PrivateKey HERE>
+
+[Peer]
+# sigma-box hub
+PublicKey = ${hub_pubkey}
+Endpoint = ${HUB_ENDPOINT}
+AllowedIPs = ${SUBNET_CIDR}
+PersistentKeepalive = 25
+EOF
+    printf '%s\n' "$out"
+}
+
+_emit_qr() {
+    local conf_file="$1" hostname="$2"
+    command -v "$QRENCODE_BIN" >/dev/null 2>&1 || { log "qrencode not installed — skipping QR"; return 0; }
+    local png="${NODES_DIR}/${hostname}.png"
+    "$QRENCODE_BIN" -o "$png" -r "$conf_file" 2>/dev/null || true
+    log "QR (terminal): "
+    "$QRENCODE_BIN" -t ansiutf8 -r "$conf_file" 2>/dev/null || true
+    [ -f "$png" ] && printf '%s\n' "$png"
+}
+
+# --- allocations.tsv bookkeeping ------------------------------------------
+_record_allocation() {
+    local hostname="$1" role="$2" ip="$3" pubkey="$4"
+    local tmp
+    tmp=$(mktemp "${ALLOC_FILE}.XXXXXX")
+    # drop any prior row for this host (re-key case), then append fresh row
+    awk -F'\t' -v h="$hostname" 'NR==1 || $1!=h' "$ALLOC_FILE" > "$tmp"
+    printf '%s\t%s\t%s\t%s\t%s\n' "$hostname" "$role" "$ip" "$pubkey" \
+        "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$tmp"
+    mv -f "$tmp" "$ALLOC_FILE"
+}
+
+_lookup_allocation() {
+    # prints "ip<TAB>pubkey" or nothing
+    local hostname="$1"
+    awk -F'\t' -v h="$hostname" 'NR>1 && $1==h {print $3"\t"$4; found=1} END{exit !found}' "$ALLOC_FILE"
+}
+
+# --- Commands --------------------------------------------------------------
+cmd_add() {
+    local hostname="${1:-}" role="${2:-}" pubkey="${3:-}"
+    [ -n "$hostname" ] && [ -n "$role" ] && [ -n "$pubkey" ] || \
+        die "usage: sigma-enroll add <hostname> <role> <pubkey>"
+    _valid_hostname "$hostname" || die "invalid hostname: $hostname"
+    _valid_role "$role"         || die "invalid role: $role"
+    _valid_pubkey "$pubkey"     || die "invalid WireGuard pubkey: $pubkey"
+
+    _ensure_state_dir
+
+    exec 200>"$LOCK_FILE"
+    flock -x 200
+
+    local existing
+    if existing=$(_lookup_allocation "$hostname"); then
+        local existing_ip existing_pubkey
+        existing_ip="${existing%%$'\t'*}"
+        existing_pubkey="${existing#*$'\t'}"
+
+        if [ "$existing_pubkey" = "$pubkey" ]; then
+            log "already enrolled: ${hostname} = ${existing_ip} (idempotent no-op)"
+            if ! _peer_marker_exists "$hostname"; then
+                log "peer stanza missing from ${WG_CONF} — self-healing"
+                _validate_wg_conf "$WG_CONF" || die "refusing to self-heal: existing ${WG_CONF} is invalid"
+                local backup; backup=$(_backup_conf)
+                local tmp; tmp=$(_append_peer_stanza "$hostname" "$role" "$existing_ip" "$pubkey")
+                _validate_wg_conf "$tmp" || { rm -f "$tmp"; die "self-heal produced invalid conf, aborted (backup: $backup)"; }
+                mv -f "$tmp" "$WG_CONF"
+            fi
+            _live_apply_peer "$pubkey" "$existing_ip"
+            local nc; nc=$(_emit_node_conf "$hostname" "$existing_ip")
+            _emit_qr "$nc" "$hostname"
+            log "OK: ${hostname} -> ${existing_ip} (unchanged)"
+            return 0
+        fi
+
+        log "re-key detected for ${hostname}: pubkey changed, IP stays ${existing_ip}"
+        _validate_wg_conf "$WG_CONF" || die "refusing to modify: existing ${WG_CONF} is invalid — run 'restore-backup' first"
+        local backup; backup=$(_backup_conf)
+        local tmp; tmp=$(_remove_peer_stanza "$WG_CONF" "$hostname")
+        local tmp2; tmp2=$(_append_peer_stanza_into "$tmp" "$hostname" "$role" "$existing_ip" "$pubkey")
+        _validate_wg_conf "$tmp2" || { rm -f "$tmp" "$tmp2"; die "re-key produced invalid conf, aborted (backup: $backup)"; }
+        mv -f "$tmp2" "$WG_CONF"
+        rm -f "$tmp"
+        _live_apply_peer "$pubkey" "$existing_ip"
+        _record_allocation "$hostname" "$role" "$existing_ip" "$pubkey"
+        local nc; nc=$(_emit_node_conf "$hostname" "$existing_ip")
+        _emit_qr "$nc" "$hostname"
+        log "OK: ${hostname} re-keyed, IP unchanged at ${existing_ip} (backup: $backup)"
+        return 0
+    fi
+
+    local ip; ip=$(_allocate_ip "$hostname")
+    _validate_wg_conf "$WG_CONF" 2>/dev/null || {
+        [ -f "$WG_CONF" ] && die "refusing to modify: existing ${WG_CONF} is invalid — run 'restore-backup' first"
+        log "no existing ${WG_CONF} — this must be run on the hub where it lives"
+        die "${WG_CONF} not found"
+    }
+    local backup; backup=$(_backup_conf)
+    local tmp; tmp=$(_append_peer_stanza "$hostname" "$role" "$ip" "$pubkey")
+    if ! _validate_wg_conf "$tmp"; then
+        rm -f "$tmp"
+        die "generated conf failed validation, nothing written (backup untouched: $backup)"
+    fi
+    mv -f "$tmp" "$WG_CONF"
+    _live_apply_peer "$pubkey" "$ip"
+    _record_allocation "$hostname" "$role" "$ip" "$pubkey"
+    local nc; nc=$(_emit_node_conf "$hostname" "$ip")
+    _emit_qr "$nc" "$hostname"
+    log "OK: enrolled ${hostname} (${role}) = ${ip}"
+    printf 'HOSTNAME=%s\nROLE=%s\nIP=%s\nNODE_CONF=%s\n' "$hostname" "$role" "$ip" "$nc"
+}
+
+# helper used only by the re-key path (append into an already-edited stream)
+_append_peer_stanza_into() {
+    local base="$1" hostname="$2" role="$3" ip="$4" pubkey="$5"
+    local tmp
+    tmp=$(mktemp "${WG_CONF}.XXXXXX")
+    cp -p "$base" "$tmp"
+    {
+        printf '\n[Peer]\n'
+        printf '# sigma-enroll: %s (%s) enrolled %s\n' "$hostname" "$role" "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+        printf 'PublicKey = %s\n' "$pubkey"
+        printf 'AllowedIPs = %s/32\n' "$ip"
+    } >> "$tmp"
+    printf '%s\n' "$tmp"
+}
+
+cmd_list() {
+    _ensure_state_dir
+    column -t -s $'\t' "$ALLOC_FILE" 2>/dev/null || cat "$ALLOC_FILE"
+}
+
+cmd_remove() {
+    local hostname="${1:-}"
+    [ -n "$hostname" ] || die "usage: sigma-enroll remove <hostname>"
+    _ensure_state_dir
+    exec 200>"$LOCK_FILE"
+    flock -x 200
+
+    local existing
+    existing=$(_lookup_allocation "$hostname") || die "no such enrolled host: $hostname"
+    local pubkey="${existing#*$'\t'}"
+
+    _validate_wg_conf "$WG_CONF" || die "refusing to modify: existing ${WG_CONF} is invalid"
+    local backup; backup=$(_backup_conf)
+    local tmp; tmp=$(_remove_peer_stanza "$WG_CONF" "$hostname")
+    _validate_wg_conf "$tmp" || { rm -f "$tmp"; die "removal produced invalid conf, aborted (backup: $backup)"; }
+    mv -f "$tmp" "$WG_CONF"
+
+    if _iface_is_up; then
+        "$WG_BIN" set "$WG_IFACE" peer "$pubkey" remove || true
+    fi
+
+    local tmp2; tmp2=$(mktemp "${ALLOC_FILE}.XXXXXX")
+    awk -F'\t' -v h="$hostname" 'NR==1 || $1!=h' "$ALLOC_FILE" > "$tmp2"
+    mv -f "$tmp2" "$ALLOC_FILE"
+    rm -f "${NODES_DIR}/${hostname}.conf" "${NODES_DIR}/${hostname}.png"
+    log "OK: removed ${hostname} (backup: $backup)"
+}
+
+cmd_restore_backup() {
+    local pick="${1:-}"
+    _ensure_state_dir
+    if [ -z "$pick" ]; then
+        pick=$(ls -1t "${BACKUP_DIR}/$(basename "$WG_CONF")".* 2>/dev/null | head -1)
+    fi
+    [ -n "$pick" ] && [ -f "$pick" ] || die "no backup found to restore"
+    _validate_wg_conf "$pick" || die "backup itself is invalid: $pick"
+    cp -p "$pick" "$WG_CONF"
+    log "OK: restored ${WG_CONF} from $pick"
+}
+
+main() {
+    local cmd="${1:-}"; shift || true
+    case "$cmd" in
+        add)             cmd_add "$@" ;;
+        list)             cmd_list "$@" ;;
+        remove)           cmd_remove "$@" ;;
+        restore-backup)   cmd_restore_backup "$@" ;;
+        *) die "usage: sigma-enroll {add|list|remove|restore-backup} ..." ;;
+    esac
+}
+
+main "$@"

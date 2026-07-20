@@ -1,0 +1,125 @@
+#!/usr/bin/env bash
+# sigma-firstboot — node-side enrollment helper.
+# Run once on a new node: generates a wg keypair (private key never leaves
+# the box), prints the pubkey as text + QR for the admin to hand to
+# `sigma-enroll add` on the hub, then waits for the admin's returned node
+# conf to be dropped at $DROP_PATH, brings wg0 up, and forces an immediate
+# unattended-upgrade check (fixes the enrollment deadlock: a node waiting
+# on the network for its *first* security update has no route to fetch it
+# until wg0 is up, so don't wait for the next scheduled window).
+set -euo pipefail
+
+WG_IFACE="${WG_IFACE:-wg0}"
+WG_DIR="${WG_DIR:-/etc/wireguard}"
+DROP_PATH="${DROP_PATH:-${WG_DIR}/${WG_IFACE}.conf.fragment}"
+FINAL_CONF="${WG_DIR}/${WG_IFACE}.conf"
+PRIVKEY_FILE="${WG_DIR}/privatekey"
+PUBKEY_FILE="${WG_DIR}/publickey"
+POLL_INTERVAL="${POLL_INTERVAL:-10}"
+MAX_WAIT_SECONDS="${MAX_WAIT_SECONDS:-3600}"
+QRENCODE_BIN="${QRENCODE_BIN:-qrencode}"
+
+log() { printf '[sigma-firstboot] %s\n' "$*" >&2; }
+die() { printf '[sigma-firstboot] ERROR: %s\n' "$*" >&2; exit 1; }
+
+require_root() {
+    [ "$(id -u)" -eq 0 ] || die "must run as root (writes ${WG_DIR})"
+}
+
+ensure_keypair() {
+    umask 077
+    install -d -m 700 "$WG_DIR"
+    if [ -f "$PRIVKEY_FILE" ] && [ -f "$PUBKEY_FILE" ]; then
+        log "keypair already exists, reusing"
+        return 0
+    fi
+    wg genkey | tee "$PRIVKEY_FILE" | wg pubkey > "$PUBKEY_FILE"
+    chmod 600 "$PRIVKEY_FILE"
+    log "generated new wg keypair"
+}
+
+show_pubkey() {
+    local pub; pub=$(cat "$PUBKEY_FILE")
+    printf '\n==================== sigma-enroll handoff ====================\n'
+    printf 'hostname : %s\n' "$(hostname)"
+    printf 'pubkey   : %s\n\n' "$pub"
+    printf 'On the hub, run:\n'
+    printf '  sigma-enroll add %s <role> %s\n\n' "$(hostname)" "$pub"
+    if command -v "$QRENCODE_BIN" >/dev/null 2>&1; then
+        "$QRENCODE_BIN" -t ansiutf8 <<< "$pub" || true
+    fi
+    printf '================================================================\n\n'
+}
+
+wait_for_drop() {
+    log "waiting for ${DROP_PATH} (from sigma-enroll)... poll=${POLL_INTERVAL}s max=${MAX_WAIT_SECONDS}s"
+    local waited=0
+    while [ ! -f "$DROP_PATH" ]; do
+        sleep "$POLL_INTERVAL"
+        waited=$((waited + POLL_INTERVAL))
+        if [ "$waited" -ge "$MAX_WAIT_SECONDS" ]; then
+            die "timed out after ${waited}s waiting for ${DROP_PATH} — re-run 'sigma-enroll add' on the hub, or drop the file manually"
+        fi
+    done
+    log "found ${DROP_PATH} after ${waited}s"
+}
+
+assemble_conf() {
+    # DROP_PATH holds the admin-emitted [Peer] section (+ assigned Address).
+    # This node's own PrivateKey never left the box, so we splice it in here.
+    local privkey; privkey=$(cat "$PRIVKEY_FILE")
+    {
+        grep -A1 '^\[Interface\]' "$DROP_PATH" | grep '^Address'
+        printf 'PrivateKey = %s\n' "$privkey"
+        printf '\n'
+        # everything from the first [Peer] section onward
+        awk '/^\[Peer\]/{p=1} p' "$DROP_PATH"
+    } > "${FINAL_CONF}.new"
+    # reassemble properly: [Interface] block first, then [Peer]
+    {
+        printf '[Interface]\n'
+        grep '^Address' "${FINAL_CONF}.new"
+        grep '^PrivateKey' "${FINAL_CONF}.new"
+        printf '\n'
+        awk '/^\[Peer\]/{p=1} p' "${FINAL_CONF}.new"
+    } > "$FINAL_CONF"
+    rm -f "${FINAL_CONF}.new"
+    chmod 600 "$FINAL_CONF"
+    log "wrote ${FINAL_CONF}"
+}
+
+bring_up() {
+    if wg show "$WG_IFACE" >/dev/null 2>&1; then
+        log "${WG_IFACE} already up, reloading via 'wg setconf'"
+        wg setconf "$WG_IFACE" <(wg-quick strip "$FINAL_CONF")
+    else
+        wg-quick up "$WG_IFACE"
+    fi
+    log "${WG_IFACE} is up"
+}
+
+force_immediate_update_check() {
+    # The deadlock this fixes: a fresh node's *first* unattended-upgrade run
+    # is normally scheduled hours out (apt timer jitter), but it has no path
+    # to Debian's mirrors until wg0/the LAN is confirmed live — so don't wait
+    # for the timer, run it now that we have a route.
+    if command -v unattended-upgrade >/dev/null 2>&1; then
+        log "forcing immediate unattended-upgrade check post-enrollment"
+        unattended-upgrade -d --dry-run=false || log "unattended-upgrade run failed (non-fatal, will retry on its own schedule)"
+    else
+        log "unattended-upgrade not installed — skipping (install it before or after enrollment)"
+    fi
+}
+
+main() {
+    require_root
+    ensure_keypair
+    show_pubkey
+    wait_for_drop
+    assemble_conf
+    bring_up
+    force_immediate_update_check
+    log "enrollment complete"
+}
+
+main "$@"
