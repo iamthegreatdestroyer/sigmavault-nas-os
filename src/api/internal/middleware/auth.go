@@ -16,24 +16,15 @@ type JWTConfig struct {
 }
 
 // JWT returns JWT authentication middleware.
-// In development mode, authentication is bypassed for easier testing.
+// The development auth bypass (which skips all auth and injects a fake admin) is compiled OUT
+// of shipped builds: devAuthBypass returns nil unless the binary was built with
+// -tags sigmavault_devauth AND is running in development mode. See auth_devbypass_*.go.
 func JWT(cfg *config.Config) fiber.Handler {
-	// Dev mode bypass: skip auth checks completely
-	if cfg.IsDevelopment() {
-		return func(c *fiber.Ctx) error {
-			// Inject a fake user for dev mode
-			c.Locals("user", &jwt.Token{
-				Claims: jwt.MapClaims{
-					"user_id": "dev-user",
-					"email":   "dev@sigmavault.local",
-					"role":    "admin",
-				},
-			})
-			return c.Next()
-		}
+	if h := devAuthBypass(cfg); h != nil {
+		return h
 	}
 
-	// Production mode: full JWT validation
+	// Full JWT validation (the only path in a shipped build).
 	return jwtware.New(jwtware.Config{
 		SigningKey: jwtware.SigningKey{Key: []byte(cfg.JWTSecret)},
 		ContextKey: "user",

@@ -49,7 +49,10 @@ type Config struct {
 // Load reads configuration from environment variables with sensible defaults.
 func Load() *Config {
 	return &Config{
-		Environment: getEnv("SIGMAVAULT_ENV", "development"),
+		// SECURITY: default to production (fail-secure). Dev mode disables auth; it must be an
+		// explicit opt-in (SIGMAVAULT_ENV=development), never the silent default. The dev auth
+		// bypass is also compiled OUT of shipped builds unless built with -tags sigmavault_devauth.
+		Environment: getEnv("SIGMAVAULT_ENV", "production"),
 		// SECURITY: default to loopback so a fresh deploy is NOT LAN/mesh-exposed. The admin
 		// API had been binding 0.0.0.0:12080 (all interfaces) unconditionally. Set
 		// SIGMAVAULT_HOST=10.88.0.1 to expose it on wg0, or 0.0.0.0 only behind a firewall.
