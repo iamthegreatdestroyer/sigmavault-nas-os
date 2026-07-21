@@ -11,6 +11,14 @@ Group=sigmavault
 Environment=SIGMAVAULT_CONFIG=/etc/sigmavault/config.yaml
 Environment=SIGMAVAULT_PORT=12080
 Environment=SIGMAVAULT_RPC_URL=http://127.0.0.1:5000/api/v1
+# Production auth floor (SECURITY): no dev auth-bypass on the shipped ISO. main.go Validate()
+# log.Fatal()s without a real JWT secret + non-default CORS, so the API fails secure (won't
+# start) rather than booting into the fake-admin dev bypass. The secret + CORS come from a
+# root-owned 0600 /etc/sigmavault/api.env, which a firstboot hook must generate (TODO: add
+# first-boot credential setup — nas-os P0 punch-list; deploy.sh already does this for the
+# appliance-installer path). '-' tolerates the file being absent so the unit still parses.
+Environment=SIGMAVAULT_ENV=production
+EnvironmentFile=-/etc/sigmavault/api.env
 ExecStart=/opt/sigmavault/bin/sigmavault-api
 Restart=always
 RestartSec=5
