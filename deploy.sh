@@ -129,6 +129,10 @@ if [[ -f "$API_ENV_FILE" ]]; then
     ok "API env already provisioned: ${API_ENV_FILE} (left unchanged)"
 else
     JWT_SECRET="$(openssl rand -hex 32)"   # 64 hex chars, well over the 32-char minimum
+    # First-boot admin credential (SECURITY): replaces the former hardcoded admin/admin login.
+    # Generate a random password, store only its bcrypt hash, and show the password ONCE.
+    ADMIN_PASSWORD="$(openssl rand -base64 18)"
+    ADMIN_PASSWORD_HASH="$("${INSTALL_DIR}/bin/sigmavault-api" hashpw "$ADMIN_PASSWORD")"
     ( umask 077
       cat > "$API_ENV_FILE" <<ENVEOF
 # SigmaVault API — production auth. Root-owned 0600. NOT in the repo.
@@ -136,11 +140,22 @@ else
 SIGMAVAULT_ENV=production
 SIGMAVAULT_JWT_SECRET=${JWT_SECRET}
 SIGMAVAULT_CORS_ORIGINS=http://127.0.0.1:12080
+SIGMAVAULT_HOST=127.0.0.1
+SIGMAVAULT_ADMIN_USER=admin
+SIGMAVAULT_ADMIN_PASSWORD_HASH=${ADMIN_PASSWORD_HASH}
 ENVEOF
     )
     chown root:root "$API_ENV_FILE"
     chmod 600 "$API_ENV_FILE"
-    ok "API env provisioned: ${API_ENV_FILE} (production, fresh 256-bit JWT secret)"
+    ok "API env provisioned: ${API_ENV_FILE} (production, fresh 256-bit JWT secret + admin cred)"
+    echo ""
+    echo "  ============================================================"
+    echo "  ADMIN LOGIN (shown ONCE — save it now, it is not stored):"
+    echo "      username: admin"
+    echo "      password: ${ADMIN_PASSWORD}"
+    echo "  Only the bcrypt hash is kept, in ${API_ENV_FILE} (root 0600)."
+    echo "  ============================================================"
+    echo ""
 fi
 
 # 8. Systemd services

@@ -25,6 +25,11 @@ type Config struct {
 	JWTExpiry        time.Duration
 	JWTRefreshExpiry time.Duration
 
+	// Admin credential (replaces the former hardcoded admin/admin backdoor).
+	// AdminPasswordHash is a bcrypt hash; empty means "no admin login configured".
+	AdminUser         string
+	AdminPasswordHash string
+
 	// RPC Engine settings
 	RPCEngineURL     string
 	RPCEngineTimeout time.Duration
@@ -55,6 +60,8 @@ func Load() *Config {
 		JWTSecret:        getEnv("SIGMAVAULT_JWT_SECRET", "dev-secret-change-in-production"),
 		JWTExpiry:        getEnvDuration("SIGMAVAULT_JWT_EXPIRY", 15*time.Minute),
 		JWTRefreshExpiry: getEnvDuration("SIGMAVAULT_JWT_REFRESH_EXPIRY", 7*24*time.Hour),
+		AdminUser:         getEnv("SIGMAVAULT_ADMIN_USER", "admin"),
+		AdminPasswordHash: getEnv("SIGMAVAULT_ADMIN_PASSWORD_HASH", ""),
 		RPCEngineURL:     getEnv("SIGMAVAULT_RPC_URL", "http://127.0.0.1:5000/api/v1"),
 		RPCEngineTimeout: getEnvDuration("SIGMAVAULT_RPC_TIMEOUT", 30*time.Second),
 		DataDir:          getEnv("SIGMAVAULT_DATA_DIR", "/var/lib/sigmavault"),
@@ -101,6 +108,13 @@ func (c *Config) Validate() error {
 	// Validate CORS origins in production
 	if c.IsProduction() && c.CORSOrigins == "http://localhost:5173,http://localhost:3000" {
 		return fmt.Errorf("SECURITY: SIGMAVAULT_CORS_ORIGINS must be configured for production")
+	}
+
+	// In production, require a real admin credential. The old login accepted a hardcoded
+	// admin/admin; now login checks a bcrypt hash, and no hash means no admin login at all.
+	// Fail closed rather than silently shipping an unauthenticated / un-loginable admin API.
+	if c.IsProduction() && c.AdminPasswordHash == "" {
+		return fmt.Errorf("SECURITY: SIGMAVAULT_ADMIN_PASSWORD_HASH (bcrypt) must be set in production")
 	}
 
 	return nil

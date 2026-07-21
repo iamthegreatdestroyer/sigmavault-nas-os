@@ -11,6 +11,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
+	"golang.org/x/crypto/bcrypt"
 )
 
 // AuthHandler handles authentication-related requests.
@@ -44,9 +45,14 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest, "Invalid request body")
 	}
 
-	// TODO: Implement actual user authentication against database
-	// For now, accept a test user in development
-	if req.Username != "admin" || req.Password != "admin" {
+	// Authenticate against the configured admin credential. This replaces the former
+	// hardcoded admin/admin check (a fixed, un-changeable backdoor). The password is
+	// verified against a bcrypt hash from config; an empty hash means no admin login is
+	// provisioned, so every attempt is rejected (production also refuses to start without
+	// one — see config.Validate). TODO: DB-backed multi-user auth remains future work.
+	if h.config.AdminPasswordHash == "" ||
+		req.Username != h.config.AdminUser ||
+		bcrypt.CompareHashAndPassword([]byte(h.config.AdminPasswordHash), []byte(req.Password)) != nil {
 		return fiber.NewError(fiber.StatusUnauthorized, "Invalid credentials")
 	}
 
