@@ -103,7 +103,7 @@ log "Writing config..."
 cat > "${CONFIG_DIR}/config.yaml" <<'YAML'
 api:
   port: 12080
-  host: "0.0.0.0"
+  host: "127.0.0.1"   # loopback by default; the binary honors SIGMAVAULT_HOST (see the unit)
 engined:
   port: 5000
   host: "127.0.0.1"
@@ -189,6 +189,10 @@ Group=sigmavault
 Environment=SIGMAVAULT_CONFIG=/etc/sigmavault/config.yaml
 Environment=SIGMAVAULT_PORT=12080
 Environment=SIGMAVAULT_RPC_URL=http://127.0.0.1:5000/api/v1
+# Bind loopback-only (SECURITY): was 0.0.0.0:12080 (all interfaces). Set to 10.88.0.1 to
+# expose on wg0, or 0.0.0.0 only behind a firewall. Consumers (brain-snapshot, sigma-vault-ui,
+# Prometheus) are all on-host, so loopback is sufficient.
+Environment=SIGMAVAULT_HOST=127.0.0.1
 # Production auth floor (SECURITY): forces real JWT + CORS validation, no dev bypass.
 Environment=SIGMAVAULT_ENV=production
 # JWT secret + CORS from the root-owned 0600 env file (step 7b) — secret never in this unit.

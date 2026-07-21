@@ -11,6 +11,8 @@ Group=sigmavault
 Environment=SIGMAVAULT_CONFIG=/etc/sigmavault/config.yaml
 Environment=SIGMAVAULT_PORT=12080
 Environment=SIGMAVAULT_RPC_URL=http://127.0.0.1:5000/api/v1
+# Bind loopback-only (SECURITY): was 0.0.0.0. Set to 10.88.0.1 for wg0 exposure.
+Environment=SIGMAVAULT_HOST=127.0.0.1
 # Production auth floor (SECURITY): no dev auth-bypass on the shipped ISO. main.go Validate()
 # log.Fatal()s without a real JWT secret + non-default CORS, so the API fails secure (won't
 # start) rather than booting into the fake-admin dev bypass. The secret + CORS come from a

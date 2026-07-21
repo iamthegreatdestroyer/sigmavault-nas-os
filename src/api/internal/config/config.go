@@ -13,6 +13,7 @@ import (
 type Config struct {
 	// Server settings
 	Environment string
+	Host        string
 	Port        int
 	Version     string
 
@@ -43,7 +44,11 @@ type Config struct {
 // Load reads configuration from environment variables with sensible defaults.
 func Load() *Config {
 	return &Config{
-		Environment:      getEnv("SIGMAVAULT_ENV", "development"),
+		Environment: getEnv("SIGMAVAULT_ENV", "development"),
+		// SECURITY: default to loopback so a fresh deploy is NOT LAN/mesh-exposed. The admin
+		// API had been binding 0.0.0.0:12080 (all interfaces) unconditionally. Set
+		// SIGMAVAULT_HOST=10.88.0.1 to expose it on wg0, or 0.0.0.0 only behind a firewall.
+		Host:             getEnv("SIGMAVAULT_HOST", "127.0.0.1"),
 		Port:             getEnvInt("SIGMAVAULT_PORT", 12080),
 		Version:          getEnv("SIGMAVAULT_VERSION", "0.1.0"),
 		CORSOrigins:      getEnv("SIGMAVAULT_CORS_ORIGINS", "http://localhost:5173,http://localhost:3000"),
@@ -63,6 +68,12 @@ func Load() *Config {
 // PortString returns the port as a string.
 func (c *Config) PortString() string {
 	return strconv.Itoa(c.Port)
+}
+
+// ListenAddr returns the "host:port" the server should bind to. Host defaults to loopback
+// (127.0.0.1) so the API is not exposed on the LAN/mesh unless SIGMAVAULT_HOST is set.
+func (c *Config) ListenAddr() string {
+	return c.Host + ":" + c.PortString()
 }
 
 // IsDevelopment returns true if running in development mode.

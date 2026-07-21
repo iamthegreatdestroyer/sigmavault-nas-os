@@ -39,6 +39,7 @@ func main() {
 	log.Info().
 		Str("version", cfg.Version).
 		Str("environment", cfg.Environment).
+		Str("host", cfg.Host).
 		Int("port", cfg.Port).
 		Msg("Starting SigmaVault NAS OS API Server")
 
@@ -55,7 +56,7 @@ func main() {
 
 	// Start server in goroutine
 	go func() {
-		if err := app.Listen(":" + cfg.PortString()); err != nil {
+		if err := app.Listen(cfg.ListenAddr()); err != nil {
 			log.Fatal().Err(err).Msg("Failed to start server")
 		}
 	}()
