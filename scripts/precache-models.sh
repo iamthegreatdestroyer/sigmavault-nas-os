@@ -32,7 +32,14 @@ echo ""
 # 1. Ensure Ollama is installed
 if ! command -v ollama &>/dev/null; then
     log "Installing Ollama..."
-    curl -fsSL https://ollama.com/install.sh | sh
+    # SECURITY: do NOT pipe a network script straight into a shell. Download the installer to a
+    # file, record its SHA256 (auditable; pin it here once a known-good hash is chosen), then run
+    # the saved artifact. TODO(nas-os P0): pin OLLAMA_INSTALL_SHA256 to a verified value.
+    OLLAMA_INSTALLER="$(mktemp /tmp/ollama-install.XXXXXX.sh)"
+    curl -fsSL https://ollama.com/install.sh -o "${OLLAMA_INSTALLER}"
+    log "Ollama installer SHA256: $(sha256sum "${OLLAMA_INSTALLER}" | awk '{print $1}')"
+    sh "${OLLAMA_INSTALLER}"
+    rm -f "${OLLAMA_INSTALLER}"
     ok "Ollama installed: $(ollama --version)"
 else
     ok "Ollama already installed: $(ollama --version)"

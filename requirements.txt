@@ -1,0 +1,23 @@
+# SigmaVault NAS OS — engined (Python) runtime deps, version-pinned (SECURITY / reproducibility).
+# Previously deploy.sh pip-installed these unpinned, so every deploy could pull different
+# versions. Pins are the exact versions verified running on the box 2026-07-21.
+# FOLLOW-ON (nas-os P0): full hash-locking (--require-hashes) needs per-arch wheel hashes for
+# these + all transitive deps (pip-compile --generate-hashes); not done here because a partial
+# hash set would break installs on the other arch. Version pinning is the safe "basics" step.
+aiohttp==3.14.1
+structlog==26.1.0
+prometheus-client==0.25.0
+pydantic==2.13.4
+pydantic-settings==2.14.2
+fastapi==0.139.0
+starlette==1.3.1
+httpx==0.28.1
+psutil==5.9.6
+zstandard==0.25.0
+lz4==4.4.5
+brotli==1.2.0
+grpcio==1.81.1
+grpcio-tools==1.81.1
+protobuf==6.33.6
+anyio==4.14.0
+numpy==2.4.6

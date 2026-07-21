@@ -13,7 +13,11 @@ CONFIG_DIR="/etc/sigmavault"
 SERVICE_USER="sigmavault"
 API_PORT=12080
 ENGINED_PORT=5000
-GO_VERSION="1.25.0"
+GO_VERSION="1.25.11"   # matches src/api/go.mod's toolchain (no GOTOOLCHAIN re-fetch)
+# SECURITY: pinned SHA256 of the Go tarball per arch (from https://go.dev/dl/). Update these
+# together with GO_VERSION. Verified before extraction so a tampered/MITM'd download is refused.
+GO_SHA256_amd64="34f14304e856893f4ba30c2cacfe93906e9de7915c5f6aaaf3a81cdccd7ba30b"
+GO_SHA256_arm64="c30bf9e156a54ea4e31fbbbf31a712b32734b58cc9a22426fa5ee632d0885124"
 
 log()  { printf "  [$(date +%H:%M:%S)] %s\n" "$*"; }
 ok()   { printf "  OK: %s\n" "$*"; }
@@ -55,6 +59,10 @@ else
     ARCH=$(dpkg --print-architecture)
     [[ "$ARCH" == "arm64" ]] || ARCH="amd64"
     wget -q "https://go.dev/dl/go${GO_VERSION}.linux-${ARCH}.tar.gz" -O /tmp/go.tar.gz
+    # SECURITY: verify against the pinned SHA256 before extracting (indirect var: GO_SHA256_<arch>).
+    EXPECTED_SHA_VAR="GO_SHA256_${ARCH}"
+    echo "${!EXPECTED_SHA_VAR}  /tmp/go.tar.gz" | sha256sum -c - \
+        || die "Go tarball SHA256 mismatch for ${ARCH} — refusing to install (possible tampering)"
     rm -rf /usr/local/go
     tar -C /usr/local -xzf /tmp/go.tar.gz
     rm /tmp/go.tar.gz
@@ -62,16 +70,10 @@ else
 fi
 export PATH="/usr/local/go/bin:$PATH"
 
-# 3. Python packages
-log "Installing Python packages..."
-pip3 install --break-system-packages --quiet \
-    aiohttp structlog prometheus-client \
-    pydantic pydantic-settings \
-    fastapi starlette httpx psutil \
-    zstandard lz4 brotli \
-    grpcio grpcio-tools protobuf \
-    anyio "numpy>=2.0.0"
-ok "Python packages installed"
+# 3. Python packages (SECURITY: version-pinned via requirements.txt, not an unpinned list)
+log "Installing Python packages (pinned)..."
+pip3 install --break-system-packages --quiet -r "${INSTALL_DIR}/requirements.txt"
+ok "Python packages installed (pinned versions)"
 
 # 4. System user
 log "Setting up sigmavault user..."
