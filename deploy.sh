@@ -70,10 +70,21 @@ else
 fi
 export PATH="/usr/local/go/bin:$PATH"
 
-# 3. Python packages (SECURITY: version-pinned via requirements.txt, not an unpinned list)
-log "Installing Python packages (pinned)..."
-pip3 install --break-system-packages --quiet -r "${INSTALL_DIR}/requirements.txt"
-ok "Python packages installed (pinned versions)"
+# 3. Python packages
+# NOTE (supply-chain follow-on): exact-version pinning was attempted but reverted — several of
+# these are Debian-managed (e.g. python3-psutil), and pip cannot uninstall/downgrade a
+# dpkg-owned package (uninstall-no-record-file), so `==` pins break the install on this mixed
+# system. Doing pip pinning/hash-locking properly here needs a dedicated venv for engined so
+# pip is isolated from the system dist-packages. Until then, install unpinned (as before).
+log "Installing Python packages..."
+pip3 install --break-system-packages --quiet \
+    aiohttp structlog prometheus-client \
+    pydantic pydantic-settings \
+    fastapi starlette httpx psutil \
+    zstandard lz4 brotli \
+    grpcio grpcio-tools protobuf \
+    anyio "numpy>=2.0.0"
+ok "Python packages installed"
 
 # 4. System user
 log "Setting up sigmavault user..."
