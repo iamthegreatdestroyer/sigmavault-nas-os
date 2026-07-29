@@ -86,3 +86,8 @@ debian/files
 debian/sigmavault-desktop/
 debian/.debhelper/
 sigmavault-api
+
+# This project builds with pnpm (CI: `pnpm install --frozen-lockfile`).
+# A package-lock.json would resolve a DIFFERENT dependency tree than the one
+# that is built and tested. One lockfile per project.
+package-lock.json
